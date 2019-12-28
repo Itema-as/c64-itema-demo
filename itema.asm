@@ -1,5 +1,5 @@
 /*
-	Nyttige lenker,
+	Useful links,
 
 	* C64 Sprites
 	  - https://www.c64-wiki.com/wiki/Sprite
@@ -55,7 +55,7 @@ loop:
 	jsr vertical
 	jmp loop
 			
-horizontal:			
+horizontal:				// handle left/right movement			
 	lda $cf00
 	cmp #$00
 	bne right			// move right if value != 0
@@ -63,7 +63,7 @@ horizontal:
 	bne left			// move left if value != 1
 rts
 
-vertical:
+vertical:				// handle up/down movement
 	lda $cf01
 	cmp #$00
 	bne down			// move right if value != 0
@@ -72,27 +72,65 @@ vertical:
 rts
 
 right:
+	lda $d010
+	and #%00000001
+	cmp #%00000001		// see if we are over the 256px limit
+	bne normal_right	// if not move as normal to the right
 	inc $d000
 	lda $d000
-	cmp #$fe
-	bcs change_to_left
+	cmp #$40 
+	beq change_to_left
 rts
 
-left:
+normal_right:			// move right
+	inc $d000
+	lda $d000
+	cmp #$ff
+	beq set_msb
+rts
+
+set_msb:				// at the 256px limit moving right
+	lda #$0
+	sta $d000
+	lda $d010			
+	ora #%00000001
+	sta $d010
+rts
+
+clear_msb:				// at the 256px limit moving left
+	lda #$fe
+	sta $d000
+	lda $d010			
+	and #%11111110
+	sta $d010
+rts
+
+left:					// move left
+	lda $d010
+	and #%00000001
+	cmp #%00000001		// see if we are over the 256px limit
+	bne normal_left		// if not move as normal to the left 
 	dec $d000
 	lda $d000
-	cmp #$16
-	bcc change_to_right
+	cmp #$00
+	beq clear_msb
 rts
 
-up:
+normal_left:			// move left
+	dec $d000
+	lda $d000
+	cmp #$17
+	beq change_to_right
+rts
+
+up:						// move up
 	dec $d001
 	lda $d001
-	cmp #$32
+	cmp #$31
 	bcc change_to_down
 rts
 
-down:
+down:					// move down
 	inc $d001
 	lda $d001
 	cmp #$e9
