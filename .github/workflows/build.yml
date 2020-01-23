@@ -9,8 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install MOS-6502 compiler
-      run: sudo apt-get install acme
+    - name: Install Multi-platform cross assembler for 6502/6510/65816 CPU
+      run: | 
+        sudo apt-get update
+        sudo apt-get install acme
     - name: Run a one-line script
       run: echo Hello, world!
     - name: Run a multi-line script
