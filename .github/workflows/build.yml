@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install Multi-platform cross assembler for 6502/6510/65816 CPU
       run: | 
-        sudo add-apt-repository universe
+        sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu $(lsb_release -sc) main universe restricted multiverse"
         sudo apt-get update
         sudo apt-get install acme
     - name: Run a one-line script
