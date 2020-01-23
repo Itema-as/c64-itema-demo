@@ -9,14 +9,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install Multi-platform cross assembler for 6502/6510/65816 CPU
-      run: | 
-        sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu $(lsb_release -sc) main universe restricted multiverse"
-        sudo apt-get update
-        sudo apt-get install acme
-    - name: Run a one-line script
-      run: echo Hello, world!
-    - name: Run a multi-line script
-      run: |
-        echo Add other actions to build,
-        echo test, and deploy your project.
+    - name: Download Kick Assembler
+      run: wget https://resheim.net/files/KickAss.jar
+    - name: Build .prg file
+      run: java -jar KickAss.jar -o itema.prg itema.asm
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        # Artifact name
+        name: itema.prg
+        # Directory containing files to upload
+        path: ./
