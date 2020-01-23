@@ -12,11 +12,13 @@ jobs:
     - name: Download Kick Assembler
       run: wget https://resheim.net/files/KickAss.jar
     - name: Build .prg file
-      run: java -jar KickAss.jar -o itema.prg itema.asm
+      run: |
+        mkdir target
+        java -jar KickAss.jar -o target/itema.prg itema.asm
     - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
       with:
         # Artifact name
-        name: itema.prg
+        name: Application
         # Directory containing files to upload
-        path: ./
+        path: ./target/
