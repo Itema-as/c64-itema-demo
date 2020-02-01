@@ -54,10 +54,7 @@ loop:
 
 	jsr horizontal
 	jsr vertical
-	
-	lda #1
-	sta $0400
-	
+
 jmp loop
 
 
