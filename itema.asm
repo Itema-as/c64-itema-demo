@@ -13,14 +13,8 @@ BasicUpstart2(initialize)
 // Initialize
 initialize:
 	jsr $e544			// clear screen
-
-	lda #$ff
-	sta $d000			// set x position of sprite
 	
-	lda #$ff
-	sta $d001			// set y position of sprite
-	
-	lda #%00000001		// enable sprite0
+	lda #%00000011		// enable sprites
 	sta $d015
 	
 	lda #$00			// disable xpand-y
@@ -43,19 +37,31 @@ initialize:
 	sta $d027
 	
 	lda #spriteData/64	// set sprite data pointer
-	sta $07f8
+	sta $07f8			// sprite #1
+	sta $07f9			// sprite #2
 	
-	lda #$01
-	sta $cf00
-	sta $cf01
+	jsr init_spritelib
 
 loop:
 	lda #00					// wait until the screen refreshes
 !:	cmp $d012	
 	bne !-
 
+	ldx #00					// first sprite
+	stx $cf00
+	ldx #$00
+	stx $cf01
 	jsr horizontal
-	jsr vertical
+	jsr vertical	
+	jsr draw_sprites
+
+//	ldx #06					// first sprite
+//	stx $cf00
+//	ldx #$01
+//	stx $cf01
+//	jsr horizontal
+//	jsr vertical
+//	jsr draw_sprites
 
 jmp loop
 
