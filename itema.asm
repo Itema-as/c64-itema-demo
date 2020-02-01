@@ -11,20 +11,20 @@
 BasicUpstart2(initialize)
 	
 // Initialize
-initialize:
+initialize: 
 	lda #$ff
 	sta $d000			// set x position of sprite
 	
 	lda #$ff
 	sta $d001			// set y position of sprite
 	
-	lda #$01 			// enable sprite0
+	lda #%00000001		// enable sprite0
 	sta $d015
 	
 	lda #$00			// disable xpand-y
 	sta $d017
 	
-	lda #$01			// set sprite/background priority
+	lda #$00			// set sprite/background priority
 	sta $d01b
 	
 	lda #$ff			// set multicolor
@@ -54,6 +54,10 @@ loop:
 
 	jsr horizontal
 	jsr vertical
+	
+	lda #1
+	sta $0400
+	
 jmp loop
 
 
