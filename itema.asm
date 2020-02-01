@@ -11,7 +11,9 @@
 BasicUpstart2(initialize)
 	
 // Initialize
-initialize: 
+initialize:
+	jsr $e544			// clear screen
+
 	lda #$ff
 	sta $d000			// set x position of sprite
 	
