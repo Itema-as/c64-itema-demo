@@ -7,6 +7,7 @@
 
 // import our sprite library
 #import "spritelib.asm"
+#import "textscroller.asm"
 #import "music/music.asm"
 
 BasicUpstart2(initialize)
@@ -14,6 +15,18 @@ BasicUpstart2(initialize)
 // Initialize
 initialize:
 	jsr $e544			// clear screen
+
+	lda #00 			// black sceen & background
+	sta $d020
+	sta $d021
+
+	jsr scroller		// start text scroller
+
+	lda #$ff
+	sta $d000			// set x position of sprite
+	
+	lda #$ff
+	sta $d001			// set y position of sprite
 	
 	lda #%00000011		// enable sprites
 	sta $d015
