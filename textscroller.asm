@@ -1,28 +1,28 @@
 
-scroller:	ldx #40				// init colour map
+initScroller:	ldx #40				// init color map
 			lda #01
 			sta $dbc0, x
 			dex
-			bpl scroller+4
+			bpl initScroller+4
 
-			sei					// set up interrupt
-			lda #$7f
-			sta $dc0d			// turn off the CIA interrupts
-			sta $dd0d
-			and $d011			// clear high bit of raster line
-			sta $d011		
+			// sei					// set up interrupt
+			// lda #$7f
+			// sta $dc0d			// turn off the CIA interrupts
+			// sta $dd0d
+			// and $d011			// clear high bit of raster line
+			// sta $d011		
 
-			ldy #00				// trigger on first scan line
-			sty $d012
+			// ldy #00				// trigger on first scan line
+			// sty $d012
 
-			lda #<noscroll		// load interrupt address
-			ldx #>noscroll
-			sta $0314
-			stx $0315
+			// lda #<noscroll		// load interrupt address
+			// ldx #>noscroll
+			// sta $0314
+			// stx $0315
 
-			lda #$01 			// enable raster interrupts
-			sta $d01a
-			cli
+			// lda #$01 			// enable raster interrupts
+			// sta $d01a
+			// cli
 			rts					// back to BASIC
 
 noscroll:	lda $d016			// default to no scroll on start of screen
@@ -35,7 +35,7 @@ noscroll:	lda $d016			// default to no scroll on start of screen
 			sta $0314
 			stx $0315
 			inc $d019			// acknowledge interrupt
-			jmp $ea31
+			rts
 
 scroll:		lda $d016			// grab scroll register
 			and #248			// mask lower 3 bits
@@ -87,7 +87,7 @@ continue:	ldy #00				// trigger on first scan line
 			sta $0314
 			stx $0315
 			inc $d019			// acknowledge interrupt
-			jmp $ea31
+			rts
 
 offset:		.byte 07 			// start at 7 for left scroll
 smooth:		.byte 01
