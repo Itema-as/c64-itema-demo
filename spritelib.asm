@@ -33,12 +33,13 @@ draw_sprites:
 
 	
 	// handle vertical position
-	ldx #$00
 	jsr get_yl
+	ldx #$00
 	sta $d001,x	
 
 	// handle horizontal position
 	jsr get_xl
+	ldx #$00
 	sta $d000,x
 
 	// handle horizontal position msb
@@ -78,16 +79,17 @@ rts
 
 left:
 	jsr get_xl
-	sec					// set the carry register
+	sec					// Clear the borrow flag
 	sbc #$01			// move left
 	jsr store_xl
-	bcc left_dec_msb	// Increment MSB	
+	cmp #$ff
+	beq left_dec_msb	// Increment MSB	
 	jsr left_edge
 rts	
 
 left_dec_msb:
 	jsr get_xm
-	sec					// clear the carry register
+	sec					// Clear the borrow flagg
 	sbc #$01			// add 1 to MSB
 	jsr store_xm
 rts
@@ -95,17 +97,18 @@ rts
 vertical:
 	jsr get_ya
 	cmp #$00
-	beq down			// move down if value = 0
+	beq down
 	cmp #$01
-	beq up				// move up if value = 1
+	beq up
 rts
 
 right:
 	jsr get_xl
-	clc
-	adc #$01			// move right
+	clc							// Clear the carry flag
+	adc #$01
 	jsr store_xl
-	bcs right_inc_msb	// Increment MSB	
+	cmp #$00
+	beq right_inc_msb	
 	jsr right_edge
 rts	
 
@@ -121,7 +124,7 @@ rts
 down:
 	jsr get_yl
 	clc
-	adc #$1				// move down
+	adc #$1
 	jsr store_yl
 	cmp #$e9			// is bottom of screen hit?
 	beq change_to_up
