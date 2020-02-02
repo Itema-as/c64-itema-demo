@@ -7,6 +7,7 @@
 
 // import our sprite library
 #import "spritelib.asm"
+#import "music/music.asm"
 
 BasicUpstart2(initialize)
 	
@@ -42,6 +43,7 @@ initialize:
 	
 	jsr init_spritelib
 
+jsr startMusic
 loop:
 	lda #00					// wait until the screen refreshes
 !:	cmp $d012	
