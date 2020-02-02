@@ -104,8 +104,8 @@ store_ya:
 
 store_val:
         tax                     // .A -> .X
-        sta spritebase,x        // load fieldaddr -> .A
         pla
+        sta spritebase,x        // load fieldaddr -> .A
         rts
 
 
