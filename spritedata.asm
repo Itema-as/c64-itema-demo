@@ -6,7 +6,7 @@ spriteindex:
 
 spritemem:
         //    xl   xm   yl   ym   xax  yax
-        .byte $00, $00, $00, $00, $00, $00
+        .byte $f0, $00, $f0, $00, $00, $00
         .byte $00, $00, $00, $00, $00, $00
         .byte $00, $00, $00, $00, $00, $00
         .byte $00, $00, $00, $00, $00, $00
@@ -15,8 +15,6 @@ spritemem:
         .byte $00, $00, $00, $00, $00, $00
         .byte $00, $00, $00, $00, $00, $00
 
-//.var spritepointer = $cf00
-.var spritebase = spriteindex + 1
 .var xl = 0
 .var xm = 1
 .var yl = 2
@@ -31,88 +29,93 @@ stx spriteindex
 jsr get_xm  // xm for 0 in a
 
 get_xm:
-        pushx()
         jsr getspritebase       // Get spritebase in .A
+		clc						// Clear the carry flag
         adc #xm                 // Add index to get fieldaddr
         jmp get_val
 
 get_xl:
-        pushx()
         jsr getspritebase       // Get spritebase in .A
+		clc						// Clear the carry flag
         adc #xl                 // Add index to get fieldaddr
         jmp get_val
 
 get_ym:
-        pushx()
         jsr getspritebase       // Get spritebase in .A
+		clc						// Clear the carry flag
         adc #ym                 // Add index to get fieldaddr
         jmp get_val
 
 get_yl:
-        pushx()
         jsr getspritebase       // Get spritebase in .A
+		clc						// Clear the carry flag
         adc #yl                 // Add index to get fieldaddr
         jmp get_val
 
 get_xa:
-        pushx()
         jsr getspritebase       // Get spritebase in .A
+		clc						// Clear the carry flag
         adc #xa                 // Add index to get fieldaddr
         jmp get_val
 
 get_ya:
-        pushx()
         jsr getspritebase       // Get spritebase in .A
+		clc						// Clear the carry flag
         adc #ya                 // Add index to get fieldaddr
 
         // jmp get_val // next instr
 
 get_val:
         tax                     // .A -> .X
-        lda spritebase,x        // load fieldaddr -> .A
-        popx()
+        lda spritemem,x        // load fieldaddr -> .A
         rts
 
 store_xm:
-        pushx()
+        pha
         jsr getspritebase       // Get spritebase in .A
+		clc						// Clear the carry flag
         adc #xm                 // Add index to get fieldaddr
         jmp store_val
 
 store_xl:
-        pushx()
+        pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+		clc
+        adc #xl          // Add index to get fieldaddr
         jmp store_val
 
 store_ym:
-        pushx()
+        pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+		clc
+        adc #ym                 // Add index to get fieldaddr
         jmp store_val
 
 store_yl:
-        pushx()
+        pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+		clc
+        adc #yl                 // Add index to get fieldaddr
         jmp store_val
 
 store_xa:
-        pushx()
+        pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+		clc
+        adc #xa                 // Add index to get fieldaddr
         jmp store_val
 
 store_ya:
-        pushx()
+        pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+		clc
+        adc #ya                 // Add index to get fieldaddr
         // jmp store_val // -> next instr
 
 store_val:
         tax                     // .A -> .X
-        sta spritebase,x        // load fieldaddr -> .A
-        popx()
+        pla
+        sta spritemem,x        // load fieldaddr -> .A
         rts
 
 
@@ -124,7 +127,7 @@ getspritebase:
     getspritebase_loop:
         cpx #$00
         beq gotspritebase
-
+		clc
         adc #spritelen
         dex
         jmp getspritebase_loop
@@ -132,13 +135,3 @@ getspritebase:
     gotspritebase:
         rts
     
-// pushx   -- uses .A
-.macro pushx() {
-        txa
-        pha
-}
-        
-.macro popx() {
-        pla
-        tax
-}

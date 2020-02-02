@@ -7,6 +7,7 @@
 
 // import our sprite library
 #import "spritelib.asm"
+#import "spritedata.asm"
 #import "music/music.asm"
 
 BasicUpstart2(initialize)
@@ -41,16 +42,12 @@ initialize:
 	sta $07f8			// sprite #1
 	sta $07f9			// sprite #2
 	
-	jsr init_spritelib
-
 jsr startMusic
 loop:
 	lda #00					// wait until the screen refreshes
 !:	cmp $d012	
 	bne !-
 
-	ldx #00					// first sprite
-	stx $cf00
 	jsr horizontal
 	jsr vertical	
 	jsr draw_sprites
