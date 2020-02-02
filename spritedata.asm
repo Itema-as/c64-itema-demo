@@ -75,31 +75,31 @@ store_xm:
 store_xl:
         pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+        adc #xl          // Add index to get fieldaddr
         jmp store_val
 
 store_ym:
         pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+        adc #ym                 // Add index to get fieldaddr
         jmp store_val
 
 store_yl:
         pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+        adc #yl                 // Add index to get fieldaddr
         jmp store_val
 
 store_xa:
         pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+        adc #xa                 // Add index to get fieldaddr
         jmp store_val
 
 store_ya:
         pha
         jsr getspritebase       // Get spritebase in .A
-        adc #xm                 // Add index to get fieldaddr
+        adc #ya                 // Add index to get fieldaddr
         // jmp store_val // -> next instr
 
 store_val:
