@@ -16,7 +16,7 @@ BasicUpstart2(initialize)
 initialize:
 	jsr $e544			// clear screen
 	
-	lda #%00000011		// enable sprites
+	lda #%11111111		// enable sprites
 	sta $d015
 	
 	lda #$00			// disable xpand-y
@@ -41,19 +41,34 @@ initialize:
 	lda #spriteData/64	// set sprite data pointer
 	sta $07f8			// sprite #1
 	sta $07f9			// sprite #2
+	sta $07fa			// sprite #3
+	sta $07fb			// sprite #4
+	sta $07fc			// sprite #5
+	sta $07fd			// sprite #6
+	sta $07fe			// sprite #7
+	sta $07ff			// sprite #8
 	
-jsr startMusic
+	//jsr startMusic
+
 loop:
 	lda #00					// wait until the screen refreshes
 !:	cmp $d012	
 	bne !-
 
-	jsr horizontal
-	jsr vertical	
-	jsr draw_sprites
-
+	lda #$00
+	sta spriteindex
+	animation_loop:
+		jsr horizontal
+		jsr vertical	
+		jsr draw_sprites
+		inc spriteindex
+		lda spriteindex
+		cmp #$08
+		beq done
+		jmp animation_loop
+	done:
+	
 jmp loop
-
 
 // -- Sprite Data --------------------------------------------------------------
 // Created using https://www.spritemate.com

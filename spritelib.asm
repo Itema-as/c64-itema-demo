@@ -23,24 +23,35 @@ clear_table:
 .byte %10111111
 .byte %01111111
 
-draw_sprites:
-	// x ==> 0	Sprite 0 X MSB
-	//       1  Sprite 0 X LSB
-	//       2  Sprite 0 Y MSB
-	//       3  Sprite 0 Y LSB
-	//       4  Sprite 0 X Accelleration
-	//       5  Sprite 0 Y Accelleration
 
-	
+get_sprite_offset:
+	ldx spriteindex
+	lda #$00
+
+	get_sprite_offset_loop:
+		cpx #$00
+		beq got_sprite_offset
+		clc
+		adc #$2
+		dex
+		jmp get_sprite_offset_loop
+
+	got_sprite_offset:
+		rts
+
+draw_sprites:
+
 	// handle vertical position
+	jsr get_sprite_offset
+	tay
 	jsr get_yl
-	ldx #$00
-	sta $d001,x	
+	sta $d001,y	
 
 	// handle horizontal position
+	jsr get_sprite_offset
+	tay
 	jsr get_xl
-	ldx #$00
-	sta $d000,x
+	sta $d000,y
 
 	// handle horizontal position msb
 	jsr get_xm
@@ -50,18 +61,18 @@ draw_sprites:
 	jsr get_xm
 	cmp #$00
 	beq clear_msb
-	
+
 rts
 
 set_msb:
-	ldx #0
+	ldx spriteindex
 	lda $d010
 	ora set_table,x
 	sta $d010
 rts
 
 clear_msb:
-	ldx #0
+	ldx spriteindex
 	lda $d010
 	and clear_table,x
 	sta $d010
@@ -90,7 +101,7 @@ rts
 left_dec_msb:
 	jsr get_xm
 	sec					// Clear the borrow flagg
-	sbc #$01			// add 1 to MSB
+	sbc #$01			// Add 1 to MSB
 	jsr store_xm
 rts
 
@@ -108,16 +119,16 @@ right:
 	adc #$01
 	jsr store_xl
 	cmp #$00
-	beq right_inc_msb	
+	beq right_inc_msb
 	jsr right_edge
 rts	
 
 up:
 	jsr get_yl
 	sec
-	sbc #$1				// move up
+	sbc #$1						// move up
 	jsr store_yl
-	cmp #$31			// is top of screen hit?
+	cmp #$31					// is top of screen hit?
 	beq change_to_down
 rts
 
@@ -126,36 +137,36 @@ down:
 	clc
 	adc #$1
 	jsr store_yl
-	cmp #$e9			// is bottom of screen hit?
+	cmp #$e9					// is bottom of screen hit?
 	beq change_to_up
 rts
 
 change_to_left:
-	lda #$01			// switch direction
+	lda #$01
 	jsr store_xa
 rts
 
 change_to_up:
-	lda #$01			// switch direction
+	lda #$01
 	jsr store_ya
 rts
 
 change_to_down:
-	lda #$00			// switch direction
+	lda #$00
 	jsr store_ya
 rts
 
 
 right_inc_msb:
 	jsr get_xm
-	clc					// clear the carry register
-	adc #$1				// add 1 to MSB
+	clc							// Clear the carry register
+	adc #$1						// Add 1 to MSB
 	jsr store_xm
 rts
 
 right_edge:
 	jsr get_xm
-	cmp #$01			// compare with #01 (over fold)
+	cmp #$01					// Compare with #01 (over fold)
 	beq at_right_edge
 rts
 
@@ -167,7 +178,7 @@ rts
 
 left_edge:
 	jsr get_xm
-	cmp #$01			// compare with #00 (at fold)
+	cmp #$01					// Compare with #00 (at fold)
 	bne at_left_edge
 rts
 
@@ -178,6 +189,6 @@ at_left_edge:
 rts
 
 change_to_right:
-	lda #$00			// switch direction
+	lda #$00					// Switch direction
 	jsr store_xa
 rts
