@@ -3,15 +3,6 @@
 	Copyright (c) 2020 Torkild U. Resheim and others 
 */
 
-.var base=$0010
-
-init_spritelib:
-	lda #$0
-	.for (var i=0;i<48;i++) {		
-		sta base+i
-	}
-rts
-
 set_table:
 .byte %00000001
 .byte %00000010
@@ -32,9 +23,6 @@ clear_table:
 .byte %10111111
 .byte %01111111
 
-.var sprite = 0
-.var xaddr = sprite*2
-
 draw_sprites:
 	// x ==> 0	Sprite 0 X MSB
 	//       1  Sprite 0 X LSB
@@ -43,45 +31,36 @@ draw_sprites:
 	//       4  Sprite 0 X Accelleration
 	//       5  Sprite 0 Y Accelleration
 
+	
 	// handle vertical position
-	ldx #xaddr
-	ldy $cf00			// load address offset 
-	iny
-	iny
-	iny
-	lda base,y
+	ldx #$00
+	jsr get_yl
 	sta $d001,x	
 
 	// handle horizontal position
-	ldx #xaddr			// load sprite offset
-	ldy $cf00			// load address offset
-	iny					// point to the LSB x position
-	lda base,y
-	sta $d000,x			// store the LSB x position
+	jsr get_xl
+	sta $d000,x
 
 	// handle horizontal position msb
-	dey					// point to the MSB x position
-
-	lda base,y
+	jsr get_xm
 	cmp #$01
 	beq set_msb
-
-	lda base,y
+	
+	jsr get_xm
 	cmp #$00
 	beq clear_msb
 	
 rts
 
 set_msb:
-	ldx #sprite			// put the sprite number in x
-	ldy set_table,x
+	ldx #0
 	lda $d010
 	ora set_table,x
 	sta $d010
 rts
 
 clear_msb:
-	ldx #sprite			// put the sprite number in x
+	ldx #0
 	lda $d010
 	and clear_table,x
 	sta $d010
@@ -90,12 +69,7 @@ rts
 ////////////////////////////////////////////////////////////////////////////////
 
 horizontal:
-	ldy $cf00
-	iny
-	iny
-	iny
-	iny
-	lda base,y
+	jsr get_xa
 	cmp #$00
 	beq right			// move right if value = 0
 	cmp #$01
@@ -103,33 +77,23 @@ horizontal:
 rts
 
 left:
-	ldy $cf00			// X MSB
-	iny					// X LSB
-	lda base,y			// get value of LSB to A
-	sec
-	sbc #$1
-	sta base,y
+	jsr get_xl
+	sec					// set the carry register
+	sbc #$01			// move left
+	jsr store_xl
 	bcc left_dec_msb	// Increment MSB	
 	jsr left_edge
 rts	
 
 left_dec_msb:
-	ldy $cf00			// get X MSB
-	lda base,y			// get value of MSB to A
+	jsr get_xm
 	sec					// clear the carry register
-	sbc #$1				// add 1 to MSB
-	sta base,y			// and store the result
-	sta $0401
+	sbc #$01			// add 1 to MSB
+	jsr store_xm
 rts
 
 vertical:
-	ldy $cf00			// X MSB
-	iny					// X LSB
-	iny					// Y MSB
-	iny					// Y LSB
-	iny					// X Accelleration
-	iny					// Y Accelleration
-	lda base,y
+	jsr get_ya
 	cmp #$00
 	beq down			// move down if value = 0
 	cmp #$01
@@ -137,119 +101,80 @@ vertical:
 rts
 
 right:
-	ldy $cf00			// X MSB
-	iny					// X LSB
-	lda base,y
+	jsr get_xl
 	clc
-	adc #$1
-	sta base,y
+	adc #$01			// move right
+	jsr store_xl
 	bcs right_inc_msb	// Increment MSB	
 	jsr right_edge
 rts	
 
 up:
-	ldy $cf00			// X MSB
-	iny					// X LSB
-	iny					// Y MSB
-	iny					// Y LSB
-	lda base,y
+	jsr get_yl
 	sec
-	sbc #$1
-	sta base,y
+	sbc #$1				// move up
+	jsr store_yl
 	cmp #$31			// is top of screen hit?
 	beq change_to_down
 rts
 
 down:
-	ldy $cf00			// X MSB
-	iny					// X LSB
-	iny					// Y MSB
-	iny					// Y LSB
-	lda base,y
+	jsr get_yl
 	clc
-	adc #$1
-	sta base,y
+	adc #$1				// move down
+	jsr store_yl
 	cmp #$e9			// is bottom of screen hit?
 	beq change_to_up
 rts
 
 change_to_left:
-	ldy $cf00
-	iny
-	iny
-	iny
-	iny	
 	lda #$01			// switch direction
-	sta base,y
+	jsr store_xa
 rts
 
 change_to_up:
-	ldy $cf00
-	iny
-	iny
-	iny
-	iny
-	iny	
 	lda #$01			// switch direction
-	sta base,y
+	jsr store_ya
 rts
 
 change_to_down:
-	ldy $cf00
-	iny
-	iny
-	iny
-	iny
-	iny	
 	lda #$00			// switch direction
-	sta base,y
+	jsr store_ya
 rts
 
 
 right_inc_msb:
-	ldy $cf00			// X MSB
-	lda base,y			// get value of MSB to A
+	jsr get_xm
 	clc					// clear the carry register
 	adc #$1				// add 1 to MSB
-	sta base,y			// and store the result
+	jsr store_xm
 rts
 
 right_edge:
-	ldy $cf00			// X MSB
-	lda base,y			// get value of MSB to A
+	jsr get_xm
 	cmp #$01			// compare with #01 (over fold)
 	beq at_right_edge
 rts
 
 at_right_edge:
-	ldy $cf00			// X MSB
-	iny					// X LSB
-	lda base,y
+	jsr get_xl
 	cmp #$40
 	beq change_to_left
 rts
 
 left_edge:
-	ldy $cf00			// Get X MSB
-	lda base,y			// get value of MSB to A
+	jsr get_xm
 	cmp #$01			// compare with #00 (at fold)
 	bne at_left_edge
 rts
 
 at_left_edge:
-	ldy $cf00			// Get X MSB
-	iny					// X LSB
-	lda base,y
+	jsr get_xl
 	cmp #$17
 	beq change_to_right
 rts
 
 change_to_right:
-	ldy $cf00
-	iny
-	iny
-	iny
-	iny	
 	lda #$00			// switch direction
-	sta base,y
+	jsr store_xa
 rts
