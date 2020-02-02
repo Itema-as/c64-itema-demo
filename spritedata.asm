@@ -67,31 +67,37 @@ get_val:
         rts
 
 store_xm:
+        pha
         jsr getspritebase       // Get spritebase in .A
         adc #xm                 // Add index to get fieldaddr
         jmp store_val
 
 store_xl:
+        pha
         jsr getspritebase       // Get spritebase in .A
         adc #xm                 // Add index to get fieldaddr
         jmp store_val
 
 store_ym:
+        pha
         jsr getspritebase       // Get spritebase in .A
         adc #xm                 // Add index to get fieldaddr
         jmp store_val
 
 store_yl:
+        pha
         jsr getspritebase       // Get spritebase in .A
         adc #xm                 // Add index to get fieldaddr
         jmp store_val
 
 store_xa:
+        pha
         jsr getspritebase       // Get spritebase in .A
         adc #xm                 // Add index to get fieldaddr
         jmp store_val
 
 store_ya:
+        pha
         jsr getspritebase       // Get spritebase in .A
         adc #xm                 // Add index to get fieldaddr
         // jmp store_val // -> next instr
@@ -99,6 +105,7 @@ store_ya:
 store_val:
         tax                     // .A -> .X
         sta spritebase,x        // load fieldaddr -> .A
+        pla
         rts
 
 
