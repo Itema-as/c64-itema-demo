@@ -1,32 +1,39 @@
 /*
 	Simple sprite handling library
-	Copyright (c) 2020 Torkild U. Resheim 
-
-        76543210 Sprite movement x direction (1 = right, 0 = left)
-$cf00	00000000
-
-        76543210 Sprite movement y direction (1 = down, 0 = up)
-$cf01	00000000
-
-$cf02 x sprite
-$cf03 y sprite 1
-
-
-00000000 00000000
-
+	Copyright (c) 2020 Torkild U. Resheim and others 
 */
 
 .var base=$0010
 
 init_spritelib:
 	lda #$0
-	.for (var i=0;i<47;i++) {		
+	.for (var i=0;i<48;i++) {		
 		sta base+i
 	}
-//	lda #$60
-//	sta $0011
-//	sta $0013
 rts
+
+set_table:
+.byte %00000001
+.byte %00000010
+.byte %00000100
+.byte %00001000
+.byte %00010000
+.byte %00100000
+.byte %01000000
+.byte %10000000
+
+clear_table:
+.byte %11111110
+.byte %11111101
+.byte %11111011
+.byte %11110111
+.byte %11101111
+.byte %11011111
+.byte %10111111
+.byte %01111111
+
+.var sprite = 0
+.var xaddr = sprite*2
 
 draw_sprites:
 	// x ==> 0	Sprite 0 X MSB
@@ -36,42 +43,47 @@ draw_sprites:
 	//       4  Sprite 0 X Accelleration
 	//       5  Sprite 0 Y Accelleration
 
-	// handle horizontal position
-	ldy $cf00		// load address offset
-	ldx $cf01		// load sprite index 
-	iny
-	lda base,y
-	sta $d000,x
-	dey
-	lda $d010
-	and #%11111110
-	ora base,y
-	sta $d010,x
-	
 	// handle vertical position
-	ldy $cf00		// load address offset 
-	ldx $cf01		// load sprite index 
+	ldx #xaddr
+	ldy $cf00			// load address offset 
 	iny
 	iny
 	iny
 	lda base,y
-	sta $d001,x
+	sta $d001,x	
+
+	// handle horizontal position
+	ldx #xaddr			// load sprite offset
+	ldy $cf00			// load address offset
+	iny					// point to the LSB x position
+	lda base,y
+	sta $d000,x			// store the LSB x position
+
+	// handle horizontal position msb
+	dey					// point to the MSB x position
+
+	lda base,y
+	cmp #$01
+	beq set_msb
+
+	lda base,y
+	cmp #$00
+	beq clear_msb
 	
 rts
 
-set_msb:			// at the 256px limit moving right
-	lda #$0
-	sta $d000
+set_msb:
+	ldx #sprite			// put the sprite number in x
+	ldy set_table,x
 	lda $d010
-	ora #%00000001
+	ora set_table,x
 	sta $d010
 rts
 
-clear_msb:			// at the 256px limit moving left
-	lda #$fe
-	sta $d000
+clear_msb:
+	ldx #sprite			// put the sprite number in x
 	lda $d010
-	and #%11111110
+	and clear_table,x
 	sta $d010
 rts
 

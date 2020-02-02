@@ -65,19 +65,9 @@ loop:
 
 	ldx #00					// first sprite
 	stx $cf00
-	ldx #$00
-	stx $cf01
 	jsr horizontal
 	jsr vertical	
 	jsr draw_sprites
-
-//	ldx #06					// first sprite
-//	stx $cf00
-//	ldx #$01
-//	stx $cf01
-//	jsr horizontal
-//	jsr vertical
-//	jsr draw_sprites
 
 jmp loop
 
