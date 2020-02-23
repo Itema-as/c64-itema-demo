@@ -29,36 +29,42 @@ stx spriteindex
 jsr get_xm  // xm for 0 in a
 
 get_xm:
+        php
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
         adc #xm                 // Add index to get fieldaddr
         jmp get_val
 
 get_xl:
+        php
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
         adc #xl                 // Add index to get fieldaddr
         jmp get_val
 
 get_ym:
+        php
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
         adc #ym                 // Add index to get fieldaddr
         jmp get_val
 
 get_yl:
+        php
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
         adc #yl                 // Add index to get fieldaddr
         jmp get_val
 
 get_xa:
+        php
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
         adc #xa                 // Add index to get fieldaddr
         jmp get_val
 
 get_ya:
+        php
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
         adc #ya                 // Add index to get fieldaddr
@@ -68,9 +74,11 @@ get_ya:
 get_val:
         tax                     // .A -> .X
         lda spritemem,x        // load fieldaddr -> .A
+        plp
         rts
 
 store_xm:
+        php
         pha
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
@@ -78,6 +86,7 @@ store_xm:
         jmp store_val
 
 store_xl:
+        php
         pha
         jsr getspritebase       // Get spritebase in .A
 		clc
@@ -85,6 +94,7 @@ store_xl:
         jmp store_val
 
 store_ym:
+        php
         pha
         jsr getspritebase       // Get spritebase in .A
 		clc
@@ -92,6 +102,7 @@ store_ym:
         jmp store_val
 
 store_yl:
+        php
         pha
         jsr getspritebase       // Get spritebase in .A
 		clc
@@ -99,6 +110,7 @@ store_yl:
         jmp store_val
 
 store_xa:
+        php
         pha
         jsr getspritebase       // Get spritebase in .A
 		clc
@@ -106,6 +118,7 @@ store_xa:
         jmp store_val
 
 store_ya:
+        php
         pha
         jsr getspritebase       // Get spritebase in .A
 		clc
@@ -115,6 +128,7 @@ store_ya:
 store_val:
         tax                     // .A -> .X
         pla
+        plp
         sta spritemem,x        // load fieldaddr -> .A
         rts
 
