@@ -93,16 +93,10 @@ left:
 	sec					// Clear the borrow flag
 	sbc #$01			// move left
 	jsr store_xl
-	cmp #$ff
-	beq left_dec_msb	// Increment MSB	
-	jsr left_edge
-rts	
-
-left_dec_msb:
 	jsr get_xm
-	sec					// Clear the borrow flagg
-	sbc #$01			// Add 1 to MSB
+	sbc #$00			// Subtract zero and borrow from lsb subtraction
 	jsr store_xm
+	jsr left_edge
 rts
 
 vertical:
@@ -118,8 +112,9 @@ right:
 	clc							// Clear the carry flag
 	adc #$01
 	jsr store_xl
-	cmp #$00
-	beq right_inc_msb
+	jsr get_xm
+	adc #$00					// Add zero and carry from lsb addition
+	jsr store_xm
 	jsr right_edge
 rts	
 
@@ -154,14 +149,6 @@ rts
 change_to_down:
 	lda #$00
 	jsr store_ya
-rts
-
-
-right_inc_msb:
-	jsr get_xm
-	clc							// Clear the carry register
-	adc #$1						// Add 1 to MSB
-	jsr store_xm
 rts
 
 right_edge:
