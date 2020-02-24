@@ -1,26 +1,40 @@
-// Sprite data handling
-//
-// By Oystein Steimler, ofs@itema.no
+/*
+	Sprite data library
+	Copyright (c) 2020 Itema AS
+
+	Written by:
+	- Oystein Steimler, ofs@itema.no
+	- Torkild U. Resheim, tur@itema.no
+*/
+
 spriteindex:
         .byte $00
 
+
+// $0017, $31 <-> $0140, $e9
 spritemem:
-        //    xl   xm   yl   ym   xax  yax
-        .byte $f0, $00, $f0, $00, $00, $00
-        .byte $20, $00, $20, $00, $01, $01
-        .byte $10, $00, $10, $00, $00, $01
-        .byte $20, $00, $20, $00, $01, $00
-        .byte $30, $00, $30, $00, $00, $01
-        .byte $40, $00, $40, $00, $01, $00
-        .byte $50, $00, $50, $00, $00, $01
-        .byte $60, $00, $60, $00, $01, $00
+		//    +--------------------------- X-position least significant bits
+		//    |    +---------------------- X-position most significant bits
+		//    |    |    +----------------- Y-position least significant bits
+		//    |    |    |    +------------ Y-position most significant bits
+		//    |    |    |    |    +------- X-velocity (signed integer)
+		//    |    |    |    |    |    +-- Y-velocity (signed integer)
+		//    xl   xm   yl   ym   xv   yv
+		.byte $18, $00, $32, $00, $01, $01
+		.byte $18, $00, $42, $00, $02, $02
+		.byte $18, $00, $52, $00, $03, $03
+		.byte $18, $00, $62, $00, $01, $02
+		.byte $18, $00, $72, $00, $02, $01
+		.byte $18, $00, $82, $00, $02, $03
+		.byte $18, $00, $92, $00, $03, $02
+		.byte $18, $00, $a2, $00, $04, $04
 
 .var xl = 0
 .var xm = 1
 .var yl = 2
 .var ym = 3
-.var xa = 4
-.var ya = 5
+.var xv = 4
+.var yv = 5
 .var spritelen = 6
 
 
@@ -56,18 +70,18 @@ get_yl:
         adc #yl                 // Add index to get fieldaddr
         jmp get_val
 
-get_xa:
+get_xv:
         php
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
-        adc #xa                 // Add index to get fieldaddr
+        adc #xv                 // Add index to get fieldaddr
         jmp get_val
 
-get_ya:
+get_yv:
         php
         jsr getspritebase       // Get spritebase in .A
 		clc						// Clear the carry flag
-        adc #ya                 // Add index to get fieldaddr
+        adc #yv                 // Add index to get fieldaddr
 
         // jmp get_val // next instr
 
@@ -109,20 +123,20 @@ store_yl:
         adc #yl                 // Add index to get fieldaddr
         jmp store_val
 
-store_xa:
+store_xv:
         php
         pha
         jsr getspritebase       // Get spritebase in .A
 		clc
-        adc #xa                 // Add index to get fieldaddr
+        adc #xv                 // Add index to get fieldaddr
         jmp store_val
 
-store_ya:
+store_yv:
         php
         pha
         jsr getspritebase       // Get spritebase in .A
 		clc
-        adc #ya                 // Add index to get fieldaddr
+        adc #yv                 // Add index to get fieldaddr
         // jmp store_val // -> next instr
 
 store_val:
