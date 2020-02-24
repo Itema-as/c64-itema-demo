@@ -2,30 +2,35 @@
 	Sprite handling library
 	Copyright (c) 2020 Itema AS
 
+	This will simply bounce sprites between the four corners of the screen.
+
 	Written by:
-	- Oystein Steimler, ofs@itema.no
+	- Øystein Steimler, ofs@itema.no
 	- Torkild U. Resheim, tur@itema.no
+	- Morten Moen, mmo@itema.no
+	- Arve Moen, amo@itema.no
+	- Bjørn Leithe Karlsen, bka@itema.no
 */
 
 set_table:
-.byte %00000001
-.byte %00000010
-.byte %00000100
-.byte %00001000
-.byte %00010000
-.byte %00100000
-.byte %01000000
-.byte %10000000
+	.byte %00000001
+	.byte %00000010
+	.byte %00000100
+	.byte %00001000
+	.byte %00010000
+	.byte %00100000
+	.byte %01000000
+	.byte %10000000
 
 clear_table:
-.byte %11111110
-.byte %11111101
-.byte %11111011
-.byte %11110111
-.byte %11101111
-.byte %11011111
-.byte %10111111
-.byte %01111111
+	.byte %11111110
+	.byte %11111101
+	.byte %11111011
+	.byte %11110111
+	.byte %11101111
+	.byte %11011111
+	.byte %10111111
+	.byte %01111111
 
 /*
 	A helper address we will need on occasion
@@ -94,72 +99,75 @@ rts
 
 horizontal:
 	jsr get_xv
-	cmp #$00			// Compare with signed integer
-	bmi left			// Move left if value is negative
-	bpl right			// Move right if value is positive
+	cmp #$00				// Compare with signed integer
+	bmi left				// Move left if value is negative
+	bpl right				// Move right if value is positive
 rts
 
 vertical:
 	jsr get_yv
-	cmp #$00			// Compare with signed integer
-	bmi up				// Move up if value is negative
-	bpl down			// Move down if value is positive
+	cmp #$00				// Compare with signed integer
+	bmi up					// Move up if value is negative
+	bpl down				// Move down if value is positive
 rts
 
 left:
-	jsr get_xv			// Get the X-velocity (which is negative)
-	eor #$ff			// Flip the sign so that we get a positive number
-	clc					// Clear the carry flag, because we're adding
+	jsr get_xv				// Get the X-velocity (which is negative)
+	eor #$ff				// Flip the sign so that we get a positive number
+	clc
 	adc #$01
-	sta temp			// Store the new value in a variable
+	sta temp				// Store the new value in a variable
 	jsr get_xl
-	sec					// Clear the borrow flag, because we're subtracting
-	sbc temp			// Move left by the amount of velocity 
+	sec
+	sbc temp				// Move left by the amount of velocity 
 	jsr store_xl
 	jsr get_xm
-	sbc #$00			// Subtract zero and borrow from lsb subtraction
+	sbc #$00				// Subtract zero and borrow from lsb subtraction
 	jsr store_xm
 	jsr left_edge
 rts
 
 right:
-	jsr get_xv			// Get the X-velocity (a positive number)
-	sta temp			// Store the value in a temporary variable
+	jsr get_xv				// Get the X-velocity (a positive number)
+	sta temp				// Store the value in a temporary variable
 	jsr get_xl
-	clc					// Clear the carry flag
-	adc temp			// Move right by the amount of velocity
+	clc
+	adc temp				// Move right by the amount of velocity
 	jsr store_xl
 	jsr get_xm
-	adc #$00			// Add zero and carry from lsb addition
+	adc #$00				// Add zero and carry from lsb addition
 	jsr store_xm
 	jsr right_edge
 rts	
 
 up:
-	jsr get_yv			// Get the Y-velocity (which is negative)
-	eor #$ff			// Flip the sign so that we get a positive number
-	clc					// Clear the carry flag, because we're adding
+	jsr get_yv				// Get the Y-velocity (which is negative)
+	eor #$ff				// Flip the sign so that we get a positive number
+	clc
 	adc #$01
-	sta temp			// Store the new value in a variable
+	sta temp				// Store the new value in a variable
 	jsr get_yl
-	sec					// Clear the borrow flag, because we're subtracting
-	sbc temp			// Move up by the amount of velocity
+	sec
+	sbc temp				// Move up by the amount of velocity
 	jsr store_yl
-	cmp #$31			// Is top of screen hit?
-	bcc change_vertical	// Jump if less than $31
+	cmp #$31				// Is top of screen hit?
+	bcc change_vertical		// Jump if less than $31
 rts
 
 down:
-	jsr get_yv			// Get the Y-velocity (a positive number)
-	sta temp			// Store the value in a temporary variable
+	jsr get_yv				// Get the Y-velocity (a positive number)
+	sta temp				// Store the value in a temporary variable
 	jsr get_yl
-	clc					// Clear the carry flag
-	adc temp			// Move down by the amount of velocity
+	clc
+	adc temp				// Move down by the amount of velocity
 	jsr store_yl
-	cmp #$e9			// Is bottom of screen hit?
-	bcs change_vertical	// Jump if more than $e9
+	cmp #$e9				// Is bottom of screen hit?
+	bcs change_vertical		// Jump if more than $e9
 rts
 
+/*
+	Flip the sign on the horizontal velocity
+*/
 change_horizontal:
 	jsr get_xv
 	eor #$ff
@@ -168,6 +176,9 @@ change_horizontal:
 	jsr store_xv
 rts
 
+/*
+	Flip the sign on the vertical velocity
+*/
 change_vertical:
 	jsr get_yv
 	eor #$ff
@@ -178,7 +189,7 @@ rts
 
 right_edge:
 	jsr get_xm
-	cmp #$01					// Compare with #01 (over fold)
+	cmp #$01				// Compare with #01 (over fold)
 	beq at_right_edge
 rts
 
@@ -190,7 +201,7 @@ rts
 
 left_edge:
 	jsr get_xm
-	cmp #$01					// Compare with #00 (at fold)
+	cmp #$01				// Compare with #00 (at fold)
 	bne at_left_edge
 rts
 

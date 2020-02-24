@@ -3,8 +3,11 @@
 	Copyright (c) 2020 Itema AS
 
 	Written by:
-	- Oystein Steimler, ofs@itema.no
+	- Øystein Steimler, ofs@itema.no
 	- Torkild U. Resheim, tur@itema.no
+	- Morten Moen, mmo@itema.no
+	- Arve Moen, amo@itema.no
+	- Bjørn Leithe Karlsen, bka@itema.no
 */
 
 * = $c000 "Main Program"
