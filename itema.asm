@@ -1,13 +1,20 @@
 /*
 	Simple bouncing Itema logo
-	Copyright (c) 2020 Torkild U. Resheim 
+	Copyright (c) 2020 Itema AS
+
+	Written by:
+	- Øystein Steimler, ofs@itema.no
+	- Torkild U. Resheim, tur@itema.no
+	- Morten Moen, mmo@itema.no
+	- Arve Moen, amo@itema.no
+	- Bjørn Leithe Karlsen, bka@itema.no
 */
 
 * = $c000 "Main Program"
 
 // import our sprite library
-#import "spritelib.asm"
 #import "spritedata.asm"
+#import "spritelib.asm"
 #import "music/music.asm"
 
 BasicUpstart2(initialize)
