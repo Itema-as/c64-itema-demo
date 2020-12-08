@@ -56,7 +56,7 @@ get_sprite_offset:
 	got_sprite_offset:
 		rts
 
-draw_sprites:
+draw_sprite:
 
 	// set vertical position
 	jsr get_sprite_offset
@@ -154,9 +154,11 @@ up:
 	bcc change_vertical		// Jump if less than $31
 rts
 
-down:
+down:	
 	jsr get_yv				// Get the Y-velocity (a positive number)
+	sed						// Enable decimal mode
 	sta temp				// Store the value in a temporary variable
+	cld						// Disable decimal mode
 	jsr get_yl
 	clc
 	adc temp				// Move down by the amount of velocity

@@ -22,13 +22,13 @@ BasicUpstart2(initialize)
 // Initialize
 initialize:
 	jsr $e544			// clear screen
-	
+
 	lda #%11111111		// enable sprites
 	sta $d015
-	
+
 	lda #$00			// disable xpand-y
 	sta $d017
-	
+
 	lda #$00			// set sprite/background priority
 	sta $d01b
 	
@@ -55,26 +55,21 @@ initialize:
 	sta $07fe			// sprite #7
 	sta $07ff			// sprite #8
 	
-	//jsr startMusic
+	jsr startMusic
 
 loop:
-	lda #00					// wait until the screen refreshes
-!:	cmp $d012	
-	bne !-
-
 	lda #$00
 	sta spriteindex
 	animation_loop:
 		jsr horizontal
 		jsr vertical	
-		jsr draw_sprites
+		jsr draw_sprite
 		inc spriteindex
 		lda spriteindex
 		cmp #$08
 		beq done
 		jmp animation_loop
 	done:
-	
 jmp loop
 
 // -- Sprite Data --------------------------------------------------------------
