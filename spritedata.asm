@@ -45,7 +45,7 @@ spritemem:
 
 ldx #0
 stx spriteindex
-jsr get_xm  // xm for 0 in a
+jsr get_xm					// xm for 0 in a
 
 get_xm:
 	php

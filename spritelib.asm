@@ -2,7 +2,18 @@
 	Sprite handling library
 	Copyright (c) 2020 Itema AS
 
-	This will simply bounce sprites between the four corners of the screen.
+	This will simply bounce sprites between the four walls of the screen. Load
+	the current sprite number in to the A register and call the following
+	functions:
+
+	horizontal to
+		move horizontally
+
+	vertical to
+		move vertically
+
+	draw_sprite to
+		draw the sprite on it's new location
 
 	Written by:
 	- Øystein Steimler, ofs@itema.no
@@ -33,7 +44,7 @@ clear_table:
 	.byte %01111111
 
 /*
-	A helper address we will need on occasion
+	A helper "variable" we will need on occasion
 */
 temp:
 	.byte %00000000
@@ -78,7 +89,6 @@ draw_sprite:
 	jsr get_xm
 	cmp #$00
 	beq clear_msb
-
 rts
 
 set_msb:
@@ -97,6 +107,9 @@ rts
 
 ////////////////////////////////////////////////////////////////////////////////
 
+/*
+	Perform horizontal movement
+*/
 horizontal:
 	jsr get_xv
 	cmp #$00				// Compare with signed integer
@@ -104,6 +117,9 @@ horizontal:
 	bpl right				// Move right if value is positive
 rts
 
+/*
+	Perform vertical movement
+*/
 vertical:
 	jsr get_yv
 	cmp #$00				// Compare with signed integer
@@ -111,6 +127,9 @@ vertical:
 	bpl down				// Move down if value is positive
 rts
 
+/*
+	Move current sprite left
+*/
 left:
 	jsr get_xv				// Get the X-velocity (which is negative)
 	eor #$ff				// Flip the sign so that we get a positive number
@@ -126,7 +145,9 @@ left:
 	jsr store_xm
 	jsr left_edge
 rts
-
+/*
+	Move current sprite right
+*/
 right:
 	jsr get_xv				// Get the X-velocity (a positive number)
 	sta temp				// Store the value in a temporary variable
@@ -140,6 +161,9 @@ right:
 	jsr right_edge
 rts	
 
+/*
+	Move current sprite upwards
+*/
 up:
 	jsr get_yv				// Get the Y-velocity (which is negative)
 	eor #$ff				// Flip the sign so that we get a positive number
@@ -154,6 +178,9 @@ up:
 	bcc change_vertical		// Jump if less than $31
 rts
 
+/*
+	Move current sprite downwards
+*/
 down:	
 	jsr get_yv				// Get the Y-velocity (a positive number)
 	sed						// Enable decimal mode
@@ -189,24 +216,36 @@ change_vertical:
 	jsr store_yv
 rts
 
+/*
+	Determine whether or not the current sprite is at the right edge
+*/
 right_edge:
 	jsr get_xm
 	cmp #$01				// Compare with #01 (over fold)
 	beq at_right_edge
 rts
 
+/*
+	Change direction and start moving leftwards
+*/
 at_right_edge:
 	jsr get_xl
 	cmp #$40
 	bcs change_horizontal
 rts
 
+/*
+	Determine whether or not the current sprite is at the left edge
+*/
 left_edge:
 	jsr get_xm
-	cmp #$01				// Compare with #00 (at fold)
+	cmp #$01				// Compare with #01 (at fold)
 	bne at_left_edge
 rts
 
+/*
+	Change direction and start moving rightwards
+*/
 at_left_edge:
 	jsr get_xl
 	cmp #$17
