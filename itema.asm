@@ -23,7 +23,7 @@ BasicUpstart2(initialize)
 initialize:
 	jsr $e544			// clear screen
 
-	lda #%11111111		// enable sprites
+	lda #%11111111		// enable all sprites
 	sta $d015
 
 	lda #$00			// disable xpand-y
@@ -32,17 +32,17 @@ initialize:
 	lda #$00			// set sprite/background priority
 	sta $d01b
 	
-	lda #$ff			// set multicolor
+	lda #$ff			// enable multicolor
 	sta $d01c
 	
 	lda #$00			// disable xpand-x
 	sta $d01d
 	
-	lda #$0f			// sprite multicolor 1
+	lda #$0f			// set sprite multicolor 1
 	sta $d025
-	lda #$0c			// sprite multicolor 2
+	lda #$0c			// set sprite multicolor 2
 	sta $d026
-	lda #$0a			// sprite individual color
+	lda #$0a			// set sprite individual color
 	sta $d027
 	
 	lda #spriteData/64	// set sprite data pointer
