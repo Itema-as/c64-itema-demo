@@ -16,7 +16,7 @@
 #import "spritedata.asm"
 #import "spritelib.asm"
 #import "music/music.asm"
-
+//
 BasicUpstart2(initialize)
 	
 // Initialize
@@ -55,7 +55,7 @@ initialize:
 	sta $07fe			// sprite #7
 	sta $07ff			// sprite #8
 	
-	jsr startMusic
+	//jsr startMusic
 
 loop:
 	lda #$00

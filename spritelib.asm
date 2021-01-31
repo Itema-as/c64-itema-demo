@@ -48,6 +48,8 @@ clear_table:
 */
 temp:
 	.byte %00000000
+temp2:
+	.byte %00000000
 
 /*
 	Determine the offset of the sprite x-position address
@@ -106,6 +108,32 @@ clear_msb:
 rts
 
 ////////////////////////////////////////////////////////////////////////////////
+bounce_up:
+	jsr get_ya
+	sta temp
+	jsr get_yv
+	adc #$1
+	cmp #$00				// Do not exceed maximum velocity 
+	beq start_falling
+	jsr store_yv
+rts
+
+fall_down:
+	jsr get_ya
+	sta temp
+	jsr get_yv
+	adc temp
+	cmp #$7f				// Do not exceed maximum velocity 
+	bpl f_acc
+	jsr store_yv
+	f_acc:
+rts
+
+start_falling:
+	lda #$01
+	jsr store_ya
+	lda #$00
+rts
 
 /*
 	Perform horizontal movement
@@ -121,10 +149,18 @@ rts
 	Perform vertical movement
 */
 vertical:
+	jsr acceleration
 	jsr get_yv
 	cmp #$00				// Compare with signed integer
 	bmi up					// Move up if value is negative
 	bpl down				// Move down if value is positive
+rts
+
+acceleration:
+	jsr get_ya
+	cmp #$00				// Compare with signed integer
+	bpl fall_down			// Move down if value is positive
+	bmi bounce_up			// Move up if value is negative
 rts
 
 /*
@@ -165,10 +201,11 @@ rts
 	Move current sprite upwards
 */
 up:
-	jsr get_yv				// Get the Y-velocity (which is negative)
+	jsr get_yv				// Get the Y-velocity (a negative number)
 	eor #$ff				// Flip the sign so that we get a positive number
 	clc
 	adc #$01
+	jsr shift_right
 	sta temp				// Store the new value in a variable
 	jsr get_yl
 	sec
@@ -181,17 +218,33 @@ rts
 /*
 	Move current sprite downwards
 */
-down:	
+down:
 	jsr get_yv				// Get the Y-velocity (a positive number)
-	sed						// Enable decimal mode
+	jsr shift_right
 	sta temp				// Store the value in a temporary variable
-	cld						// Disable decimal mode
 	jsr get_yl
 	clc
 	adc temp				// Move down by the amount of velocity
 	jsr store_yl
 	cmp #$e9				// Is bottom of screen hit?
 	bcs change_vertical		// Jump if more than $e9
+rts
+
+/*
+	Flip the sign on the vertical velocity
+*/
+change_vertical:
+	jsr get_yv				// Turn 180 degrees
+	eor #$ff
+	clc
+	adc #$01
+	jsr store_yv
+
+	jsr get_ya				// Change the direction of the acceleration
+	eor #$ff
+	clc
+	adc #$01
+	jsr store_ya
 rts
 
 /*
@@ -205,16 +258,6 @@ change_horizontal:
 	jsr store_xv
 rts
 
-/*
-	Flip the sign on the vertical velocity
-*/
-change_vertical:
-	jsr get_yv
-	eor #$ff
-	clc
-	adc #$01
-	jsr store_yv
-rts
 
 /*
 	Determine whether or not the current sprite is at the right edge
@@ -251,3 +294,16 @@ at_left_edge:
 	cmp #$17
 	bcc change_horizontal
 rts
+
+shift_right:
+	clc
+	ror
+	clc
+	ror
+	clc
+	ror
+	clc
+	ror
+	clc
+rts
+		
