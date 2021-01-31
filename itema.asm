@@ -16,7 +16,7 @@
 #import "spritedata.asm"
 #import "spritelib.asm"
 #import "music/music.asm"
-
+//
 BasicUpstart2(initialize)
 	
 // Initialize
@@ -55,7 +55,7 @@ initialize:
 	sta $07fe			// sprite #7
 	sta $07ff			// sprite #8
 	
-	jsr startMusic
+	//jsr startMusic
 
 loop:
 	lda #$00
@@ -70,6 +70,14 @@ loop:
 		beq done
 		jmp animation_loop
 	done:
+		// Spend a few cycles doing nothing in order to get a smooth motion
+		ldy  #$10
+		ldx  #$01
+		delay:
+			dex
+			bne delay
+			dey
+			bne delay
 jmp loop
 
 // -- Sprite Data --------------------------------------------------------------
