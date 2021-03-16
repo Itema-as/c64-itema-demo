@@ -1,4 +1,4 @@
-name: CI
+name: Build C64 Program File
 
 on: [push]
 
