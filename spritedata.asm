@@ -26,23 +26,23 @@ spritemem:
           |    |    |    |    |    |    |    |
           xl   xm   yl   ym   xv   yv	xa	 ya
 */
-	.byte $18, $00, $32, $00, $01, $00, $01, $00
-	.byte $18, $00, $42, $00, $02, $00, $01, $00
-	.byte $18, $00, $52, $00, $03, $00, $01, $00
-	.byte $18, $00, $62, $00, $01, $00, $01, $00
-	.byte $18, $00, $72, $00, $02, $00, $01, $00
-	.byte $18, $00, $82, $00, $02, $00, $01, $00
-	.byte $18, $00, $92, $00, $03, $00, $01, $00
-	.byte $18, $00, $a2, $00, $03, $00, $01, $00
+	.byte $18, $00, $32, $00, $01, $00, $00, $00
+	.byte $18, $00, $42, $00, $02, $00, $00, $00
+	.byte $18, $00, $52, $00, $03, $00, $00, $00
+	.byte $18, $00, $62, $00, $01, $00, $00, $00
+	.byte $18, $00, $72, $00, $02, $00, $00, $00
+	.byte $18, $00, $82, $00, $02, $00, $00, $00
+	.byte $18, $00, $92, $00, $03, $00, $00, $00
+	.byte $18, $00, $a2, $00, $03, $00, $00, $00
 
-.var xl = 0
-.var xm = 1
-.var yl = 2
-.var ym = 3
-.var xv = 4
-.var yv = 5
-.var xa = 6
-.var ya = 7
+.var xl = 0					// Y-location LSB
+.var xm = 1					// X-location MSB
+.var yl = 2					// Y-location LSB
+.var ym = 3					// X-location MSB
+.var xv = 4					// X-velocity
+.var yv = 5					// Y-velocity
+.var xa = 6					// X-acceleration
+.var ya = 7					// Y-acceleration
 .var spritelen = 8
 
 ldx #0

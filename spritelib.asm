@@ -115,8 +115,6 @@ rts
 	velocity to be lost.
 */
 bounce_up:
-	jsr get_ya
-	sta temp
 	jsr get_yv
 	clc	
 	adc #$04				// simulate gravity
@@ -128,12 +126,10 @@ rts
 	maximum value of #$7f is not exceeded because that would mean moving up.
 */
 fall_down:
-	jsr get_ya
-	sta temp
 	jsr get_yv
 	clc
-	adc #$04				// simulate gravity
-	cmp #$80				// Do not go negative
+	adc #$04				// Simulate gravity
+	cmp #$80				// Never go negative
 	bpl f_acc
 	jsr store_yv
 	f_acc:
@@ -143,6 +139,7 @@ rts
 	Perform horizontal movement
 */
 horizontal:
+	jsr h_acceleration		// Apply vertical acceleration
 	jsr get_xv
 	cmp #$00				// Compare with signed integer
 	bmi left				// Move left if value is negative
@@ -150,16 +147,25 @@ horizontal:
 rts
 
 /*
+ TODO: Apply horizontal acceleration from Joystick
+*/
+h_acceleration:
+rts
+
+/*
 	Perform vertical movement
 */
 vertical:
-	jsr v_acceleration		// Apply vertical accelleration
+	jsr v_acceleration		// Apply vertical acceleration
 	jsr get_yv
 	cmp #$00				// Compare with signed integer
 	bmi up					// Move up if value is negative
 	bpl down				// Move down if value is positive
 rts
 
+/*
+ TODO: Apply certical acceleration from Joystick
+*/
 v_acceleration:
 	jsr get_yv
 	cmp #$00				// Compare with signed integer
@@ -229,7 +235,7 @@ down:
 	clc
 	adc temp				// Move down by the amount of velocity
 	jsr store_yl
-	cmp #$e6				// Is bottom of screen hit?
+	cmp #$e5				// Is bottom of screen hit?
 	bcs change_vertical		// If so change direction
 rts
 
@@ -240,22 +246,28 @@ change_vertical:
 	jsr get_yv				// Change the direction of the velocity
 	eor #$ff
 	clc
-// doing this properly moves the sprite below the border
-//	adc #$01
+//	sbc #$01
 	jsr store_yv
 rts
 
 /*
-	Flip the sign on the horizontal velocity and acceleration
+	Start moving from left to right. Some velocity (#$01) is lost
 */
-change_horizontal:
+change_to_move_right:
 	jsr get_xv				// Change the direction of the velocity
-	eor #$ff
-	clc
-	adc #$01
+	eor #$ff				// Implicitly reduce velocity
 	jsr store_xv
 rts
 
+/*
+	Start moving from right to left. Some velocity (#$01) is lost
+*/
+change_to_move_left:
+	jsr get_xv				// Change the direction of the velocity
+	sbc #$01				// Reduce velocity
+	eor #$ff
+	jsr store_xv
+rts
 
 /*
 	Determine whether or not the current sprite is at the right edge
@@ -272,7 +284,7 @@ rts
 at_right_edge:
 	jsr get_xl
 	cmp #$40
-	bcs change_horizontal
+	bcs change_to_move_left
 rts
 
 /*
@@ -290,7 +302,7 @@ rts
 at_left_edge:
 	jsr get_xl
 	cmp #$17
-	bcc change_horizontal
+	bcc change_to_move_right
 rts
 
 shift_right:
