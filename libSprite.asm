@@ -160,7 +160,7 @@ move_horizontally:
 rts
 
 /*
- Apply horizontal acceleration from input
+	Apply horizontal acceleration from input
 */
 h_acceleration:
 	jsr get_xa
@@ -218,6 +218,7 @@ move_left:
 	jsr store_xm
 	jsr left_edge
 rts
+
 /*
 	Move current sprite right
 */
@@ -249,7 +250,7 @@ up:
 	sbc temp				// Move up by the amount of velocity
 	jsr store_yl
 	cmp #ScreenTopEdge		// Is top of screen hit?
-	bcc change_vertical		// Jump if less than $31
+	bcc change_to_move_down	// Jump if less than $31
 rts
 
 /*
@@ -264,17 +265,25 @@ down:
 	adc temp				// Move down by the amount of velocity
 	jsr store_yl
 	cmp #ScreenBottomEdge	// Is bottom of screen hit?
-	bcs change_vertical		// If so change direction
+	bcs change_to_move_up	// If so change direction
 rts
 
 /*
 	Flip the sign on the vertical velocity and acceleration
 */
-change_vertical:
+change_to_move_up:
 	jsr get_yv				// Change the direction of the velocity
-	eor #$ff
 	clc
-//	sbc #$01
+	sbc #$04				// Reduce velocity	
+	eor #$ff				// Flip the sign
+	jsr store_yv
+rts
+
+change_to_move_down:
+	jsr get_yv				// Change the direction of the velocity
+	clc
+	adc #$04				// Reduce velocity	
+	eor #$ff				// Flip the sign
 	jsr store_yv
 rts
 
@@ -284,7 +293,7 @@ rts
 change_to_move_right:
 	jsr get_xv				// Change the direction of the velocity
 	clc
-	adc #$03				// Reduce velocity
+	adc #$04				// Reduce velocity
 	eor #$ff				// Flip the sign
 	jsr store_xv
 rts
@@ -295,8 +304,8 @@ rts
 change_to_move_left:
 	jsr get_xv				// Change the direction of the velocity
 	clc
-	sbc #$03				// Reduce velocity
-	eor #$ff
+	sbc #$04				// Reduce velocity
+	eor #$ff				// Flip the sign
 	jsr store_xv
 rts
 
