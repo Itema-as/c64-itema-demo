@@ -55,6 +55,7 @@ ClearTable:
 .const ScreenLeftEdge   = $15
 
 .const Gravity          = $04
+.const VelocityLoss     = $04
 
 /*
 	A helper "variable" we will need on occasion
@@ -274,7 +275,7 @@ rts
 change_to_move_up:
 	jsr get_yv				// Change the direction of the velocity
 	clc
-	sbc #$04				// Reduce velocity	
+	sbc #VelocityLoss		// Reduce velocity	
 	eor #$ff				// Flip the sign
 	jsr store_yv
 rts
@@ -282,7 +283,7 @@ rts
 change_to_move_down:
 	jsr get_yv				// Change the direction of the velocity
 	clc
-	adc #$04				// Reduce velocity	
+	adc #VelocityLoss		// Reduce velocity	
 	eor #$ff				// Flip the sign
 	jsr store_yv
 rts
@@ -293,7 +294,7 @@ rts
 change_to_move_right:
 	jsr get_xv				// Change the direction of the velocity
 	clc
-	adc #$04				// Reduce velocity
+	adc #VelocityLoss		// Reduce velocity
 	eor #$ff				// Flip the sign
 	jsr store_xv
 rts
@@ -304,7 +305,7 @@ rts
 change_to_move_left:
 	jsr get_xv				// Change the direction of the velocity
 	clc
-	sbc #$04				// Reduce velocity
+	sbc #VelocityLoss		// Reduce velocity
 	eor #$ff				// Flip the sign
 	jsr store_xv
 rts
