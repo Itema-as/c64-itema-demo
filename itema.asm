@@ -1,6 +1,7 @@
 /*
-	Simple bouncing Itema logo
-	Copyright (c) 2020 Itema AS
+	Bouncing ball demo
+
+	Copyright (c) 2020-2022 Itema AS
 
 	Written by:
 	- Øystein Steimler, ofs@itema.no
@@ -15,6 +16,7 @@
 // import our sprite library
 #import "spritedata.asm"
 #import "spritelib.asm"
+#import "libInput.asm"
 #import "music/music.asm"
 //
 BasicUpstart2(initialize)
@@ -23,7 +25,7 @@ BasicUpstart2(initialize)
 initialize:
 	jsr $e544			// clear screen
 
-	lda #%11111111		// enable all sprites
+	lda #%00000001		// enable sprites
 	sta $d015
 
 	lda #$00			// disable xpand-y
@@ -32,8 +34,8 @@ initialize:
 	lda #$00			// set sprite/background priority
 	sta $d01b
 	
-	lda #$ff			// enable multicolor
-	sta $d01c
+//	lda #$ff			// enable multicolor
+//	sta $d01c
 	
 	lda #$00			// disable xpand-x
 	sta $d01d
@@ -59,19 +61,20 @@ initialize:
 
 loop:
 	lda #$00
-	sta spriteindex
+	sta SpriteIndex
 	animation_loop:
 		jsr horizontal
 		jsr vertical	
 		jsr draw_sprite
-		inc spriteindex
-		lda spriteindex
-		cmp #$08
+		jsr player_input
+		inc SpriteIndex
+		lda SpriteIndex
+		cmp #$01
 		beq done
 		jmp animation_loop
 	done:
 		// Spend a few cycles doing nothing in order to get a smooth motion
-		ldy  #$10
+		ldy  #$15
 		ldx  #$01
 		delay:
 			dex
@@ -80,28 +83,57 @@ loop:
 			bne delay
 jmp loop
 
+player_input:
+	// rRset acceleration
+	lda #$00
+	jsr store_xa
+	jsr store_ya
+	
+	// Set acelleration according to joystick input
+	LIBINPUT_GET(GameportLeftMask)
+		bne inputRight
+		lda #$ff
+		jsr store_xa
+	inputRight:
+		LIBINPUT_GET(GameportRightMask)
+		bne inputUp
+		lda #$01
+		jsr store_xa
+	inputUp:
+		LIBINPUT_GET(GameportUpMask)
+		bne inputDown  
+		lda #$f8
+		jsr store_ya
+	inputDown:
+		LIBINPUT_GET(GameportDownMask)
+		bne inputEnd
+		lda #$01
+		jsr store_ya
+	inputEnd:
+		rts 
+
 // -- Sprite Data --------------------------------------------------------------
 // Created using https://www.spritemate.com
 * = $2140 "Sprite Data"
 spriteData:
-.byte %00000000,%00101000,%00000000
-.byte %00000000,%10101010,%00000000
-.byte %00000001,%10101010,%01000000
-.byte %00000101,%10101010,%01010000
-.byte %00110111,%00101000,%11011100
-.byte %00010100,%00000000,%00010100
-.byte %11010100,%01010100,%00010111
-.byte %01011100,%01010100,%00110101
-.byte %01011100,%00010100,%00110101
-.byte %01011100,%00010100,%00110101
-.byte %01011100,%00010100,%00110101
-.byte %01011100,%00010100,%00110101
-.byte %01011100,%00010100,%00010101
-.byte %01011100,%00010100,%00010111
-.byte %01011100,%00010111,%11010100
-.byte %11010100,%00010101,%01011100
-.byte %00010100,%00010101,%01110000
-.byte %00110111,%00000000,%00000000
-.byte %00000101,%01111101,%00000000
-.byte %00001101,%01010101,%00000000
-.byte %00000011,%11011100,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00011000,%00000000
+.byte %00000000,%01111110,%00000000
+.byte %00000000,%11111111,%00000000
+.byte %00000000,%11111111,%00000000
+.byte %00000001,%11111111,%10000000
+.byte %00000001,%11111111,%10000000
+.byte %00000000,%11111111,%00000000
+.byte %00000000,%11111111,%00000000
+.byte %00000000,%01111110,%00000000
+.byte %00000000,%00011000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000

@@ -1,19 +1,19 @@
 /*
 	Sprite handling library
-	Copyright (c) 2020 Itema AS
+	Copyright (c) 2020-2022 Itema AS
 
 	This will simply bounce sprites between the four walls of the screen. Load
 	the current sprite number in to the A register and call the following
 	functions:
 
-	horizontal to
-		move horizontally
+	horizontal
+		to move horizontally
 
-	vertical to
-		move vertically
+	vertical
+		to move vertically
 
-	draw_sprite to
-		draw the sprite on it's new location
+	draw_sprite
+		to draw the sprite on it's new location
 
 	Written by:
 	- Øystein Steimler, ofs@itema.no
@@ -23,7 +23,7 @@
 	- Bjørn Leithe Karlsen, bka@itema.no
 */
 
-set_table:
+SetTable:
 	.byte %00000001
 	.byte %00000010
 	.byte %00000100
@@ -33,7 +33,7 @@ set_table:
 	.byte %01000000
 	.byte %10000000
 
-clear_table:
+ClearTable:
 	.byte %11111110
 	.byte %11111101
 	.byte %11111011
@@ -42,6 +42,14 @@ clear_table:
 	.byte %11011111
 	.byte %10111111
 	.byte %01111111
+
+/*
+	Sprite box
+*/
+.const ScreenTopEdge    = $2c
+.const ScreenBottomEdge = $eb
+.const ScreenRightEdge  = $47
+.const ScreenLeftEdge   = $15
 
 /*
 	A helper "variable" we will need on occasion
@@ -55,7 +63,7 @@ temp2:
 	Determine the offset of the sprite x-position address
 */
 get_sprite_offset:
-	ldx spriteindex
+	ldx SpriteIndex
 	lda #$00
 
 	get_sprite_offset_loop:
@@ -70,7 +78,6 @@ get_sprite_offset:
 		rts
 
 draw_sprite:
-
 	// set vertical position
 	jsr get_sprite_offset
 	tay
@@ -94,16 +101,16 @@ draw_sprite:
 rts
 
 set_msb:
-	ldx spriteindex
+	ldx SpriteIndex
 	lda $d010
-	ora set_table,x
+	ora SetTable,x
 	sta $d010
 rts
 
 clear_msb:
-	ldx spriteindex
+	ldx SpriteIndex
 	lda $d010
-	and clear_table,x
+	and ClearTable,x
 	sta $d010
 rts
 
@@ -117,7 +124,7 @@ rts
 bounce_up:
 	jsr get_yv
 	clc	
-	adc #$04				// simulate gravity
+	adc #$04				// Simulate gravity
 	jsr store_yv
 rts
 
@@ -139,17 +146,24 @@ rts
 	Perform horizontal movement
 */
 horizontal:
-	jsr h_acceleration		// Apply vertical acceleration
+	jsr h_acceleration		// Apply horizontal acceleration
 	jsr get_xv
+	clc
 	cmp #$00				// Compare with signed integer
 	bmi left				// Move left if value is negative
 	bpl right				// Move right if value is positive
 rts
 
 /*
- TODO: Apply horizontal acceleration from Joystick
+ Apply horizontal acceleration from input
 */
 h_acceleration:
+	jsr get_xa
+	sta temp				// Store the new value in a variable
+	jsr get_xv
+	clc
+	adc temp				// Add acceleration to velocity
+	jsr store_xv
 rts
 
 /*
@@ -158,16 +172,23 @@ rts
 vertical:
 	jsr v_acceleration		// Apply vertical acceleration
 	jsr get_yv
+	clc
 	cmp #$00				// Compare with signed integer
 	bmi up					// Move up if value is negative
 	bpl down				// Move down if value is positive
 rts
 
 /*
- TODO: Apply certical acceleration from Joystick
+	Apply vertical acceleration from input along with gravity
 */
 v_acceleration:
+	jsr get_ya
+	sta temp				// Store the new value in a variable
 	jsr get_yv
+	clc
+	adc temp				// Add Y to A
+	jsr store_yv
+	// -- Apply gravity
 	cmp #$00				// Compare with signed integer
 	bpl fall_down			// Move down if value is positive
 	bmi bounce_up			// Move up if value is negative
@@ -220,7 +241,7 @@ up:
 	sec
 	sbc temp				// Move up by the amount of velocity
 	jsr store_yl
-	cmp #$31				// Is top of screen hit?
+	cmp #ScreenTopEdge		// Is top of screen hit?
 	bcc change_vertical		// Jump if less than $31
 rts
 
@@ -235,7 +256,7 @@ down:
 	clc
 	adc temp				// Move down by the amount of velocity
 	jsr store_yl
-	cmp #$e5				// Is bottom of screen hit?
+	cmp #ScreenBottomEdge	// Is bottom of screen hit?
 	bcs change_vertical		// If so change direction
 rts
 
@@ -251,47 +272,55 @@ change_vertical:
 rts
 
 /*
-	Start moving from left to right. Some velocity (#$01) is lost
+	Start moving from left to right.
 */
 change_to_move_right:
 	jsr get_xv				// Change the direction of the velocity
-	eor #$ff				// Implicitly reduce velocity
+	clc
+	adc #$03				// Reduce velocity
+	eor #$ff				// Flip the sign
 	jsr store_xv
 rts
 
 /*
-	Start moving from right to left. Some velocity (#$01) is lost
+	Start moving from right to left.
 */
 change_to_move_left:
 	jsr get_xv				// Change the direction of the velocity
-	sbc #$01				// Reduce velocity
+	clc
+	sbc #$03				// Reduce velocity
 	eor #$ff
 	jsr store_xv
 rts
 
 /*
-	Determine whether or not the current sprite is at the right edge
+	Determine whether or not the current sprite is at the right edge of the
+	screen.
 */
 right_edge:
 	jsr get_xm
+	clc
 	cmp #$01				// Compare with #01 (over fold)
-	beq at_right_edge
+	beq over_fold
 rts
 
 /*
 	Change direction and start moving leftwards
 */
-at_right_edge:
+over_fold:
 	jsr get_xl
-	cmp #$40
+	clc
+	cmp #ScreenRightEdge
 	bcs change_to_move_left
 rts
 
 /*
-	Determine whether or not the current sprite is at the left edge
+	Determine whether or not the current sprite is at the left edge of the 
+	screen
 */
 left_edge:
 	jsr get_xm
+	clc
 	cmp #$01				// Compare with #01 (at fold)
 	bne at_left_edge
 rts
@@ -301,7 +330,8 @@ rts
 */
 at_left_edge:
 	jsr get_xl
-	cmp #$17
+	clc
+	cmp #ScreenLeftEdge
 	bcc change_to_move_right
 rts
 

@@ -10,10 +10,10 @@
 	- Bjørn Leithe Karlsen, bka@itema.no
 */
 
-spriteindex:
+SpriteIndex:
 	 .byte $00
 
-spritemem:
+SpriteMem:
 /*
           +------------------------------------ X-location least significant bits
           |    +------------------------------- X-location most significant bits
@@ -26,14 +26,14 @@ spritemem:
           |    |    |    |    |    |    |    |
           xl   xm   yl   ym   xv   yv	xa	 ya
 */
-	.byte $18, $00, $32, $00, $01, $00, $00, $00
-	.byte $18, $00, $42, $00, $02, $00, $00, $00
-	.byte $18, $00, $52, $00, $03, $00, $00, $00
-	.byte $18, $00, $62, $00, $01, $00, $00, $00
-	.byte $18, $00, $72, $00, $02, $00, $00, $00
-	.byte $18, $00, $82, $00, $02, $00, $00, $00
-	.byte $18, $00, $92, $00, $03, $00, $00, $00
-	.byte $18, $00, $a2, $00, $03, $00, $00, $00
+	.byte $18, $00, $32, $00, $00, $00, $00, $00
+	.byte $38, $00, $62, $00, $00, $00, $00, $00
+	.byte $58, $00, $82, $00, $00, $00, $00, $00
+	.byte $18, $00, $62, $00, $00, $00, $00, $00
+	.byte $18, $00, $72, $00, $00, $00, $00, $00
+	.byte $18, $00, $82, $00, $00, $00, $00, $00
+	.byte $18, $00, $92, $00, $00, $00, $00, $00
+	.byte $18, $00, $a2, $00, $00, $00, $00, $00
 
 .var xl = 0					// Y-location LSB
 .var xm = 1					// X-location MSB
@@ -46,7 +46,7 @@ spritemem:
 .var spritelen = 8
 
 ldx #0
-stx spriteindex
+stx SpriteIndex
 jsr get_xm					// xm for 0 in a
 
 get_xm:
@@ -108,7 +108,7 @@ get_yv:
 
 get_val:
 	tax						// .A -> .X
-	lda spritemem,x			// load fieldaddr -> .A
+	lda SpriteMem,x			// load fieldaddr -> .A
 	plp
 	rts
 
@@ -180,12 +180,12 @@ store_val:
 	tax						// .A -> .X
 	pla
 	plp
-	sta spritemem,x			// load fieldaddr -> .A
+	sta SpriteMem,x			// load fieldaddr -> .A
 	rts
 
 // getspritebase -> .A  -- uses .X
 getspritebase:
-	ldx spriteindex
+	ldx SpriteIndex
 	lda #$00
 
 	getspritebase_loop:
