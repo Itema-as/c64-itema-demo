@@ -207,6 +207,7 @@ move_left:
 	eor #$ff				// Flip the sign so that we get a positive number
 	clc
 	adc #$01				// fix after flip
+	jsr shift_right			// Apply only the 3 MSB of velocity
 	sta temp				// Store the new value in a variable
 	jsr get_xl
 	sec
@@ -222,6 +223,7 @@ rts
 */
 move_right:
 	jsr get_xv				// Get the X-velocity (a positive number)
+	jsr shift_right			// Apply only the 3 MSB of velocity
 	sta temp				// Store the value in a temporary variable
 	jsr get_xl
 	clc
@@ -240,7 +242,7 @@ up:
 	jsr get_yv				// Get the Y-velocity (a negative number)
 	eor #$ff				// Flip the sign so that we get a positive number
 	clc
-	jsr shift_right			// Apply the 3 MSB of velocity
+	jsr shift_right			// Apply only the 3 MSB of velocity
 	sta temp				// Store the new value in a variable
 	jsr get_yl
 	sec
