@@ -54,6 +54,8 @@ ClearTable:
 .const ScreenRightEdge  = $47
 .const ScreenLeftEdge   = $15
 
+.const Gravity          = $04
+
 /*
 	A helper "variable" we will need on occasion
 */
@@ -127,7 +129,7 @@ rts
 bounce_up:
 	jsr get_yv
 	clc	
-	adc #$04				// Simulate gravity
+	adc #Gravity				// Simulate gravity
 	jsr store_yv
 rts
 
@@ -138,7 +140,7 @@ rts
 fall_down:
 	jsr get_yv
 	clc
-	adc #$04				// Simulate gravity
+	adc #Gravity				// Simulate gravity
 	cmp #$80				// Never go negative
 	bpl f_acc
 	jsr store_yv
@@ -148,13 +150,13 @@ rts
 /*
 	Perform horizontal movement
 */
-horizontal:
+move_horizontally:
 	jsr h_acceleration		// Apply horizontal acceleration
 	jsr get_xv
 	clc
 	cmp #$00				// Compare with signed integer
-	bmi left				// Move left if value is negative
-	bpl right				// Move right if value is positive
+	bmi move_left			// Move left if value is negative
+	bpl move_right			// Move right if value is positive
 rts
 
 /*
@@ -172,7 +174,7 @@ rts
 /*
 	Perform vertical movement
 */
-vertical:
+move_vertically:
 	jsr v_acceleration		// Apply vertical acceleration
 	jsr get_yv
 	clc
@@ -192,19 +194,19 @@ v_acceleration:
 	adc temp				// Add Y to A
 	jsr store_yv
 	// -- Apply gravity
-	cmp #$00				// Compare with signed integer
-	bpl fall_down			// Move down if value is positive
-	bmi bounce_up			// Move up if value is negative
+//	cmp #$00				// Compare with signed integer
+//	bpl fall_down			// Move down if value is positive
+//	bmi bounce_up			// Move up if value is negative
 rts
 
 /*
 	Move current sprite left
 */
-left:
+move_left:
 	jsr get_xv				// Get the X-velocity (which is negative)
 	eor #$ff				// Flip the sign so that we get a positive number
 	clc
-	adc #$01
+	adc #$01				// fix after flip
 	sta temp				// Store the new value in a variable
 	jsr get_xl
 	sec
@@ -218,7 +220,7 @@ rts
 /*
 	Move current sprite right
 */
-right:
+move_right:
 	jsr get_xv				// Get the X-velocity (a positive number)
 	sta temp				// Store the value in a temporary variable
 	jsr get_xl

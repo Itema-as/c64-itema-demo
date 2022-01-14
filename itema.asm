@@ -16,6 +16,7 @@
 // import our sprite library
 #import "libSprite.asm"
 #import "libInput.asm"
+#import "libScreen.asm"
 #import "music/music.asm"
 //
 BasicUpstart2(initialize)
@@ -23,6 +24,9 @@ BasicUpstart2(initialize)
 // Initialize
 initialize:
 	jsr $e544			// clear screen
+
+	lda #$17			// activate character set 2
+	sta $d018
 
 	lda #%00000001		// enable sprites
 	sta $d015
@@ -39,10 +43,10 @@ initialize:
 	lda #$00			// disable xpand-x
 	sta $d01d
 	
-	lda #$0f			// set sprite multicolor 1
-	sta $d025
-	lda #$0c			// set sprite multicolor 2
-	sta $d026
+//	lda #$0f			// set sprite multicolor 1
+//	sta $d025
+//	lda #$0c			// set sprite multicolor 2
+//	sta $d026
 	lda #$0a			// set sprite individual color
 	sta $d027
 	
@@ -58,14 +62,20 @@ initialize:
 	
 	//jsr startMusic
 
+	// Set up some text for use when debugging
+	line1: .text "USE JOYSTICK 2"
+		   .byte $ff
+		   
+PRINT_SCREEN(line1, $0400)
+
 loop:
 	lda #$00
 	sta SpriteIndex
 	animation_loop:
-		jsr horizontal
-		jsr vertical	
-		jsr draw_sprite
 		jsr player_input
+		jsr move_horizontally
+		jsr move_vertically
+		jsr draw_sprite
 		inc SpriteIndex
 		lda SpriteIndex
 		cmp #$01
@@ -77,13 +87,15 @@ loop:
 		ldx  #$01
 		delay:
 			dex
+			txa
 			bne delay
 			dey
+			tya
 			bne delay
 jmp loop
 
 player_input:
-	// rRset acceleration
+	// Reset acceleration on both axis
 	lda #$00
 	jsr store_xa
 	jsr store_ya
@@ -108,7 +120,7 @@ player_input:
 		bne inputEnd
 		lda #$01
 		jsr store_ya
-	inputEnd:
+	inputEnd:	
 		rts 
 
 // -- Sprite Data --------------------------------------------------------------
