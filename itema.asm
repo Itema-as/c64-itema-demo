@@ -14,8 +14,7 @@
 * = $c000 "Main Program"
 
 // import our sprite library
-#import "spritedata.asm"
-#import "spritelib.asm"
+#import "libSprite.asm"
 #import "libInput.asm"
 #import "music/music.asm"
 //

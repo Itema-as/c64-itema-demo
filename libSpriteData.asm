@@ -10,6 +10,8 @@
 	- Bjørn Leithe Karlsen, bka@itema.no
 */
 
+#importonce
+
 SpriteIndex:
 	 .byte $00
 

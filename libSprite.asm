@@ -23,6 +23,9 @@
 	- Bjørn Leithe Karlsen, bka@itema.no
 */
 
+#importonce
+#import "libSpriteData.asm"
+
 SetTable:
 	.byte %00000001
 	.byte %00000010
