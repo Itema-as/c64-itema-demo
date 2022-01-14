@@ -143,9 +143,9 @@ fall_down:
 	clc
 	adc #Gravity				// Simulate gravity
 	cmp #$80				// Never go negative
-	bpl f_acc
+	bpl fall_down_end	
 	jsr store_yv
-	f_acc:
+	fall_down_end:
 rts
 
 /*
@@ -181,7 +181,7 @@ move_vertically:
 	clc
 	cmp #$00				// Compare with signed integer
 	bmi up					// Move up if value is negative
-	bpl down				// Move down if value is positive
+	bpl move_down			// Move down if value is positive
 rts
 
 /*
@@ -195,9 +195,10 @@ v_acceleration:
 	adc temp				// Add Y to A
 	jsr store_yv
 	// -- Apply gravity
-//	cmp #$00				// Compare with signed integer
-//	bpl fall_down			// Move down if value is positive
-//	bmi bounce_up			// Move up if value is negative
+	cmp #$00				// Compare with signed integer
+	bpl fall_down			// Move down if value is positive
+	bmi bounce_up			// Move up if value is negative
+	v_acceleration_end:
 rts
 
 /*
@@ -208,7 +209,7 @@ move_left:
 	eor #$ff				// Flip the sign so that we get a positive number
 	clc
 	adc #$01				// fix after flip
-	jsr shift_right			// Apply only the 3 MSB of velocity
+	jsr shift_right			// Apply only the 5 MSB of velocity
 	sta temp				// Store the new value in a variable
 	jsr get_xl
 	sec
@@ -225,7 +226,7 @@ rts
 */
 move_right:
 	jsr get_xv				// Get the X-velocity (a positive number)
-	jsr shift_right			// Apply only the 3 MSB of velocity
+	jsr shift_right			// Apply only the 5 MSB of velocity
 	sta temp				// Store the value in a temporary variable
 	jsr get_xl
 	clc
@@ -244,7 +245,7 @@ up:
 	jsr get_yv				// Get the Y-velocity (a negative number)
 	eor #$ff				// Flip the sign so that we get a positive number
 	clc
-	jsr shift_right			// Apply only the 3 MSB of velocity
+	jsr shift_right			// Apply only the 5 MSB of velocity
 	sta temp				// Store the new value in a variable
 	jsr get_yl
 	sec
@@ -257,9 +258,15 @@ rts
 /*
 	Move current sprite downwards
 */
-down:
+move_down:
+	// Make sure we don't move below the bottom of the screen, so do not
+	// apply the velocity if the edge has already been hit.
+	jsr get_yl
+	cmp #ScreenBottomEdge	// Is bottom of screen hit?
+	bcs move_down_end
+	// OK go on and move the sprite
 	jsr get_yv				// Get the Y-velocity (a positive number)
-	jsr shift_right			// Apply only the 3 MSB of velocity
+	jsr shift_right			// Apply only the 5 MSB of velocity
 	sta temp				// Store the value in a temporary variable
 	jsr get_yl
 	clc
@@ -267,6 +274,7 @@ down:
 	jsr store_yl
 	cmp #ScreenBottomEdge	// Is bottom of screen hit?
 	bcs change_to_move_up	// If so change direction
+	move_down_end:
 rts
 
 /*
@@ -353,6 +361,8 @@ at_left_edge:
 rts
 
 shift_right:
+	clc
+	ror
 	clc
 	ror
 	clc

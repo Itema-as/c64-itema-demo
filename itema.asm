@@ -75,6 +75,7 @@ loop:
 		jsr player_input
 		jsr move_horizontally
 		jsr move_vertically
+		// TODO: Draw sprite at correct interrupt ?
 		jsr draw_sprite
 		inc SpriteIndex
 		lda SpriteIndex
@@ -83,7 +84,7 @@ loop:
 		jmp animation_loop
 	done:
 		// Spend a few cycles doing nothing in order to get a smooth motion
-		ldy  #$15
+		ldy  #$10
 		ldx  #$01
 		delay:
 			dex
