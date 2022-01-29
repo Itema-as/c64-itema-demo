@@ -11,7 +11,7 @@
     - Bjørn Leithe Karlsen, bka@itema.no
 */
 
-* = $d000 "Main Program"
+* = $c000 "Main Program"
 
 // import our sprite library
 #import "libSprite.asm"
@@ -24,48 +24,47 @@ BasicUpstart2(initialize)
 
 // Initialize
 initialize:
-    jsr $e544           // clear screen
+    jsr $e544               // Clear screen
 
-    lda #$17            // activate character set 2
+    lda #$17                // Activate character set 2
     sta $d018
 
-    lda #%00000111      // enable sprites
+    lda #%00000001          // Enable sprites
     sta $d015
 
-    lda #$00            // disable xpand-y
+    lda #$00                // Disable xpand-y
     sta $d017
 
-    lda #$00            // set sprite/background priority
+    lda #$00                // Set sprite/background priority
     sta $d01b
     
 //  lda #$ff            // enable multicolor
 //  sta $d01c
     
-    lda #$00            // disable xpand-x
+    lda #$00                // Disable xpand-x
     sta $d01d
     
 //  lda #$0f            // set sprite multicolor 1
 //  sta $d025
 //  lda #$0c            // set sprite multicolor 2
 //  sta $d026
-    lda #$0a            // set sprite individual color
+    lda #$0a                // Set sprite individual color
     sta $d027
     
-    lda #spriteData/64  // set sprite data pointer
-    sta $07f8           // sprite #1
-    sta $07f9           // sprite #2
-    sta $07fa           // sprite #3
-    sta $07fb           // sprite #4
-    sta $07fc           // sprite #5
-    sta $07fd           // sprite #6
-    sta $07fe           // sprite #7
-    sta $07ff           // sprite #8
+    lda #spriteData/64      // Set sprite data pointer
+    sta $07f8               // Sprite #1
+    sta $07f9               // Sprite #2
+    sta $07fa               // Sprite #3
+    sta $07fb               // Sprite #4
+    sta $07fc               // Sprite #5
+    sta $07fd               // Sprite #6
+    sta $07fe               // Sprite #7
+    sta $07ff               // Sprite #8
 
-    // Set up some text for use when debugging
-    line1: .text "USE JOYSTICK 2"
-           .byte $ff
-           
-PRINT_SCREEN(line1, $0400)
+/*
+    Print the first level from the second line from the top
+*/
+PRINT_SCREEN(level_1, $0428)
 
 /*
     Initialize IRQ
@@ -116,22 +115,22 @@ init_irq:
     lda #<irq_1
     ldx #>irq_1
     sta $0314
-    stx $0315           // Set interrupt addr    
+    stx $0315               // Set interrupt addr    
     lda #$7f
-    sta $dc0d           // Timer A off on cia1/kb
-    sta $dd0d           // Timer A off on cia2
+    sta $dc0d               // Timer A off on cia1/kb
+    sta $dd0d               // Timer A off on cia2
 
     lda #$81
-    sta $d01a           // Raster interrupts on
-    lda #$1b            // Screen ctrl: default
+    sta $d01a               // Raster interrupts on
+    lda #$1b                // Screen ctrl: default
     sta $d011
 
     lda #$01
-    sta $d012           // Interrupt at line 0
+    sta $d012               // Interrupt at line 0
 
-    lda $dc0d           // Clrflg (cia1)
-    lda $dd0d           // Clrflg (cia2)
-    asl $d019           // Clr interrupt flag (just in case)
+    lda $dc0d               // Clrflg (cia1)
+    lda $dd0d               // Clrflg (cia2)
+    asl $d019               // Clr interrupt flag (just in case)
     cli
     rts
 
@@ -146,15 +145,16 @@ irq_1:
         jsr move_horizontally
         jsr move_vertically
         jsr draw_sprite
+        jsr check_collision
         inc SpriteIndex
         lda SpriteIndex
-        cmp #$03
+        cmp #$01
         beq done
         jmp animation_loop
     done:
     asl $d019
     inc $d020
-    jsr music.play
+//    jsr music.play
     dec $d020
     dec $d020
     jmp $ea81 //; set flag and end
@@ -187,3 +187,13 @@ spriteData:
 .byte %00000000,%00000000,%00000000
 .byte %00000000,%00000000,%00000000
 .byte %00000000,%00000000,%00000000
+
+level_1:
+.text "                                        "
+.text "  ####################################  "
+.text "  ####################################  "
+.text "                                        "
+.text "  ########      ########      ########  "
+.text "  ########      ########      ########  "
+.byte $ff
+

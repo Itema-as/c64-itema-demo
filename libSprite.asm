@@ -49,10 +49,10 @@ ClearTable:
 /*
     Sprite box
 */
-.const ScreenTopEdge    = $2c
+.const ScreenTopEdge    = $2e
 .const ScreenBottomEdge = $eb
 .const ScreenRightEdge  = $47
-.const ScreenLeftEdge   = $15
+.const ScreenLeftEdge   = $11
 
 .const Gravity          = $04
 .const VelocityLoss     = $04
@@ -62,8 +62,19 @@ ClearTable:
 */
 temp:
     .byte %00000000
+temp1:
+    .byte %00000000
 temp2:
     .byte %00000000
+
+column:
+    .byte %00000000
+row:
+    .byte %00000000
+rows:
+    .byte %00000000
+
+.var char_position = $0000
 
 /*
     Determine the offset of the sprite x-position address
@@ -142,7 +153,7 @@ fall_down:
     jsr get_yv
     clc
     adc #Gravity                // Simulate gravity
-    cmp #$80                // Never go negative
+    cmp #$80                    // Never go negative
     bpl fall_down_end   
     jsr store_yv
     fall_down_end:
@@ -152,12 +163,12 @@ rts
     Perform horizontal movement
 */
 move_horizontally:
-    jsr h_acceleration      // Apply horizontal acceleration
+    jsr h_acceleration          // Apply horizontal acceleration
     jsr get_xv
     clc
-    cmp #$00                // Compare with signed integer
-    bmi move_left           // Move left if value is negative
-    bpl move_right          // Move right if value is positive
+    cmp #$00                    // Compare with signed integer
+    bmi move_left               // Move left if value is negative
+    bpl move_right              // Move right if value is positive
 rts
 
 /*
@@ -375,3 +386,78 @@ shift_right:
     ror
     clc
 rts
+
+/*
+    Screen memory lookup tables. Each corresponds to the address of the first 
+    colum in each row.
+*/
+ScreenMemLowByte:
+    .byte $00,$28,$50,$78,$a0,$c8,$f0,$18
+    .byte $40,$68,$90,$b8,$e0,$08,$30,$58
+    .byte $80,$A8,$D0,$f8,$20,$48,$70,$98
+    .byte $c0
+ScreenMemHighByte:
+    .byte $04,$04,$04,$04,$04,$04,$04,$05
+    .byte $05,$05,$05,$05,$05,$06,$06,$06
+    .byte $06,$06,$06,$06,$07,$07,$07,$07
+    .byte $07
+
+check_collision:
+    lda #$00
+    sta >char_position
+    lda #$00
+    sta <char_position
+    
+    jsr get_xl
+    sec                     // Set carry for borrow purpose
+    sbc #$09                // Subtract for left offset
+    sta temp                // Store the result
+    jsr get_xm              // Load x-position MSB
+    sbc #$00                // Subtract nothing, but make use of carry
+    lsr                     // MSB -> C, divide by 2
+    lda temp                // Get offset adjusted LSB
+    ror                     // Rotate Carry into LSB 
+    lsr                     // Divide by 2 again
+    lsr                     // Divide by 2 again
+    sta column
+    
+    jsr get_yl              // Get y-position LSB
+    sec                     // Set carry for borrow purpose
+    sbc #$2b                // Subtract for bottom offset
+    lsr                     // Divide by 2
+    lsr                     // Divide by 2 again
+    lsr                     // And divide by 2 a last time
+    sta row
+
+    ldx row
+    lda ScreenMemLowByte,x
+    sta $fd
+    lda ScreenMemHighByte,x
+    sta $fe
+    
+    ldy column
+    lda ($fd),y
+    
+    cmp #$20
+    beq end_char
+
+    lda #$20
+    sta ($fd),y
+    
+    jsr get_yv
+    eor #$ff                // Flip the sign so that we get a positive number
+    clc
+    adc #$01                // fix after flip
+    jsr store_yv
+
+    jsr get_xv
+    eor #$ff                // Flip the sign so that we get a positive number
+    clc
+    adc #$01                // fix after flip
+    jsr store_xv
+    
+    end_char:
+rts
+
+
+
