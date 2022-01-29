@@ -1,19 +1,19 @@
 /*
-	Sprite data library
-	Copyright (c) 2020 Itema AS
+    Sprite data library
+    Copyright (c) 2020 Itema AS
 
-	Written by:
-	- Øystein Steimler, ofs@itema.no
-	- Torkild U. Resheim, tur@itema.no
-	- Morten Moen, mmo@itema.no
-	- Arve Moen, amo@itema.no
-	- Bjørn Leithe Karlsen, bka@itema.no
+    Written by:
+    - Øystein Steimler, ofs@itema.no
+    - Torkild U. Resheim, tur@itema.no
+    - Morten Moen, mmo@itema.no
+    - Arve Moen, amo@itema.no
+    - Bjørn Leithe Karlsen, bka@itema.no
 */
 
 #importonce
 
 SpriteIndex:
-	 .byte $00
+     .byte $00
 
 SpriteMem:
 /*
@@ -26,178 +26,178 @@ SpriteMem:
           |    |    |    |    |    |    +------ X-acceleration (signed integer)
           |    |    |    |    |    |    |    +- Y-acceleration (signed integer)
           |    |    |    |    |    |    |    |
-          xl   xm   yl   ym   xv   yv	xa	 ya
+          xl   xm   yl   ym   xv   yv   xa   ya
 */
-	.byte $80, $00, $32, $00, $00, $00, $00, $00
-	.byte $38, $00, $62, $00, $00, $00, $00, $00
-	.byte $58, $00, $82, $00, $00, $00, $00, $00
-	.byte $18, $00, $62, $00, $00, $00, $00, $00
-	.byte $18, $00, $72, $00, $00, $00, $00, $00
-	.byte $18, $00, $82, $00, $00, $00, $00, $00
-	.byte $18, $00, $92, $00, $00, $00, $00, $00
-	.byte $18, $00, $a2, $00, $00, $00, $00, $00
+    .byte $80, $00, $32, $00, $00, $00, $00, $00
+    .byte $38, $00, $62, $00, $00, $00, $00, $00
+    .byte $58, $00, $82, $00, $00, $00, $00, $00
+    .byte $18, $00, $62, $00, $00, $00, $00, $00
+    .byte $18, $00, $72, $00, $00, $00, $00, $00
+    .byte $18, $00, $82, $00, $00, $00, $00, $00
+    .byte $18, $00, $92, $00, $00, $00, $00, $00
+    .byte $18, $00, $a2, $00, $00, $00, $00, $00
 
-.var xl = 0					// Y-location LSB
-.var xm = 1					// X-location MSB
-.var yl = 2					// Y-location LSB
-.var ym = 3					// X-location MSB
-.var xv = 4					// X-velocity
-.var yv = 5					// Y-velocity
-.var xa = 6					// X-acceleration
-.var ya = 7					// Y-acceleration
+.var xl = 0                 // Y-location LSB
+.var xm = 1                 // X-location MSB
+.var yl = 2                 // Y-location LSB
+.var ym = 3                 // X-location MSB
+.var xv = 4                 // X-velocity
+.var yv = 5                 // Y-velocity
+.var xa = 6                 // X-acceleration
+.var ya = 7                 // Y-acceleration
 .var spritelen = 8
 
 ldx #0
 stx SpriteIndex
-jsr get_xm					// xm for 0 in a
+jsr get_xm                  // xm for 0 in a
 
 get_xm:
-	php
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #xm					// Add index to get fieldaddr
-	jmp get_val
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #xm                 // Add index to get fieldaddr
+    jmp get_val
 
 get_xl:
-	php
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #xl					// Add index to get fieldaddr
-	jmp get_val
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #xl                 // Add index to get fieldaddr
+    jmp get_val
 
 get_ym:
-	php
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #ym					// Add index to get fieldaddr
-	jmp get_val
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #ym                 // Add index to get fieldaddr
+    jmp get_val
 
 get_yl:
-	php
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #yl					// Add index to get fieldaddr
-	jmp get_val
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #yl                 // Add index to get fieldaddr
+    jmp get_val
 
 get_ya:
-	php
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #ya					// Add index to get fieldaddr
-	jmp get_val
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #ya                 // Add index to get fieldaddr
+    jmp get_val
 
 get_xa:
-	php
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #xa					// Add index to get fieldaddr
-	jmp get_val
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #xa                 // Add index to get fieldaddr
+    jmp get_val
 
 get_xv:
-	php
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #xv					// Add index to get fieldaddr
-	jmp get_val
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #xv                 // Add index to get fieldaddr
+    jmp get_val
 
 get_yv:
-	php
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #yv					// Add index to get fieldaddr
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #yv                 // Add index to get fieldaddr
 
-	// jmp get_val // next instr
+    // jmp get_val // next instr
 
 get_val:
-	tax						// .A -> .X
-	lda SpriteMem,x			// load fieldaddr -> .A
-	plp
-	rts
+    tax                     // .A -> .X
+    lda SpriteMem,x         // load fieldaddr -> .A
+    plp
+    rts
 
 store_xm:
-	php
-	pha
-	jsr getspritebase		// Get spritebase in .A
-	clc						// Clear the carry flag
-	adc #xm					// Add index to get fieldaddr
-	jmp store_val
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #xm                 // Add index to get fieldaddr
+    jmp store_val
 
 store_xl:
-	php
-	pha
-	jsr getspritebase		// Get spritebase in .A
-	clc
-	adc #xl					// Add index to get fieldaddr
-	jmp store_val
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc
+    adc #xl                 // Add index to get fieldaddr
+    jmp store_val
 
 store_ym:
-	php
-	pha
-	jsr getspritebase		// Get spritebase in .A
-	clc
-	adc #ym					// Add index to get fieldaddr
-	jmp store_val
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc
+    adc #ym                 // Add index to get fieldaddr
+    jmp store_val
 
 store_yl:
-	php
-	pha
-	jsr getspritebase		// Get spritebase in .A
-	clc
-	adc #yl					// Add index to get fieldaddr
-	jmp store_val
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc
+    adc #yl                 // Add index to get fieldaddr
+    jmp store_val
 
 store_xa:
-	php
-	pha
-	jsr getspritebase		// Get spritebase in .A
-	clc
-	adc #xa					// Add index to get fieldaddr
-	jmp store_val
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc
+    adc #xa                 // Add index to get fieldaddr
+    jmp store_val
 
 store_ya:
-	php
-	pha
-	jsr getspritebase		// Get spritebase in .A
-	clc
-	adc #ya					// Add index to get fieldaddr
-	jmp store_val
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc
+    adc #ya                 // Add index to get fieldaddr
+    jmp store_val
 
 store_xv:
-	php
-	pha
-	jsr getspritebase		// Get spritebase in .A
-	clc
-	adc #xv					// Add index to get fieldaddr
-	jmp store_val
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc
+    adc #xv                 // Add index to get fieldaddr
+    jmp store_val
 
 store_yv:
-	php
-	pha
-	jsr getspritebase		// Get spritebase in .A
-	clc
-	adc #yv					// Add index to get fieldaddr
-	// jmp store_val		// -> next instr
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc
+    adc #yv                 // Add index to get fieldaddr
+    // jmp store_val        // -> next instr
 
 store_val:
-	tax						// .A -> .X
-	pla
-	plp
-	sta SpriteMem,x			// load fieldaddr -> .A
-	rts
+    tax                     // .A -> .X
+    pla
+    plp
+    sta SpriteMem,x         // load fieldaddr -> .A
+    rts
 
 // getspritebase -> .A  -- uses .X
 getspritebase:
-	ldx SpriteIndex
-	lda #$00
+    ldx SpriteIndex
+    lda #$00
 
-	getspritebase_loop:
-		cpx #$00
-		beq gotspritebase
-		clc
-		adc #spritelen
-		dex
-		jmp getspritebase_loop
+    getspritebase_loop:
+        cpx #$00
+        beq gotspritebase
+        clc
+        adc #spritelen
+        dex
+        jmp getspritebase_loop
 
-	gotspritebase:
-		rts
+    gotspritebase:
+        rts
 
