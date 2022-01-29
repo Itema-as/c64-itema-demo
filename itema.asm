@@ -60,7 +60,7 @@ initialize:
 	sta $07fe			// sprite #7
 	sta $07ff			// sprite #8
 	
-	//jsr startMusic
+	jsr startMusic
 
 	// Set up some text for use when debugging
 	line1: .text "USE JOYSTICK 2"
@@ -68,31 +68,12 @@ initialize:
 		   
 PRINT_SCREEN(line1, $0400)
 
+/*
+	Initialize IRQ
+*/
+jsr init_irq
+
 loop:
-	lda #$00
-	sta SpriteIndex
-	animation_loop:
-		jsr player_input
-		jsr move_horizontally
-		jsr move_vertically
-		// TODO: Draw sprite at correct interrupt ?
-		jsr draw_sprite
-		inc SpriteIndex
-		lda SpriteIndex
-		cmp #$01
-		beq done
-		jmp animation_loop
-	done:
-		// Spend a few cycles doing nothing in order to get a smooth motion
-		ldy  #$10
-		ldx  #$01
-		delay:
-			dex
-			txa
-			bne delay
-			dey
-			tya
-			bne delay
 jmp loop
 
 player_input:
@@ -123,6 +104,47 @@ player_input:
 		jsr store_ya
 	inputEnd:	
 		rts 
+
+init_irq:
+	sei
+	lda #<irq_1
+	ldx #>irq_1
+	sta $0314
+	stx $0315 			// Set interrupt addr    
+	lda #$7f
+	sta $dc0d 			// Timer A off on cia1/kb
+	sta $dd0d			// Timer A off on cia2
+
+	lda #$81
+	sta $d01a			// Raster interrupts on
+	lda #$1b			// Screen ctrl: default
+	sta $d011
+
+	lda #$01
+	sta $d012 			// Interrupt at line 0
+
+	lda $dc0d 			// Clrflg (cia1)
+	lda $dd0d			// Clrflg (cia2)
+	asl $d019			// Clr interrupt flag (just in case)
+	cli
+	rts
+
+irq_1:
+	lda #$00
+	sta SpriteIndex
+	animation_loop:
+		jsr player_input
+		jsr move_horizontally
+		jsr move_vertically
+		jsr draw_sprite
+		inc SpriteIndex
+		lda SpriteIndex
+		cmp #$01
+		beq done
+		jmp animation_loop
+	done:
+	asl $d019
+	jmp $ea81 //; set flag and end
 
 // -- Sprite Data --------------------------------------------------------------
 // Created using https://www.spritemate.com

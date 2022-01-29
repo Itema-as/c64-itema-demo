@@ -169,7 +169,10 @@ h_acceleration:
 	jsr get_xv
 	clc
 	adc temp				// Add acceleration to velocity
+	clv						// Clear the overflow flag
+	bvs h_acceleration_end	// Do not store the value if the sign was flipped
 	jsr store_xv
+	h_acceleration_end:
 rts
 
 /*
@@ -188,11 +191,12 @@ rts
 	Apply vertical acceleration from input along with gravity
 */
 v_acceleration:
-	jsr get_ya
+	jsr get_ya	
 	sta temp				// Store the new value in a variable
 	jsr get_yv
-	clc
+	clv						// Clear the overflow flag
 	adc temp				// Add Y to A
+	bvs v_acceleration_end	// Do not store the value if the sign was flipped
 	jsr store_yv
 	// -- Apply gravity
 	cmp #$00				// Compare with signed integer
@@ -248,7 +252,7 @@ up:
 	jsr shift_right			// Apply only the 5 MSB of velocity
 	sta temp				// Store the new value in a variable
 	jsr get_yl
-	sec
+	sec						// Set the carry flag
 	sbc temp				// Move up by the amount of velocity
 	jsr store_yl
 	cmp #ScreenTopEdge		// Is top of screen hit?
@@ -273,7 +277,7 @@ move_down:
 	adc temp				// Move down by the amount of velocity
 	jsr store_yl
 	cmp #ScreenBottomEdge	// Is bottom of screen hit?
-	bcs change_to_move_up	// If so change direction
+	bcs change_to_move_up	// If so change directions
 	move_down_end:
 rts
 
@@ -361,6 +365,8 @@ at_left_edge:
 rts
 
 shift_right:
+	clc
+	ror
 	clc
 	ror
 	clc
