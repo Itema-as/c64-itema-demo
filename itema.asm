@@ -11,16 +11,17 @@
     - Bjørn Leithe Karlsen, bka@itema.no
 */
 
-* = $c000 "Main Program"
+* = $d000 "Main Program"
 
 // import our sprite library
 #import "libSprite.asm"
 #import "libInput.asm"
 #import "libScreen.asm"
-#import "music/music.asm"
-//
+
 BasicUpstart2(initialize)
-    
+
+.var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
+
 // Initialize
 initialize:
     jsr $e544           // clear screen
@@ -28,7 +29,7 @@ initialize:
     lda #$17            // activate character set 2
     sta $d018
 
-    lda #%00000001      // enable sprites
+    lda #%00000111      // enable sprites
     sta $d015
 
     lda #$00            // disable xpand-y
@@ -59,8 +60,6 @@ initialize:
     sta $07fd           // sprite #6
     sta $07fe           // sprite #7
     sta $07ff           // sprite #8
-    
-    jsr startMusic
 
     // Set up some text for use when debugging
     line1: .text "USE JOYSTICK 2"
@@ -106,6 +105,13 @@ player_input:
         rts 
 
 init_irq:
+
+    lda #$00
+    ldx #0
+    ldy #0
+    lda #music.startSong-1
+    jsr music.init
+
     sei
     lda #<irq_1
     ldx #>irq_1
@@ -129,7 +135,10 @@ init_irq:
     cli
     rts
 
+
+
 irq_1:
+    inc $d020
     lda #$00
     sta SpriteIndex
     animation_loop:
@@ -139,12 +148,19 @@ irq_1:
         jsr draw_sprite
         inc SpriteIndex
         lda SpriteIndex
-        cmp #$01
+        cmp #$03
         beq done
         jmp animation_loop
     done:
     asl $d019
+    inc $d020
+    jsr music.play
+    dec $d020
+    dec $d020
     jmp $ea81 //; set flag and end
+
+*=music.location "Music"
+.fill music.size, music.getData(i)              // <- Here we put the music in memory
 
 // -- Sprite Data --------------------------------------------------------------
 // Created using https://www.spritemate.com
