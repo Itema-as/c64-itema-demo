@@ -49,13 +49,13 @@ ClearTable:
 /*
     Sprite box
 */
-.const ScreenTopEdge    = $2e
+.const ScreenTopEdge    = $36 // $2e
 .const ScreenBottomEdge = $eb
 .const ScreenRightEdge  = $47
 .const ScreenLeftEdge   = $11
 
-.const Gravity          = $04
-.const VelocityLoss     = $04
+.const Gravity          = $01
+.const VelocityLoss     = $02
 
 /*
     A helper "variable" we will need on occasion
@@ -71,10 +71,6 @@ column:
     .byte %00000000
 row:
     .byte %00000000
-rows:
-    .byte %00000000
-
-.var char_position = $0000
 
 /*
     Determine the offset of the sprite x-position address
@@ -141,7 +137,7 @@ rts
 bounce_up:
     jsr get_yv
     clc 
-    adc #Gravity                // Simulate gravity
+    adc #Gravity            // Simulate gravity
     jsr store_yv
 rts
 
@@ -152,8 +148,8 @@ rts
 fall_down:
     jsr get_yv
     clc
-    adc #Gravity                // Simulate gravity
-    cmp #$80                    // Never go negative
+    adc #Gravity            // Simulate gravity
+    cmp #$80                // Never go negative
     bpl fall_down_end   
     jsr store_yv
     fall_down_end:
@@ -163,12 +159,12 @@ rts
     Perform horizontal movement
 */
 move_horizontally:
-    jsr h_acceleration          // Apply horizontal acceleration
+    jsr h_acceleration      // Apply horizontal acceleration
     jsr get_xv
     clc
-    cmp #$00                    // Compare with signed integer
-    bmi move_left               // Move left if value is negative
-    bpl move_right              // Move right if value is positive
+    cmp #$00                // Compare with signed integer
+    bmi move_left           // Move left if value is negative
+    bpl move_right          // Move right if value is positive
 rts
 
 /*
@@ -288,28 +284,35 @@ move_down:
     adc temp                // Move down by the amount of velocity
     jsr store_yl
     cmp #ScreenBottomEdge   // Is bottom of screen hit?
-    bcs change_to_move_up   // If so change directions
+    /*
+        We don't want a normal bouncing effect, but rather loose a life and
+        start again with a new ball.
+        bcs change_to_move_up
+    */
+    bcs stop
     move_down_end:
 rts
 
 /*
-    Flip the sign on the vertical velocity and acceleration
+    Simply stops the ball and drops it again. This should be replaced with a
+    more elaborate you are dead effect.
 */
-change_to_move_up:
-    jsr get_yv              // Change the direction of the velocity
-    clc
-    sbc #VelocityLoss       // Reduce velocity  
-    eor #$ff                // Flip the sign
+stop:
+    lda #$00
+    jsr store_xa
+    jsr store_ya
+    jsr store_xv
     jsr store_yv
+    jsr store_xm
+    jsr store_ym
+    lda #$f0
+    jsr store_yv
+    lda #$a0
+    jsr store_xl
+    lda #$70
+    jsr store_yl
 rts
 
-change_to_move_down:
-    jsr get_yv              // Change the direction of the velocity
-    clc
-    adc #VelocityLoss       // Reduce velocity  
-    eor #$ff                // Flip the sign
-    jsr store_yv
-rts
 
 /*
     Start moving from left to right.
@@ -331,6 +334,25 @@ change_to_move_left:
     sbc #VelocityLoss       // Reduce velocity
     eor #$ff                // Flip the sign
     jsr store_xv
+rts
+
+/*
+    Flip the sign on the vertical velocity and acceleration
+*/
+change_to_move_up:
+    jsr get_yv              // Change the direction of the velocity
+    clc
+    sbc #VelocityLoss       // Reduce velocity  
+    eor #$ff                // Flip the sign
+    jsr store_yv
+rts
+
+change_to_move_down:
+    jsr get_yv              // Change the direction of the velocity
+    clc
+    adc #VelocityLoss       // Reduce velocity  
+    eor #$ff                // Flip the sign
+    jsr store_yv
 rts
 
 /*
@@ -403,11 +425,6 @@ ScreenMemHighByte:
     .byte $07
 
 check_collision:
-    lda #$00
-    sta >char_position
-    lda #$00
-    sta <char_position
-    
     jsr get_xl
     sec                     // Set carry for borrow purpose
     sbc #$09                // Subtract for left offset
@@ -427,7 +444,7 @@ check_collision:
     lsr                     // Divide by 2
     lsr                     // Divide by 2 again
     lsr                     // And divide by 2 a last time
-    sta row
+    sta row                 // Store it for later
 
     ldx row
     lda ScreenMemLowByte,x
@@ -438,10 +455,10 @@ check_collision:
     ldy column
     lda ($fd),y
     
-    cmp #$20
+    cmp #$20                // Nothing should happenif the character is a space
     beq end_char
 
-    lda #$20
+    lda #$20                // 
     sta ($fd),y
     
     jsr get_yv
@@ -449,15 +466,58 @@ check_collision:
     clc
     adc #$01                // fix after flip
     jsr store_yv
-
-    jsr get_xv
-    eor #$ff                // Flip the sign so that we get a positive number
-    clc
-    adc #$01                // fix after flip
-    jsr store_xv
     
+    // TODO: Improve bounce effect, it looks wrong
+    // TODO: Handle hitting a brick sideways
+
     end_char:
 rts
 
+check_sprite_collision:
 
+    lda SpriteIndex
+    cmp #$00
+    beq end_check_sprite_collision
+    
+    // Check if the ball is above the paddle. If so we can just return
+    jsr get_yl
+    cmp #$e4
+    bcc end_check_sprite_collision
+    
+    // Check if the ball horizontal MSB is the same
+    // XXX: There is a bug here
+    jsr get_xm
+    clc
+    cmp SpriteMem+1
+    bne end_check_sprite_collision
 
+    // Ball is right of paddle
+    jsr get_xl
+    adc #$10 // adc 7
+    cmp SpriteMem
+    bcc end_check_sprite_collision
+    
+    // Ball is left of paddle
+    jsr get_xl
+    adc #$10 // 11
+    cmp SpriteMem
+    bcc end_check_sprite_collision
+    
+    jsr get_yv              // Change the direction of the velocity
+    clc
+    eor #$ff                // Flip the sign
+    jsr store_yv
+
+    // Add effect of a slightly tilted paddle – it should probably be animated
+    // to look a bit better.
+    jsr get_xl
+    sbc SpriteMem
+    rol
+    rol
+    jsr store_xv
+    
+    lda #$f0
+    jsr store_ya
+    
+    end_check_sprite_collision:
+rts
