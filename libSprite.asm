@@ -436,6 +436,10 @@ check_collision:
     ror                     // Rotate Carry into LSB 
     lsr                     // Divide by 2 again
     lsr                     // Divide by 2 again
+
+    lsr                     // Truncate to first address in block
+    asl
+
     sta column
     
     jsr get_yl              // Get y-position LSB
@@ -451,16 +455,18 @@ check_collision:
     sta $fd
     lda ScreenMemHighByte,x
     sta $fe
-    
+
     ldy column
     lda ($fd),y
-    
+
     cmp #$20                // Nothing should happenif the character is a space
     beq end_char
 
-    lda #$20                // 
+    lda #$20                // Clear using space
+    sta ($fd),y             // Store in both left..
+    iny                     // ..and rignt half of block
     sta ($fd),y
-    
+
     jsr get_yv
     eor #$ff                // Flip the sign so that we get a positive number
     clc
