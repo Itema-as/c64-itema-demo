@@ -1,6 +1,8 @@
 name: Build C64 Program File
 
-on: [push]
+on:
+  push:
+  workflow_dispatch:
 
 jobs:
   build:
