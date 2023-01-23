@@ -255,7 +255,7 @@ paddleSpriteData:
 .byte $00,$00,$00,$00,$00,$00,$00,$07
 
 title:
-.text "itema hackathon  -  fr0ya 2022"
+.text "itema hackathon  -  fr[ya 2022"
 .byte $ff
 
 level_1:
