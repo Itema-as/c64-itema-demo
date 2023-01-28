@@ -56,7 +56,7 @@ ClearTable:
     Sprite box
 */
 .const ScreenTopEdge    = $36 // $2e
-.const ScreenBottomEdge = $e5
+.const ScreenBottomEdge = $eb // 229+6
 .const ScreenRightEdge  = $47
 .const ScreenLeftEdge   = $11
 
@@ -290,7 +290,7 @@ move_down:
     // Make sure we don't move below the bottom of the screen, so do not
     // apply the velocity if the edge has already been hit.
     jsr get_yl
-    cmp #ScreenBottomEdge+21 // Is bottom of screen hit?
+    cmp #ScreenBottomEdge   // Is bottom of screen hit?
     bcs move_down_end
     // OK go on and move the sprite
     jsr get_yv              // Get the Y-velocity (a positive number)
@@ -300,7 +300,7 @@ move_down:
     clc
     adc temp                // Move down by the amount of velocity
     jsr store_yl
-    cmp #ScreenBottomEdge+21 // Is bottom of screen hit?
+    cmp #ScreenBottomEdge   // Is bottom of screen hit?
     /*
         We don't want a normal bouncing effect, but rather loose a life and
         start again with a new ball.
