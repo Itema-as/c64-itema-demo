@@ -156,7 +156,7 @@ player_input:
         sta fire
         LIBINPUT_GET(GameportFireMask)
         bne inputEnd
-        lda #$30
+        lda #$80
         sta fire
     inputEnd:   
         rts 
@@ -199,11 +199,20 @@ irq_1:
     sta SpriteIndex
     jsr player_input
     animation_loop:
+        /*
         lda #$00            // since we don't want the paddle to be controlled
         jsr store_xa        // by accelleration of any kind, including gravity,
         jsr store_ya        // we reset the accelleration here
-        jsr move_horizontally
+        */
+        lda SpriteIndex
+        cmp #$00
+        beq move_ball        
+        lda fire
+        jsr store_ya
         jsr move_vertically
+
+        move_ball:
+        jsr move_horizontally
         jsr draw_sprite
         jsr check_collision
         jsr check_sprite_collision

@@ -60,8 +60,8 @@ ClearTable:
 .const ScreenRightEdge  = $47
 .const ScreenLeftEdge   = $11
 
-.const Gravity          = $03
-.const VelocityLoss     = $00
+.const Gravity          = $02
+.const VelocityLoss     = $10
 
 .const TopOfPaddle      = $e8 // 229 (bottom) - 3 (paddle hight) + 6 (margin)
 
@@ -630,6 +630,9 @@ stop_ball:
 
     FRAME_COLOR(3)
 
+    lda #$08
+    jsr store_yv
+/*
     clc
     lda fire
     cmp #$00
@@ -640,6 +643,6 @@ stop_ball:
     lda #$7f
     jsr store_ya
     FRAME_COLOR(4)
-    
+*/  
     jmp bounce
 
