@@ -60,7 +60,7 @@ ClearTable:
 .const ScreenRightEdge  = $47
 .const ScreenLeftEdge   = $11
 
-.const Gravity          = $02
+.const Gravity          = $03 // sørg for at ballen faller under
 .const VelocityLoss     = $03
 
 /*
@@ -152,10 +152,16 @@ rts
     velocity to be lost.
 */
 bounce_up:
+    /*
+    lda motionless
+    cmp #$0
+    bne bounce_up_end
+    */
     jsr get_yv
     clc 
     adc #Gravity            // Simulate gravity
     jsr store_yv
+    bounce_up_end:
 rts
 
 /*
@@ -163,6 +169,12 @@ rts
     maximum value of #$7f is not exceeded because that would mean moving up.
 */
 fall_down:
+    /*
+    lda motionless
+    cmp #$0
+    bne fall_down_end
+    */
+
     jsr get_yv
     clc
     adc #Gravity            // Simulate gravity
@@ -495,6 +507,8 @@ check_collision:
 rts
 
 check_sprite_collision:
+    lda #$0
+    sta on_paddle
 
     lda SpriteIndex
     cmp #$00
@@ -553,17 +567,23 @@ check_sprite_collision:
         rts
     end_check_sprite_collision:
         FRAME_COLOR(0)
+        lda #$1
+        sta on_paddle
 rts
 
 bounce_off_paddle:
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
-    cmp #$e4 // 229 (bottom) - 3 (paddle hight) + 6 (margin)
+    cmp #$e8 // 229 (bottom) - 3 (paddle hight) + 6 (margin)
     bcc end_check_sprite_collision
-
+    beq stop_ball
+    
+    bounce:
     jsr get_yv              // Change the direction of the velocity
     clc
     eor #$ff                // Flip the sign
+    clc
+    adc #VelocityLoss
     jsr store_yv
 
     // Add effect of a slightly tilted paddle in order to control exit angle
@@ -576,3 +596,18 @@ bounce_off_paddle:
     lda #$f0
     jsr store_ya
     rts
+
+stop_ball:
+    jsr get_yv
+    clc
+    cmp #$2 
+    bpl bounce
+
+    FRAME_COLOR(3)
+    lda #$1
+    sta motionless
+    lda #$00
+    jsr store_ya
+    jsr store_yv    
+    jmp bounce
+
