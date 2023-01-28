@@ -30,8 +30,8 @@ initialize:
     sta $d021
     sta $d020
 
-    lda #$17                // Activate character set 2
-    sta $d018
+    //lda #$17                // Activate character set 2
+    //sta $d018
 
     lda #%00000011          // Enable sprites
     sta $d015
@@ -68,6 +68,19 @@ initialize:
 //    sta $07fd               // Sprite #6
 //    sta $07fe               // Sprite #7
 //    sta $07ff               // Sprite #8
+
+/*
+    Set character set pointer to our custom set, turn off 
+    multicolor for characters
+*/
+
+lda $d018
+ora #%00001110 // Set chars location to $3800 for displaying the custom font
+sta $d018      // Bits 1-3 ($0400 + 512 bytes * low nibble value) of $D018 sets char location
+               // $400 + $200*$0E = $3800
+lda $d016      // turn off multicolor for characters
+and #%11101111 // by clearing bit #4 of $D016
+sta $d016
 
 /*
     Print the first level from the second line from the top
@@ -195,10 +208,10 @@ irq_1:
     done:
     asl $d019
 //    inc $d020
-    jsr music.play
+//    jsr music.play
 //    dec $d020
 //    dec $d020
-    jmp $ea81 //; set flag and end
+    jmp $ea81 // set flag and end
 
 *=music.location "Music"
 .fill music.size, music.getData(i)              // <- Here we put the music in memory
@@ -242,7 +255,7 @@ paddleSpriteData:
 .byte $00,$00,$00,$00,$00,$00,$00,$07
 
 title:
-.text "ITEMA HACKATHON - FR0YA 2022"
+.text "itema hackathon  -  fr[ya 2022"
 .byte $ff
 
 level_1:
@@ -253,3 +266,9 @@ level_1:
 .text "  <><><><>  <><><><>  <><><>  <><><><>  "
 .text "  <><><><>  <><><><>  <><><>  <><><><>  "
 .byte $ff
+
+// Import character set. Use https://petscii.krissz.hu to edit
+* = $3800 "Custom Character Set"
+characterSet:
+.import c64 "itema.64c"
+
