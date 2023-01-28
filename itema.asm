@@ -148,9 +148,16 @@ player_input:
         jsr store_yv
     inputDown:
         LIBINPUT_GET(GameportDownMask)
-        bne inputEnd
+        bne inputFire
         lda #$00
         jsr store_yv
+    inputFire:
+        lda #$00
+        sta fire
+        LIBINPUT_GET(GameportFireMask)
+        bne inputEnd
+        lda #$30
+        sta fire
     inputEnd:   
         rts 
 
@@ -188,7 +195,6 @@ init_irq:
 
 
 irq_1:
-//    inc $d020
     lda #$00
     sta SpriteIndex
     jsr player_input

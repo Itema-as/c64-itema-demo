@@ -60,9 +60,13 @@ ClearTable:
 .const ScreenRightEdge  = $47
 .const ScreenLeftEdge   = $11
 
-.const Gravity          = $06 // sørg for at ballen faller under
-.const VelocityLoss     = $03
+.const Gravity          = $03
+.const VelocityLoss     = $00
 
+.const TopOfPaddle      = $e8 // 229 (bottom) - 3 (paddle hight) + 6 (margin)
+
+fire:
+    .byte $0
 /*
     A helper "variable" we will need on occasion
 */
@@ -343,9 +347,9 @@ move_down:
     bne store_position
 
     lda temp
-    cmp #$e8
+    cmp #TopOfPaddle
     bcc store_position
-    lda #$e8
+    lda #TopOfPaddle
     jsr store_yl
     jmp move_down_end
 
@@ -374,6 +378,7 @@ stop:
     jsr store_yv
     jsr store_xm
     jsr store_ym
+    sta SpriteMem+1
     lda #$b4
     jsr store_xl
     sta SpriteMem
@@ -575,7 +580,6 @@ check_sprite_collision:
     sbc SpriteMem+1
     sta reshi
 
-
     bmi left_of_paddle
 
     jsr bounce_off_paddle
@@ -583,10 +587,10 @@ check_sprite_collision:
     rts
 
     left_of_paddle:
-        FRAME_COLOR(1) // white
+        //FRAME_COLOR(1) // white
         rts
     right_of_paddle:
-        FRAME_COLOR(2) // right
+        //FRAME_COLOR(2) // right
         rts
     end_check_sprite_collision:
         FRAME_COLOR(0)
@@ -597,28 +601,26 @@ rts
 bounce_off_paddle:
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
-    cmp #$e8 // 229 (bottom) - 3 (paddle hight) + 6 (margin)
+    cmp #TopOfPaddle
     bcc end_check_sprite_collision
     beq stop_ball
     
     bounce:
-    jsr get_yv              // Change the direction of the velocity
-    clc
-    eor #$ff                // Flip the sign
-    clc
-    adc #VelocityLoss
-    jsr store_yv
+        jsr get_yv              // Change the direction of the velocity
+        clc
+        eor #$ff                // Flip the sign
+        clc
+        adc #VelocityLoss
+        jsr store_yv
 
-    // Add effect of a slightly tilted paddle in order to control exit angle
-    jsr get_xl
-    sbc SpriteMem
-    rol
-    rol
-    jsr store_xv
-    
-    lda #$f0
-    jsr store_ya
-    rts
+        // Add effect of a slightly tilted paddle in order to control exit angle
+        jsr get_xl
+        sbc SpriteMem
+        rol
+        rol
+        jsr store_xv        
+    bounce_end:
+rts
 
 stop_ball:
     jsr get_yv
@@ -627,10 +629,17 @@ stop_ball:
     bpl bounce
 
     FRAME_COLOR(3)
-    lda #$1
-    sta motionless
-    lda #$00
+
+    clc
+    lda fire
+    cmp #$00
+    beq bounce
+
+    lda #$7f
+    jsr store_yv
+    lda #$7f
     jsr store_ya
-    jsr store_yv    
+    FRAME_COLOR(4)
+    
     jmp bounce
 
