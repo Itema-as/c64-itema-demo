@@ -127,6 +127,7 @@ player_input:
         bcc inputRight
         inputLeft_cont:
         lda #$bf
+        //lda #$ef
         jsr store_xv
     inputRight:
         LIBINPUT_GET(GameportRightMask)
@@ -139,16 +140,17 @@ player_input:
         bcs inputUp
         inputRight_cont:
         lda #$60
+        //lda #$10
         jsr store_xv
     inputUp:
         LIBINPUT_GET(GameportUpMask)
         bne inputDown  
-        lda #$00
+        lda #$bf
         jsr store_yv
     inputDown:
         LIBINPUT_GET(GameportDownMask)
         bne inputEnd
-        lda #$00
+        lda #$60
         jsr store_yv
     inputEnd:   
         rts 

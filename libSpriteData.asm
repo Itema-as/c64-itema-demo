@@ -13,7 +13,10 @@
 #importonce
 
 SpriteIndex:
-     .byte $00
+    .byte $00
+
+Static:
+    .byte $00
 
 SpriteMem:
 /*
@@ -28,8 +31,8 @@ SpriteMem:
           |    |    |    |    |    |    |    |
           xl   xm   yl   ym   xv   yv   xa   ya
 */
-    .byte $a9, $00, $eb, $00, $00, $00, $00, $00    // Paddle
-    .byte $a9, $00, $50, $00, $00, $00, $00, $00    // Ball
+    .byte $b4, $00, $e5, $00, $00, $00, $00, $00    // Paddle (bottom of screen)
+    .byte $b4, $00, $50, $00, $00, $00, $00, $00    // Ball
     .byte $58, $00, $82, $00, $00, $00, $00, $00
     .byte $18, $00, $62, $00, $00, $00, $00, $00
     .byte $18, $00, $72, $00, $00, $00, $00, $00
@@ -46,6 +49,8 @@ SpriteMem:
 .var xa = 6                 // X-acceleration
 .var ya = 7                 // Y-acceleration
 .var spritelen = 8
+
+.var motionless = %00000000 // whether or not the sprite is allowed to move
 
 ldx #0
 stx SpriteIndex

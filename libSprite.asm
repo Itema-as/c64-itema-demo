@@ -26,6 +26,12 @@
 #importonce
 #import "libSpriteData.asm"
 
+.macro FRAME_COLOR(color)
+{
+    lda #color
+    sta $d020
+}
+
 SetTable:
     .byte %00000001
     .byte %00000010
@@ -50,12 +56,12 @@ ClearTable:
     Sprite box
 */
 .const ScreenTopEdge    = $36 // $2e
-.const ScreenBottomEdge = $eb
+.const ScreenBottomEdge = $e5
 .const ScreenRightEdge  = $47
 .const ScreenLeftEdge   = $11
 
-.const Gravity          = $01
-.const VelocityLoss     = $02
+.const Gravity          = $02
+.const VelocityLoss     = $03
 
 /*
     A helper "variable" we will need on occasion
@@ -70,6 +76,17 @@ temp2:
 column:
     .byte %00000000
 row:
+    .byte %00000000
+
+
+reslo:
+    .byte %00000000
+reshi:
+    .byte %00000000
+
+balllo:
+    .byte %00000000
+ballhi:
     .byte %00000000
 
 /*
@@ -273,7 +290,7 @@ move_down:
     // Make sure we don't move below the bottom of the screen, so do not
     // apply the velocity if the edge has already been hit.
     jsr get_yl
-    cmp #ScreenBottomEdge   // Is bottom of screen hit?
+    cmp #ScreenBottomEdge+21 // Is bottom of screen hit?
     bcs move_down_end
     // OK go on and move the sprite
     jsr get_yv              // Get the Y-velocity (a positive number)
@@ -283,7 +300,7 @@ move_down:
     clc
     adc temp                // Move down by the amount of velocity
     jsr store_yl
-    cmp #ScreenBottomEdge   // Is bottom of screen hit?
+    cmp #ScreenBottomEdge+21 // Is bottom of screen hit?
     /*
         We don't want a normal bouncing effect, but rather loose a life and
         start again with a new ball.
@@ -305,9 +322,7 @@ stop:
     jsr store_yv
     jsr store_xm
     jsr store_ym
-    lda #$f0
-    jsr store_yv
-    lda #$a0
+    lda #$b4
     jsr store_xl
     lda #$70
     jsr store_yl
@@ -485,37 +500,73 @@ check_sprite_collision:
     cmp #$00
     beq end_check_sprite_collision
     
+    jsr get_xl     // x-position LSB of ball
+    sta balllo
+    jsr get_xm     // x-position LSB of ball
+    sta ballhi
+
+    sec
+    lda balllo
+    sbc SpriteMem
+    sta reslo
+    lda ballhi
+    sbc SpriteMem+1
+    sta reshi
+
+    sec
+    lda reslo
+    sbc #$11
+    sta reslo
+    lda reshi
+    sbc #$00
+    sta reshi
+
+    bpl right_of_paddle
+
+    clc
+    lda balllo
+    adc #$11
+    sta balllo
+    lda ballhi
+    adc #$00
+    sta ballhi
+    sec
+    lda balllo
+    sbc SpriteMem
+    sta reslo
+    lda ballhi
+    sbc SpriteMem+1
+    sta reshi
+
+
+    bmi left_of_paddle
+
+    jsr bounce_off_paddle
+    jsr end_check_sprite_collision
+    rts
+
+    left_of_paddle:
+        FRAME_COLOR(1) // white
+        rts
+    right_of_paddle:
+        FRAME_COLOR(2) // right
+        rts
+    end_check_sprite_collision:
+        FRAME_COLOR(0)
+rts
+
+bounce_off_paddle:
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
-    cmp #$e4
+    cmp #$e4 // 229 (bottom) - 3 (paddle hight) + 6 (margin)
     bcc end_check_sprite_collision
-    
-    // Check if the ball horizontal MSB is the same
-    // XXX: There is a bug here
-    jsr get_xm
-    clc
-    cmp SpriteMem+1
-    bne end_check_sprite_collision
 
-    // Ball is right of paddle
-    jsr get_xl
-    adc #$10 // adc 7
-    cmp SpriteMem
-    bcc end_check_sprite_collision
-    
-    // Ball is left of paddle
-    jsr get_xl
-    adc #$10 // 11
-    cmp SpriteMem
-    bcc end_check_sprite_collision
-    
     jsr get_yv              // Change the direction of the velocity
     clc
     eor #$ff                // Flip the sign
     jsr store_yv
 
-    // Add effect of a slightly tilted paddle – it should probably be animated
-    // to look a bit better.
+    // Add effect of a slightly tilted paddle in order to control exit angle
     jsr get_xl
     sbc SpriteMem
     rol
@@ -524,6 +575,4 @@ check_sprite_collision:
     
     lda #$f0
     jsr store_ya
-    
-    end_check_sprite_collision:
-rts
+    rts
