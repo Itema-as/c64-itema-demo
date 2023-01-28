@@ -1,7 +1,7 @@
 /*
     Bouncing ball demo
 
-    Copyright (c) 2020-2022 Itema AS
+    Copyright (c) 2020-2023 Itema AS
 
     Written by:
     - Øystein Steimler, ofs@itema.no
@@ -192,9 +192,9 @@ irq_1:
     sta SpriteIndex
     jsr player_input
     animation_loop:
-        lda #$00
-        jsr store_xa
-        jsr store_ya
+        lda #$00            // since we don't want the paddle to be controlled
+        jsr store_xa        // by accelleration of any kind, including gravity,
+        jsr store_ya        // we reset the accelleration here
         jsr move_horizontally
         jsr move_vertically
         jsr draw_sprite
@@ -207,7 +207,7 @@ irq_1:
         jmp animation_loop
     done:
     asl $d019
-//    inc $d020
+///    inc $d020
 //    jsr music.play
 //    dec $d020
 //    dec $d020
@@ -244,18 +244,30 @@ ballSpriteData:
 
 * = $2180 "Paddle Sprite Data"
 paddleSpriteData:
-// sprite 0 / singlecolor / color: $07
-.byte $00,$00,$00,$00,$00,$00,$00,$00
-.byte $00,$00,$00,$00,$00,$00,$00,$00
-.byte $00,$00,$00,$00,$00,$ff,$ff,$ff
-.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-.byte $ff,$00,$00,$00,$00,$00,$00,$00
-.byte $00,$00,$00,$00,$00,$00,$00,$00
-.byte $00,$00,$00,$00,$00,$00,$00,$00
-.byte $00,$00,$00,$00,$00,$00,$00,$07
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %11111111,%11111111,%11111111
+.byte %11111111,%11111111,%11111111
+.byte %11111111,%11111111,%11111111
 
 title:
-.text "itema hackathon  -  fr[ya 2022"
+.text "itema hackathon  -  fr[ya 2023"
 .byte $ff
 
 level_1:
