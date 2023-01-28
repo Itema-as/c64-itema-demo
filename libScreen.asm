@@ -16,18 +16,18 @@ out:
 
 .const MEMCP_SRCVECT = $fb
 .const MEMCP_DSTVECT = MEMCP_SRCVECT + 2
-.macro PRINT_SCREEN(src, dest)
+.macro MEMCOPY(src, dst)
 {
 // NB! The vector for index indirect addressing is little-endian
 
     lda #<src          // Store src address to src vector in zero-page
     sta MEMCP_SRCVECT
-    lad #>src
+    lda #>src
     sta MEMCP_SRCVECT + 1
 
     lda #<dst          // Store dst address to dst vector in zero-page
     sta MEMCP_DSTVECT  // The vector for index indirect addressing is
-    lad #>dst          // little-endian
+    lda #>dst          // little-endian
     sta MEMCP_DSTVECT + 1
 
     ldx #$00
