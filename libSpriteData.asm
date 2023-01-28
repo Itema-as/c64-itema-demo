@@ -28,17 +28,17 @@ SpriteMem:
           |    |    |    |    |    +----------- Y-velocity (signed integer)
           |    |    |    |    |    |    +------ X-acceleration (signed integer)
           |    |    |    |    |    |    |    +- Y-acceleration (signed integer)
-          |    |    |    |    |    |    |    |
-          xl   xm   yl   ym   xv   yv   xa   ya
+          |    |    |    |    |    |    |    |    +- Various flags
+          xl   xm   yl   ym   xv   yv   xa   ya   f
 */
-    .byte $b4, $00, $e5, $00, $00, $00, $00, $00    // Paddle (bottom of screen)
-    .byte $b4, $00, $70, $00, $00, $00, $00, $00    // Ball
-    .byte $58, $00, $82, $00, $00, $00, $00, $00
-    .byte $18, $00, $62, $00, $00, $00, $00, $00
-    .byte $18, $00, $72, $00, $00, $00, $00, $00
-    .byte $18, $00, $82, $00, $00, $00, $00, $00
-    .byte $18, $00, $92, $00, $00, $00, $00, $00
-    .byte $18, $00, $a2, $00, $00, $00, $00, $00
+    .byte $b4, $00, $e5, $00, $00, $00, $00, $00, $00    // Paddle (bottom of screen)
+    .byte $b4, $00, $70, $00, $00, $00, $00, $00, $00    // Ball
+    .byte $58, $00, $82, $00, $00, $00, $00, $00, $00
+    .byte $18, $00, $62, $00, $00, $00, $00, $00, $00
+    .byte $18, $00, $72, $00, $00, $00, $00, $00, $00
+    .byte $18, $00, $82, $00, $00, $00, $00, $00, $00
+    .byte $18, $00, $92, $00, $00, $00, $00, $00, $00
+    .byte $18, $00, $a2, $00, $00, $00, $00, $00, $00
 
 .var xl = 0                 // Y-location LSB
 .var xm = 1                 // X-location MSB
@@ -48,14 +48,22 @@ SpriteMem:
 .var yv = 5                 // Y-velocity
 .var xa = 6                 // X-acceleration
 .var ya = 7                 // Y-acceleration
-.var spritelen = 8
+.var f  = 8                 // Flags
+.var spritelen = 9
 
 .var motionless = %00000000 // whether or not the sprite is allowed to move
-.var on_paddle = %00000000  // whether or not the sprite is allowed to move
 
 ldx #0
 stx SpriteIndex
 jsr get_xm                  // xm for 0 in a
+
+get_flags:
+    php
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #f                  // Add index to get fieldaddr
+    jmp get_val
+
 
 get_xm:
     php
@@ -119,6 +127,14 @@ get_val:
     lda SpriteMem,x         // load fieldaddr -> .A
     plp
     rts
+
+store_flags:
+    php
+    pha
+    jsr getspritebase       // Get spritebase in .A
+    clc                     // Clear the carry flag
+    adc #f                  // Add index to get fieldaddr
+    jmp store_val
 
 store_xm:
     php

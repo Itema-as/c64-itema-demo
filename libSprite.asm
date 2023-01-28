@@ -60,7 +60,7 @@ ClearTable:
 .const ScreenRightEdge  = $47
 .const ScreenLeftEdge   = $11
 
-.const Gravity          = $03 // sørg for at ballen faller under
+.const Gravity          = $06 // sørg for at ballen faller under
 .const VelocityLoss     = $03
 
 /*
@@ -147,6 +147,54 @@ rts
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
+    Perform horizontal movement
+*/
+move_horizontally:
+    jsr h_acceleration      // Apply horizontal acceleration
+    jsr get_xv
+    clc
+    cmp #$00                // Compare with signed integer
+    bmi move_left           // Move left if value is negative
+    bpl move_right          // Move right if value is positive
+rts
+/*
+    Move current sprite left
+*/
+move_left:
+    jsr get_xv              // Get the X-velocity (which is negative)
+    eor #$ff                // Flip the sign so that we get a positive number
+    clc
+    adc #$01                // fix after flip
+    jsr shift_right         // Apply only the 5 MSB of velocity
+    sta temp                // Store the new value in a variable
+    jsr get_xl
+    sec
+    sbc temp                // Move left by the amount of velocity 
+    jsr store_xl
+    jsr get_xm
+    sbc #$00                // Subtract zero and borrow from lsb subtraction
+    jsr store_xm
+    jsr left_edge
+rts
+
+/*
+    Move current sprite right
+*/
+move_right:
+    jsr get_xv              // Get the X-velocity (a positive number)
+    jsr shift_right         // Apply only the 5 MSB of velocity
+    sta temp                // Store the value in a temporary variable
+    jsr get_xl
+    clc
+    adc temp                // Move right by the amount of velocity
+    jsr store_xl
+    jsr get_xm
+    adc #$00                // Add zero and carry from lsb addition
+    jsr store_xm
+    jsr right_edge
+rts 
+
+/*
     Apply the acceleration to the velocity, moving up. Once passing $FF (-1) the
     direction will change to moving downwards. This transition causes some
     velocity to be lost.
@@ -182,18 +230,6 @@ fall_down:
     bpl fall_down_end   
     jsr store_yv
     fall_down_end:
-rts
-
-/*
-    Perform horizontal movement
-*/
-move_horizontally:
-    jsr h_acceleration      // Apply horizontal acceleration
-    jsr get_xv
-    clc
-    cmp #$00                // Compare with signed integer
-    bmi move_left           // Move left if value is negative
-    bpl move_right          // Move right if value is positive
 rts
 
 /*
@@ -242,43 +278,6 @@ v_acceleration:
 rts
 
 /*
-    Move current sprite left
-*/
-move_left:
-    jsr get_xv              // Get the X-velocity (which is negative)
-    eor #$ff                // Flip the sign so that we get a positive number
-    clc
-    adc #$01                // fix after flip
-    jsr shift_right         // Apply only the 5 MSB of velocity
-    sta temp                // Store the new value in a variable
-    jsr get_xl
-    sec
-    sbc temp                // Move left by the amount of velocity 
-    jsr store_xl
-    jsr get_xm
-    sbc #$00                // Subtract zero and borrow from lsb subtraction
-    jsr store_xm
-    jsr left_edge
-rts
-
-/*
-    Move current sprite right
-*/
-move_right:
-    jsr get_xv              // Get the X-velocity (a positive number)
-    jsr shift_right         // Apply only the 5 MSB of velocity
-    sta temp                // Store the value in a temporary variable
-    jsr get_xl
-    clc
-    adc temp                // Move right by the amount of velocity
-    jsr store_xl
-    jsr get_xm
-    adc #$00                // Add zero and carry from lsb addition
-    jsr store_xm
-    jsr right_edge
-rts 
-
-/*
     Move current sprite upwards
 */
 up:
@@ -295,22 +294,63 @@ up:
     bcc change_to_move_down // Jump if less than $31
 rts
 
+
+/*
+    Flip the sign on the vertical velocity and acceleration
+*/
+change_to_move_up:
+    jsr get_yv              // Change the direction of the velocity
+    clc
+    sbc #VelocityLoss       // Reduce velocity  
+    eor #$ff                // Flip the sign
+    jsr store_yv
+rts
+
+change_to_move_down:
+    jsr get_yv              // Change the direction of the velocity
+    clc
+    adc #VelocityLoss       // Reduce velocity  
+    eor #$ff                // Flip the sign
+    jsr store_yv
+rts
+
 /*
     Move current sprite downwards
 */
 move_down:
+    lda SpriteIndex
+    cmp #$00
+    beq move_down_end
+
     // Make sure we don't move below the bottom of the screen, so do not
     // apply the velocity if the edge has already been hit.
     jsr get_yl
     cmp #ScreenBottomEdge   // Is bottom of screen hit?
     bcs move_down_end
+
     // OK go on and move the sprite
     jsr get_yv              // Get the Y-velocity (a positive number)
     jsr shift_right         // Apply only the 5 MSB of velocity
     sta temp                // Store the value in a temporary variable
+
     jsr get_yl
     clc
     adc temp                // Move down by the amount of velocity
+    sta temp
+
+    jsr get_flags
+    cmp #$01
+    bne store_position
+
+    lda temp
+    cmp #$e8
+    bcc store_position
+    lda #$e8
+    jsr store_yl
+    jmp move_down_end
+
+    store_position:
+    lda temp
     jsr store_yl
     cmp #ScreenBottomEdge   // Is bottom of screen hit?
     /*
@@ -336,6 +376,7 @@ stop:
     jsr store_ym
     lda #$b4
     jsr store_xl
+    sta SpriteMem
     lda #$70
     jsr store_yl
 rts
@@ -361,25 +402,6 @@ change_to_move_left:
     sbc #VelocityLoss       // Reduce velocity
     eor #$ff                // Flip the sign
     jsr store_xv
-rts
-
-/*
-    Flip the sign on the vertical velocity and acceleration
-*/
-change_to_move_up:
-    jsr get_yv              // Change the direction of the velocity
-    clc
-    sbc #VelocityLoss       // Reduce velocity  
-    eor #$ff                // Flip the sign
-    jsr store_yv
-rts
-
-change_to_move_down:
-    jsr get_yv              // Change the direction of the velocity
-    clc
-    adc #VelocityLoss       // Reduce velocity  
-    eor #$ff                // Flip the sign
-    jsr store_yv
 rts
 
 /*
@@ -507,12 +529,13 @@ check_collision:
 rts
 
 check_sprite_collision:
-    lda #$0
-    sta on_paddle
 
     lda SpriteIndex
     cmp #$00
     beq end_check_sprite_collision
+
+    lda #$0
+    jsr store_flags
     
     jsr get_xl     // x-position LSB of ball
     sta balllo
@@ -567,8 +590,8 @@ check_sprite_collision:
         rts
     end_check_sprite_collision:
         FRAME_COLOR(0)
-        lda #$1
-        sta on_paddle
+        lda #$01
+        jsr store_flags
 rts
 
 bounce_off_paddle:
