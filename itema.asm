@@ -119,7 +119,12 @@ MEMCOPY(colormap, $d800)
 //PRINT_SCREEN(level_1, $04f0)
 //PRINT_SCREEN(title, $0400)
 
-
+// Initialize SID-chip
+lda #$FF  // maximum frequency value
+sta $D40E // voice 3 frequency low byte
+sta $D40F // voice 3 frequency high byte
+lda #$80  // noise waveform, gate bit off
+sta $D412 // voice 3 control register
 
 /*
     Initialize IRQ
@@ -144,11 +149,11 @@ player_input:
     // Set acceleration according to joystick input
     LIBINPUT_GET(GameportLeftMask)
         bne inputRight
-        jsr get_xm
-        cmp #$01
-        beq inputLeft_cont
+//        jsr get_xm
+//        cmp #$01
+//        beq inputLeft_cont
         jsr get_xl
-        cmp #$18
+        cmp #$20
         bcc inputRight
         inputLeft_cont:
         lda #$bf
@@ -157,11 +162,11 @@ player_input:
     inputRight:
         LIBINPUT_GET(GameportRightMask)
         bne inputUp
-        jsr get_xm
-        cmp #$01
-        bne inputRight_cont
+//        jsr get_xm
+//        cmp #$01
+//        bne inputRight_cont
         jsr get_xl
-        cmp #$38
+        cmp #ScreenRightEdge-14
         bcs inputUp
         inputRight_cont:
         lda #$60
