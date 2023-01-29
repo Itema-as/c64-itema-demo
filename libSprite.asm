@@ -57,10 +57,10 @@ ClearTable:
 */
 .const ScreenTopEdge    = $36 // $2e
 .const ScreenBottomEdge = $eb // 229+6
-.const ScreenRightEdge  = $47
+.const ScreenRightEdge  = $d7 // 231
 .const ScreenLeftEdge   = $11
 
-.const Gravity          = $02
+.const Gravity          = $01
 .const VelocityLoss     = $10
 
 .const TopOfPaddle      = $e8 // 229 (bottom) - 3 (paddle hight) + 6 (margin)
@@ -414,10 +414,16 @@ rts
     screen.
 */
 right_edge:
+    jsr get_xl
+    clc
+    cmp #ScreenRightEdge
+    bcs change_to_move_left
+/* Only when using fold
     jsr get_xm
     clc
     cmp #$01                // Compare with #01 (over fold)
     beq over_fold
+*/
 rts
 
 /*
@@ -513,10 +519,10 @@ check_collision:
     ldy column
     lda ($fd),y
 
-    cmp #$20                // Nothing should happenif the character is a space
-    beq end_char
+    cmp #$81                // Nothing should happenif the character is a space
+    bcc end_char
 
-    lda #$20                // Clear using space
+    lda #$80                // Clear using space
     sta ($fd),y             // Store in both left..
     iny                     // ..and rignt half of block
     sta ($fd),y
