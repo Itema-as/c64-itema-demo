@@ -59,11 +59,10 @@ ClearTable:
 .const ScreenBottomEdge = $eb // 229+6
 .const ScreenRightEdge  = $d7 // 231
 .const ScreenLeftEdge   = $11
-
 .const Gravity          = $01
 .const VelocityLoss     = $10
 
-.const TopOfPaddle      = $e8 // 229 (bottom) - 3 (paddle hight) + 6 (margin)
+.const TopOfPaddle      = $e3 // 224 (bottom) - 3 (paddle hight) + 6 (margin)
 
 fire:
     .byte $0
@@ -379,7 +378,7 @@ stop:
     jsr store_xm
     jsr store_ym
     sta SpriteMem+1
-    lda #$b4
+    lda #$70
     jsr store_xl
     sta SpriteMem
     lda #$70
@@ -519,23 +518,41 @@ check_collision:
     ldy column
     lda ($fd),y
 
-    cmp #$81                // Nothing should happenif the character is a space
+    cmp #$80                // Nothing should happenif the character is a space or lower
     bcc end_char
 
-    lda #$80                // Clear using space
+
+    cmp #%11110000
+    bcs bounce_on_brick
+
+    cmp #%11100000
+    bcs speed_up_ball
+
+    lda #$79                // Clear using space
     sta ($fd),y             // Store in both left..
-    iny                     // ..and rignt half of block
+    iny                     // ..and right half of block
     sta ($fd),y
 
-    jsr get_yv
-    eor #$ff                // Flip the sign so that we get a positive number
-    clc
-    adc #$01                // fix after flip
-    jsr store_yv
-    
-    // TODO: Improve bounce effect, it looks wrong
-    // TODO: Handle hitting a brick sideways
+    bounce_on_brick:
+        jsr get_yv
+        eor #$ff                // Flip the sign so that we get a positive number
+        clc
+        adc #$01                // fix after flip
+        jsr store_yv
 
+        jsr get_xv
+        eor #$ff                // Flip the sign so that we get a positive number
+        clc
+        adc #$01                // fix after flip
+        jsr store_xv
+        jmp end_char
+
+    speed_up_ball:
+        lda $D41B  // get random value from 0-255
+        and #$10000011
+        jsr store_ya
+        jsr store_xa
+        jmp end_char
     end_char:
 rts
 
