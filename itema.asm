@@ -34,7 +34,7 @@ initialize:
     //lda #$17                // Activate character set 2
     //sta $d018
 
-    lda #%00000011          // Enable sprites
+    lda #%11000011          // Enable sprites
     sta $d015
 
     lda #$00                // Disable xpand-y
@@ -67,8 +67,36 @@ initialize:
 //    sta $07fb               // Sprite #4
 //    sta $07fc               // Sprite #5
 //    sta $07fd               // Sprite #6
-//    sta $07fe               // Sprite #7
-//    sta $07ff               // Sprite #8
+
+// Itema Logo Sprites //
+    lda #itemaLogoSwoosh/64
+    sta $07fe               // Sprite #7
+    lda #itemaLogoBall/64
+    sta $07ff               // Sprite #8
+
+/*
+    Draw Itema Logo
+*/
+
+    // Set MSB for sprite 7 and 7
+    lda $d010
+    ora #%11000000
+    sta $d010
+
+    // Position both sprites overlapping
+    lda #$18
+    sta $d00c
+    sta $d00e
+    lda #$d5
+    sta $d00d
+    sta $d00f
+
+    // Set colors
+    lda #$01
+    sta $d02d
+    lda #$02
+    sta $d02e
+
 
 /*
     Set character set pointer to our custom set, turn off 
