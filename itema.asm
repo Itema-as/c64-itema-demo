@@ -34,7 +34,7 @@ initialize:
     //lda #$17                // Activate character set 2
     //sta $d018
 
-    lda #%00000011          // Enable sprites
+    lda #%11000011          // Enable sprites
     sta $d015
 
     lda #$00                // Disable xpand-y
@@ -67,8 +67,36 @@ initialize:
 //    sta $07fb               // Sprite #4
 //    sta $07fc               // Sprite #5
 //    sta $07fd               // Sprite #6
-//    sta $07fe               // Sprite #7
-//    sta $07ff               // Sprite #8
+
+// Itema Logo Sprites //
+    lda #itemaLogoSwoosh/64
+    sta $07fe               // Sprite #7
+    lda #itemaLogoBall/64
+    sta $07ff               // Sprite #8
+
+/*
+    Draw Itema Logo
+*/
+
+    // Set MSB for sprite 7 and 7
+    lda $d010
+    ora #%11000000
+    sta $d010
+
+    // Position both sprites overlapping
+    lda #$18
+    sta $d00c
+    sta $d00e
+    lda #$d5
+    sta $d00d
+    sta $d00f
+
+    // Set colors
+    lda #$01
+    sta $d02d
+    lda #$02
+    sta $d02e
+
 
 /*
     Set character set pointer to our custom set, turn off 
@@ -302,3 +330,75 @@ paddleSpriteData:
 .byte %11111111,%11111111,%11111111
 .byte %11111111,%11111111,%11111111
 .byte %11111111,%11111111,%11111111
+
+* = $21c0 "itemaLogo"
+itemaLogo:
+.byte $00, $1C, $00
+.byte $01, $BE, $C0
+.byte $07, $BE, $70
+.byte $0E, $1C, $38
+.byte $1C, $00, $1C
+.byte $38, $7C, $0C
+.byte $38, $7C, $0E
+.byte $70, $1C, $0E
+.byte $70, $1C, $0E
+.byte $70, $1C, $0E
+.byte $F0, $1C, $0E
+.byte $F0, $1C, $0E
+.byte $70, $1C, $1C
+.byte $70, $1C, $3C
+.byte $78, $1C, $78
+.byte $78, $1F, $E0
+.byte $3C, $1F, $C0
+.byte $1E, $1E, $00
+.byte $0F, $00, $00
+.byte $07, $C2, $00
+.byte $00, $FC, $00
+
+* = $2200 "itemaLogoSwoosh"
+itemaLogoSwoosh:
+.byte $00, $00, $00
+.byte $01, $C1, $C0
+.byte $07, $80, $70
+.byte $0E, $00, $38
+.byte $1C, $00, $1C
+.byte $38, $7C, $0C
+.byte $38, $7C, $0E
+.byte $70, $1C, $0E
+.byte $70, $1C, $0E
+.byte $70, $1C, $0E
+.byte $F0, $1C, $0E
+.byte $F0, $1C, $0E
+.byte $70, $1C, $1C
+.byte $70, $1C, $3C
+.byte $78, $1C, $78
+.byte $78, $1F, $E0
+.byte $3C, $1F, $C0
+.byte $1E, $1E, $00
+.byte $0F, $00, $00
+.byte $07, $C2, $00
+.byte $00, $FC, $00
+
+* = $2240 "itemaLogoSwoosh"
+itemaLogoBall:
+.byte $00, $1C, $00
+.byte $00, $3E, $00
+.byte $00, $3E, $00
+.byte $00, $1C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
