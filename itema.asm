@@ -17,6 +17,7 @@
 #import "libSprite.asm"
 #import "libInput.asm"
 #import "libScreen.asm"
+#import "screens.asm"
 
 BasicUpstart2(initialize)
 
@@ -26,7 +27,7 @@ BasicUpstart2(initialize)
 initialize:
     jsr $e544               // Clear screen
 
-    lda #$00                // Set the background color
+    lda #$06                // Set the background color
     sta $d021
     sta $d020
 
@@ -76,7 +77,7 @@ initialize:
 
 lda $d018
 ora #%00001110 // Set chars location to $3800 for displaying the custom font
-sta $d018      // Bits 1-3 ($0400 + 512 bytes * low nibble value) of $D018 sets char location
+sta $d018      // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
                // $400 + $200*$0E = $3800
 lda $d016      // turn off multicolor for characters
 and #%11101111 // by clearing bit #4 of $D016
@@ -85,16 +86,12 @@ sta $d016
 /*
     Print the first level from the second line from the top
 */
-PRINT_SCREEN(level_1, $04f0)
-PRINT_SCREEN(title, $0400)
+MEMCOPY(background, $0400)
+MEMCOPY(colormap, $d800)
+//PRINT_SCREEN(level_1, $04f0)
+//PRINT_SCREEN(title, $0400)
 
-ldx #$01
-cloop:
-txa
-sta $d800,x 
-inx
-cpx #27
-bne cloop
+
 
 /*
     Initialize IRQ
@@ -127,6 +124,7 @@ player_input:
         bcc inputRight
         inputLeft_cont:
         lda #$bf
+        //lda #$ef
         jsr store_xv
     inputRight:
         LIBINPUT_GET(GameportRightMask)
@@ -147,9 +145,16 @@ player_input:
         jsr store_yv
     inputDown:
         LIBINPUT_GET(GameportDownMask)
-        bne inputEnd
+        bne inputFire
         lda #$00
         jsr store_yv
+    inputFire:
+        lda #$00
+        sta fire
+        LIBINPUT_GET(GameportFireMask)
+        bne inputEnd
+        lda #$80
+        sta fire
     inputEnd:   
         rts 
 
@@ -187,16 +192,24 @@ init_irq:
 
 
 irq_1:
-//    inc $d020
     lda #$00
     sta SpriteIndex
     jsr player_input
     animation_loop:
+        /*
         lda #$00            // since we don't want the paddle to be controlled
         jsr store_xa        // by accelleration of any kind, including gravity,
         jsr store_ya        // we reset the accelleration here
-        jsr move_horizontally
+        */
+        lda SpriteIndex
+        cmp #$00
+        beq move_ball        
+        lda fire
+        jsr store_ya
         jsr move_vertically
+
+        move_ball:
+        jsr move_horizontally
         jsr draw_sprite
         jsr check_collision
         jsr check_sprite_collision
@@ -270,6 +283,7 @@ title:
 .text "itema hackathon  -  fr[ya 2023"
 .byte $ff
 
+/*
 level_1:
 .text "                                        "
 .text "  <><><><><><><><><>  <><><><><><><><>  "
@@ -278,9 +292,8 @@ level_1:
 .text "  <><><><>  <><><><>  <><><>  <><><><>  "
 .text "  <><><><>  <><><><>  <><><>  <><><><>  "
 .byte $ff
+*/
 
 // Import character set. Use https://petscii.krissz.hu to edit
-* = $3800 "Custom Character Set"
-characterSet:
-.import c64 "itema.64c"
-
+//* = $3800 "Custom Character Set"
+//.import c64 "itema.64c"
