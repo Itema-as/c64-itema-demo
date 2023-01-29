@@ -58,14 +58,17 @@ ClearTable:
 .const ScreenTopEdge    = $36 // $2e
 .const ScreenBottomEdge = $eb // 229+6
 .const ScreenRightEdge  = $d7 // 231
-.const ScreenLeftEdge   = $11
+.const ScreenLeftEdge   = $14
 .const Gravity          = $01
-.const VelocityLoss     = $10
+.const VelocityLoss     = $06
 
 .const TopOfPaddle      = $e3 // 224 (bottom) - 3 (paddle hight) + 6 (margin)
 
 fire:
     .byte $0
+
+.var random_movement_timer = 0
+
 /*
     A helper "variable" we will need on occasion
 */
@@ -548,11 +551,10 @@ check_collision:
         jmp end_char
 
     speed_up_ball:
-        lda $D41B  // get random value from 0-255
-        and #$10000011
-        jsr store_ya
-        jsr store_xa
-        jmp end_char
+        lda #$10
+        sta random_movement_timer
+        //lda #$86
+        //jsr store_ya
     end_char:
 rts
 
@@ -616,7 +618,6 @@ check_sprite_collision:
         //FRAME_COLOR(2) // right
         rts
     end_check_sprite_collision:
-        FRAME_COLOR(0)
         lda #$01
         jsr store_flags
 rts
@@ -651,7 +652,7 @@ stop_ball:
     cmp #$2 
     bpl bounce
 
-    FRAME_COLOR(3)
+    //FRAME_COLOR(3)
 
     lda #$08
     jsr store_yv
