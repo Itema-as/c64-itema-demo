@@ -88,15 +88,6 @@ sta $d016
 */
 MEMCOPY(background, $0400)
 MEMCOPY(colormap, $d800)
-//PRINT_SCREEN(level_1, $04f0)
-//PRINT_SCREEN(title, $0400)
-
-// Initialize SID-chip
-lda #$FF  // maximum frequency value
-sta $D40E // voice 3 frequency low byte
-sta $D40F // voice 3 frequency high byte
-lda #$80  // noise waveform, gate bit off
-sta $D412 // voice 3 control register
 
 /*
     Initialize IRQ
@@ -125,7 +116,7 @@ player_input:
 //        cmp #$01
 //        beq inputLeft_cont
         jsr get_xl
-        cmp #$20
+        cmp #$1f
         bcc inputRight
         inputLeft_cont:
         lda #$bf
@@ -201,28 +192,38 @@ irq_1:
     sta SpriteIndex
     jsr player_input
     animation_loop:
-        /*
-        lda #$00            // since we don't want the paddle to be controlled
-        jsr store_xa        // by accelleration of any kind, including gravity,
-        jsr store_ya        // we reset the accelleration here
-        */
+
         lda SpriteIndex
         cmp #$00
-        beq move_ball        
-        lda fire
-        jsr store_ya
-        jsr move_vertically
+        beq move_paddle
 
-        move_ball:
-        jsr move_horizontally
-        jsr draw_sprite
-        jsr check_collision
-        jsr check_sprite_collision
-        inc SpriteIndex
-        lda SpriteIndex
-        cmp #$02
-        beq done
-        jmp animation_loop
+        lda #$00
+        jsr store_ya
+        jsr store_xa
+
+        lda random_movement_timer
+        cmp #$0
+        bne random_movement
+
+        apply_fire:
+            lda fire
+            jsr store_ya
+            lda #$00
+            jsr store_xa
+
+        move_ball_normally:
+            jsr move_vertically
+
+        move_paddle:
+            jsr move_horizontally
+            jsr draw_sprite
+            jsr check_collision
+            jsr check_sprite_collision
+            inc SpriteIndex
+            lda SpriteIndex
+            cmp #$02
+            beq done
+            jmp animation_loop
     done:
     asl $d019
 ///    inc $d020
@@ -230,6 +231,24 @@ irq_1:
 //    dec $d020
 //    dec $d020
     jmp $ea81 // set flag and end
+
+random_movement:
+    dec random_movement_timer
+    lda random_movement_timer
+    cmp #$0
+    beq end_random_movement
+    FRAME_COLOR(4)
+
+    lda #$80
+//    lda #random()*256        
+//    jsr store_xa
+    jmp move_ball_normally
+
+    end_random_movement:
+        FRAME_COLOR(0)
+        lda #$00
+        jsr store_ya
+        jmp apply_fire
 
 *=music.location "Music"
 .fill music.size, music.getData(i)              // <- Here we put the music in memory
@@ -283,22 +302,3 @@ paddleSpriteData:
 .byte %11111111,%11111111,%11111111
 .byte %11111111,%11111111,%11111111
 .byte %11111111,%11111111,%11111111
-
-title:
-.text "itema hackathon  -  fr[ya 2023"
-.byte $ff
-
-/*
-level_1:
-.text "                                        "
-.text "  <><><><><><><><><>  <><><><><><><><>  "
-.text "  <><><><><><><><><>  <><><><><><><><>  "
-.text "                                        "
-.text "  <><><><>  <><><><>  <><><>  <><><><>  "
-.text "  <><><><>  <><><><>  <><><>  <><><><>  "
-.byte $ff
-*/
-
-// Import character set. Use https://petscii.krissz.hu to edit
-//* = $3800 "Custom Character Set"
-//.import c64 "itema.64c"
