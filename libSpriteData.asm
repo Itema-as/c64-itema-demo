@@ -31,7 +31,7 @@ SpriteMem:
           |    |    |    |    |    |    |    |    +- Various flags
           xl   xm   yl   ym   xv   yv   xa   ya   f
 */
-    .byte $70, $00, $e0, $00, $00, $00, $00, $00, $00    // Paddle (bottom of screen)
+    .byte $20, $00, $e0, $00, $00, $00, $00, $00, $00    // Paddle (bottom of screen)
     .byte $70, $00, $70, $00, $00, $00, $00, $00, $00    // Ball
     .byte $58, $00, $82, $00, $00, $00, $00, $00, $00
     .byte $18, $00, $62, $00, $00, $00, $00, $00, $00
