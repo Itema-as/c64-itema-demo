@@ -22,6 +22,7 @@
 BasicUpstart2(initialize)
 
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
+.var demo_mode_movement_timer = $0
 
 // Initialize
 initialize:
@@ -30,9 +31,6 @@ initialize:
     lda #$06                // Set the background color
     sta $d021
     sta $d020
-
-    //lda #$17                // Activate character set 2
-    //sta $d018
 
     lda #%11000011          // Enable sprites
     sta $d015
@@ -43,36 +41,31 @@ initialize:
     lda #$00                // Set sprite/background priority
     sta $d01b
     
-//  lda #$ff                // enable multicolor
-//  sta $d01c
     
     lda #$00                // Disable xpand-x
     sta $d01d
     
-//  lda #$0f                // set sprite multicolor 1
-//  sta $d025
-//  lda #$0c                // set sprite multicolor 2
-//  sta $d026
     lda #$0a                // Set sprite individual color
     sta $d027
     lda #$0a                // Set sprite individual color
     sta $d028
     
     lda #paddleSpriteData/64
-    sta $07f8
-    lda #ballSpriteData/64  // Sprite #1
-    sta $07f9
-
-//    sta $07fa               // Sprite #3
-//    sta $07fb               // Sprite #4
-//    sta $07fc               // Sprite #5
-//    sta $07fd               // Sprite #6
+    sta $07f8               // Sprite #0
+    lda #ballSpriteData/64
+    sta $07f9               // Sprite #1
+    sta $07fa               // Sprite #2
+    /*
+    sta $07fb               // Sprite #3
+    sta $07fc               // Sprite #4
+    sta $07fd               // Sprite #5
+    */
 
 // Itema Logo Sprites //
     lda #itemaLogoSwoosh/64
-    sta $07fe               // Sprite #7
+    sta $07fe               // Sprite #6
     lda #itemaLogoBall/64
-    sta $07ff               // Sprite #8
+    sta $07ff               // Sprite #7
 
 /*
     Draw Itema Logo
@@ -125,62 +118,33 @@ jsr init_irq
 loop:
 jmp loop
 
-/*
-    The player sprite is a bit special. It is pretty much uncontrollable when
-    having to be controlled by acceleration, it is just to slow to change
-    direction with low acceleration, and unwieldy with high acceleration, so
-    instead we control the velocity directly.
-*/
-player_input:
-    // Reset velocity on both axis
-    lda #$00
-    jsr store_xv
-    jsr store_yv
+paddle_input:
+    lda $dc00       // Load value from CIA#1 Data Port A (pot lines are input)
+    and #%11111110  // Set bit 0 to input for pot x (paddle 1)
+    sta $dc00       // Store the result back to Data Port A
 
-    // Set acceleration according to joystick input
-    LIBINPUT_GET(GameportLeftMask)
-        bne inputRight
-//        jsr get_xm
-//        cmp #$01
-//        beq inputLeft_cont
-        jsr get_xl
-        cmp #$1f
-        bcc inputRight
-        inputLeft_cont:
-        lda #$bf
-        //lda #$ef
-        jsr store_xv
-    inputRight:
-        LIBINPUT_GET(GameportRightMask)
-        bne inputUp
-//        jsr get_xm
-//        cmp #$01
-//        bne inputRight_cont
-        jsr get_xl
-        cmp #ScreenRightEdge-14
-        bcs inputUp
-        inputRight_cont:
-        lda #$60
-        jsr store_xv
-    inputUp:
-        LIBINPUT_GET(GameportUpMask)
-        bne inputDown  
-        lda #$00
-        jsr store_yv
-    inputDown:
-        LIBINPUT_GET(GameportDownMask)
-        bne inputFire
-        lda #$00
-        jsr store_yv
-    inputFire:
-        lda #$00
-        sta fire
-        LIBINPUT_GET(GameportFireMask)
-        bne inputEnd
-        lda #$80
-        sta fire
-    inputEnd:   
-        rts 
+    lda $dc01       // Load value from CIA#1 Data Port B (keyboard lines)
+    and #%11110111  // Clear bit 3 to low (selects pot x)
+    sta $dc01       // Store the result back to Data Port B
+
+    lda $d419       // Load value from Paddle X pot
+    eor #$ff        // XOR with 255 to reverse the range
+
+    // Update paddle position unless it is outside the playing area
+
+    clc
+    cmp #$1a        // Compare with the minimum value
+    bcs piNotLess   // If carry is set (number >= minValue), branch to piNotLess
+    lda #$1a        // If carry is clear (number < minValue), load the minimum value into the accumulator
+    piNotLess:
+    clc
+    // Now check if the number is greater than the maximum value
+    cmp #$ce        // Compare with the maximum value
+    bcc piNotGreater// If carry is clear (number < maxValue), branch to piNotGreater
+    lda #$ce        // If carry is set (number >= maxValue), load the maximum value into the accumulator
+    piNotGreater:
+    jsr store_xl    // Store the paddle x-position
+    rts
 
 init_irq:
 
@@ -194,89 +158,87 @@ init_irq:
     lda #<irq_1
     ldx #>irq_1
     sta $0314
-    stx $0315               // Set interrupt addr    
+    stx $0315       // Set interrupt addr    
     lda #$7f
-    sta $dc0d               // Timer A off on cia1/kb
-    sta $dd0d               // Timer A off on cia2
+    sta $dc0d       // Timer A off on cia1/kb
+    sta $dd0d       // Timer A off on cia2
 
     lda #$81
-    sta $d01a               // Raster interrupts on
-    lda #$1b                // Screen ctrl: default
+    sta $d01a       // Raster interrupts on
+    lda #$1b        // Screen ctrl: default
     sta $d011
 
     lda #$01
-    sta $d012               // Interrupt at line 0
+    sta $d012       // Interrupt at line 0
 
-    lda $dc0d               // Clrflg (cia1)
-    lda $dd0d               // Clrflg (cia2)
-    asl $d019               // Clr interrupt flag (just in case)
+    lda $dc0d       // Clrflg (cia1)
+    lda $dd0d       // Clrflg (cia2)
+    asl $d019       // Clr interrupt flag (just in case)
     cli
     rts
-
-
 
 irq_1:
     lda #$00
     sta SpriteIndex
-    jsr player_input
+    jsr paddle_input
+    
     animation_loop:
 
+        clc
         lda SpriteIndex
         cmp #$00
         beq move_paddle
 
-        lda #$00
-        jsr store_ya
-        jsr store_xa
-
-        lda random_movement_timer
-        cmp #$0
-        bne random_movement
-
-        apply_fire:
-            lda fire
-            jsr store_ya
-            lda #$00
-            jsr store_xa
+        // Check if we should move the ball faster
+        move_ball_accellerated:
+            clc
+            lda accelerated_movement_timer
+            cmp #$1
+            bcs accelerated_movement
 
         move_ball_normally:
             jsr move_vertically
 
-        move_paddle:
+        move_paddle:    
             jsr move_horizontally
             jsr draw_sprite
             jsr check_collision
             jsr check_sprite_collision
             inc SpriteIndex
             lda SpriteIndex
-            cmp #$02
-            beq done
-            jmp animation_loop
+
+        cmp #$02
+        beq done
+        jmp animation_loop
     done:
-    asl $d019
+        asl $d019
+// No music in the main loop
 ///    inc $d020
 //    jsr music.play
 //    dec $d020
 //    dec $d020
-    jmp $ea81 // set flag and end
+        jmp $ea81 // set flag and end
 
-random_movement:
-    dec random_movement_timer
-    lda random_movement_timer
+/*
+    Add a little upwards acceleration for a period of time. This typically happens
+    when the ball hits the paddle.
+*/
+accelerated_movement:
+    dec accelerated_movement_timer
+    lda accelerated_movement_timer
     cmp #$0
-    beq end_random_movement
+    beq end_accellerated_movement
     FRAME_COLOR(4)
 
-    lda #$80
-//    lda #random()*256        
-//    jsr store_xa
+    lda #$80                // -1
+    jsr store_ya
     jmp move_ball_normally
 
-    end_random_movement:
+    end_accellerated_movement:
         FRAME_COLOR(0)
         lda #$00
         jsr store_ya
-        jmp apply_fire
+    jmp move_ball_normally
 
 *=music.location "Music"
 .fill music.size, music.getData(i)              // <- Here we put the music in memory

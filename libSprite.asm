@@ -55,19 +55,19 @@ ClearTable:
 /*
     Sprite box
 */
-.const ScreenTopEdge    = $36 // $2e
+.const ScreenTopEdge    = $2e // $2e
 .const ScreenBottomEdge = $eb // 229+6
 .const ScreenRightEdge  = $d7 // 231
 .const ScreenLeftEdge   = $14
-.const Gravity          = $01
-.const VelocityLoss     = $06
+.const Gravity          = $02
+.const VelocityLoss     = $01
 
 .const TopOfPaddle      = $e3 // 224 (bottom) - 3 (paddle hight) + 6 (margin)
 
 fire:
     .byte $0
 
-.var random_movement_timer = 0
+.var accelerated_movement_timer = $2
 
 /*
     A helper "variable" we will need on occasion
@@ -344,8 +344,9 @@ move_down:
     adc temp                // Move down by the amount of velocity
     sta temp
 
+    // Only actually move if the ball has not collided with the paddle
     jsr get_flags
-    cmp #$01
+    cmp #$01                
     bne store_position
 
     lda temp
@@ -370,7 +371,9 @@ rts
 
 /*
     Simply stops the ball and drops it again. This should be replaced with a
-    more elaborate you are dead effect.
+    more elaborate you are dead effect. Note that the paddle position is not
+    changed, as this would be confusing to the player since an actual paddle
+    controller is used.
 */
 stop:
     lda #$00
@@ -380,12 +383,10 @@ stop:
     jsr store_yv
     jsr store_xm
     jsr store_ym
-    sta SpriteMem+1
-    lda #$70
-    jsr store_xl
-    sta SpriteMem
-    lda #$70
+    lda #$60
     jsr store_yl
+    lda #$73
+    jsr store_xl
 rts
 
 
@@ -551,8 +552,6 @@ check_collision:
         jmp end_char
 
     speed_up_ball:
-        lda #$10
-        sta random_movement_timer
         //lda #$86
         //jsr store_ya
     end_char:
@@ -642,31 +641,26 @@ bounce_off_paddle:
         sbc SpriteMem
         rol
         rol
-        jsr store_xv        
+        jsr store_xv
+
+        // Set the accellerated movement timer. Hitting the ball with the
+        // paddle will add some extra speed for a few cycles. Otherwise the
+        // balls velocity will be reduced for each bounce, and it will 
+        // eventually stop.
+        lda #$02
+        sta accelerated_movement_timer
     bounce_end:
 rts
-
+/*
+    This function will stop the ball if the velocity is too low. This is used
+    to make it rest on top of the paddle.
+*/
 stop_ball:
     jsr get_yv
     clc
     cmp #$2 
     bpl bounce
-
-    //FRAME_COLOR(3)
-
     lda #$08
     jsr store_yv
-/*
-    clc
-    lda fire
-    cmp #$00
-    beq bounce
-
-    lda #$7f
-    jsr store_yv
-    lda #$7f
-    jsr store_ya
-    FRAME_COLOR(4)
-*/  
     jmp bounce
 
