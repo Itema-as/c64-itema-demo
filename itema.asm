@@ -36,6 +36,13 @@ initialize:
     lda #%11000011          // Enable sprites
     sta $d015
 
+    lda #%00111110          // Specify multicolor for the ball sprites
+    sta $d01c
+    lda #$01                // Color white
+    sta $d025               // Set shared multicolor #1
+    lda #$00                // Color black
+    sta $d026               // Set shared multicolor #2
+
     lda #$00                // Disable xpand-y
     sta $d017
 
@@ -46,9 +53,9 @@ initialize:
     lda #$00                // Disable xpand-x
     sta $d01d
     
-    lda #$0a                // Set sprite individual color
+    lda #$0a                // Set sprite #1 individual color
     sta $d027
-    lda #$0a                // Set sprite individual color
+    lda #$0c                // Set sprite #2 individual color
     sta $d028
     
     lda #paddleSpriteData/64
@@ -118,6 +125,22 @@ jsr init_irq
 
 loop:
 jmp loop
+
+demo_input:
+    lda $d012
+    eor $dc04
+    sbc $dc05       // Get a pseudo random number from CIA timers
+    and #$0F
+    cmp #$08
+    bcc isSmaller
+    sbc #$08
+    isSmaller:
+    sta temp
+    lda SpriteMem+9
+    sbc #$06        // Adjust for ball radius 
+    adc temp
+    jsr store_xl    // Store the paddle x-position
+    rts
 
 paddle_input:
     lda $dc00       // Load value from CIA#1 Data Port A (pot lines are input)
@@ -248,27 +271,27 @@ accelerated_movement:
 // Created using https://www.spritemate.com
 * = $2140 "Ball Sprite Data"
 ballSpriteData:
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00011000,%00000000
-.byte %00000000,%01111110,%00000000
-.byte %00000000,%11111111,%00000000
-.byte %00000000,%11111111,%00000000
-.byte %00000001,%11111111,%10000000
-.byte %00000001,%11111111,%10000000
-.byte %00000000,%11111111,%00000000
-.byte %00000000,%11111111,%00000000
-.byte %00000000,%01111110,%00000000
-.byte %00000000,%00011000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
+.byte   0,   0,   0
+.byte   0,   0,   0
+.byte   0,   0,   0
+.byte   0,   0,   0
+.byte   0,   0,   0
+.byte   0,  40,   0
+.byte   0, 154,   0
+.byte   2, 106, 192
+.byte   2, 170, 192
+.byte   2, 170, 192
+.byte   2, 170, 192
+.byte   2, 171, 192
+.byte   2, 171, 192
+.byte   0, 175,   0
+.byte   0,  60,   0
+.byte   0,   0,   0
+.byte   0,   0,   0
+.byte   0,   0,   0
+.byte   0,   0,   0
+.byte   0,   0,   0
+.byte   0,   0,   0
 
 * = $2180 "Paddle Sprite Data"
 paddleSpriteData:
