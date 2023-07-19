@@ -30,6 +30,7 @@ initialize:
 
     lda #$06                // Set the background color
     sta $d021
+    lda #$00                // Set the background color
     sta $d020
 
     lda #%11000011          // Enable sprites
@@ -77,17 +78,17 @@ initialize:
     sta $d010
 
     // Position both sprites overlapping
-    lda #$18
+    lda #$02
     sta $d00c
     sta $d00e
-    lda #$d5
+    lda #$d7
     sta $d00d
     sta $d00f
 
     // Set colors
-    lda #$01
+    lda #$0f
     sta $d02d
-    lda #$02
+    lda #$0a
     sta $d02e
 
 
