@@ -522,17 +522,28 @@ check_collision:
     ldy column
     lda ($fd),y
 
-    cmp #$80                // Nothing should happenif the character is a space or lower
+    // Nothing should happen if the character is not a brick
+    cmp #$80
     bcc end_char
 
 
     cmp #%11110000
     bcs bounce_on_brick
 
-    cmp #%11100000
-    bcs speed_up_ball
+    cmp #$e0
+    beq speed_left
 
-    lda #$79                // Clear using space
+    cmp #$e1
+    beq speed_right
+
+    cmp #$e2
+    beq speed_down
+
+    cmp #$e3
+    beq speed_up
+
+
+    lda #$20                // Clear using space
     sta ($fd),y             // Store in both left..
     iny                     // ..and right half of block
     sta ($fd),y
@@ -551,9 +562,27 @@ check_collision:
         jsr store_xv
         jmp end_char
 
-    speed_up_ball:
-        //lda #$86
-        //jsr store_ya
+    speed_left:
+        jsr get_xv
+        sbc #$10
+        jsr store_xv
+        jmp end_char
+    speed_right:
+        jsr get_xv
+        adc #$10
+        jsr store_xv
+        jmp end_char
+    speed_up:
+        jsr get_yv
+        sbc #$20
+        jsr store_yv
+        jmp end_char
+    speed_down:
+        jsr get_yv
+        adc #$10
+        jsr store_yv
+        jmp end_char
+
     end_char:
 rts
 
@@ -617,6 +646,7 @@ check_sprite_collision:
         //FRAME_COLOR(2) // right
         rts
     end_check_sprite_collision:
+        // store collision flag
         lda #$01
         jsr store_flags
 rts
