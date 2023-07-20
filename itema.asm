@@ -28,9 +28,9 @@ BasicUpstart2(initialize)
 initialize:
     jsr $e544               // Clear screen
 
-    lda #$06                // Set the background color
+    lda #$06                // Set the background color for the game area
     sta $d021
-    lda #$00                // Set the background color
+    lda #$00                // Set the background color for the border
     sta $d020
 
     lda #%11000011          // Enable sprites
