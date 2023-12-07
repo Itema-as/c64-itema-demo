@@ -1,0 +1,3 @@
+s "screen.bin" 0 0400 07e7
+s "color.bin" 0 d800 dbe7
+quit

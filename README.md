@@ -6,3 +6,4 @@ This game requires a paddle to play. When using the VICE emulator, add the follo
 
 * [Codebase64](https://codebase64.org/doku.php?id=start)
 * [Dustlayer](https://dustlayer.com)
+* [Kick Assembler User Guide](http://www.theweb.dk/KickAssembler/webhelp/content/cpt_Introduction.html)
