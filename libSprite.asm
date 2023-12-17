@@ -118,7 +118,7 @@ draw_sprite:
     jsr get_sprite_offset
     tay
     jsr get_yl
-    sta $d001,y 
+    sta $d001,y
 
     // set horizontal position
     jsr get_sprite_offset
@@ -130,7 +130,7 @@ draw_sprite:
     jsr get_xm
     cmp #$01
     beq set_msb
-    
+
     jsr get_xm
     cmp #$00
     beq clear_msb
@@ -175,7 +175,7 @@ move_left:
     sta temp                // Store the new value in a variable
     jsr get_xl
     sec
-    sbc temp                // Move left by the amount of velocity 
+    sbc temp                // Move left by the amount of velocity
     jsr store_xl
     jsr get_xm
     sbc #$00                // Subtract zero and borrow from lsb subtraction
@@ -198,7 +198,7 @@ move_right:
     adc #$00                // Add zero and carry from lsb addition
     jsr store_xm
     jsr right_edge
-rts 
+rts
 
 /*
     Apply the acceleration to the velocity, moving up. Once passing $FF (-1) the
@@ -212,7 +212,7 @@ bounce_up:
     bne bounce_up_end
     */
     jsr get_yv
-    clc 
+    clc
     adc #Gravity            // Simulate gravity
     jsr store_yv
     bounce_up_end:
@@ -233,7 +233,7 @@ fall_down:
     clc
     adc #Gravity            // Simulate gravity
     cmp #$80                // Never go negative
-    bpl fall_down_end   
+    bpl fall_down_end
     jsr store_yv
     fall_down_end:
 rts
@@ -269,7 +269,7 @@ rts
     Apply vertical acceleration from input along with gravity
 */
 v_acceleration:
-    jsr get_ya  
+    jsr get_ya
     sta temp                // Store the new value in a variable
     jsr get_yv
     clv                     // Clear the overflow flag
@@ -307,7 +307,7 @@ rts
 change_to_move_up:
     jsr get_yv              // Change the direction of the velocity
     clc
-    sbc #VelocityLoss       // Reduce velocity  
+    sbc #VelocityLoss       // Reduce velocity
     eor #$ff                // Flip the sign
     jsr store_yv
 rts
@@ -315,7 +315,7 @@ rts
 change_to_move_down:
     jsr get_yv              // Change the direction of the velocity
     clc
-    adc #VelocityLoss       // Reduce velocity  
+    adc #VelocityLoss       // Reduce velocity
     eor #$ff                // Flip the sign
     jsr store_yv
 rts
@@ -346,7 +346,7 @@ move_down:
 
     // Only actually move if the ball has not collided with the paddle
     jsr get_flags
-    cmp #$01                
+    cmp #$01
     bne store_position
 
     lda temp
@@ -440,7 +440,7 @@ over_fold:
 rts
 
 /*
-    Determine whether or not the current sprite is at the left edge of the 
+    Determine whether or not the current sprite is at the left edge of the
     screen
 */
 left_edge:
@@ -473,7 +473,7 @@ shift_right:
 rts
 
 /*
-    Screen memory lookup tables. Each corresponds to the address of the first 
+    Screen memory lookup tables. Each corresponds to the address of the first
     colum in each row.
 */
 ScreenMemLowByte:
@@ -496,7 +496,7 @@ check_collision:
     sbc #$00                // Subtract nothing, but make use of carry
     lsr                     // MSB -> C, divide by 2
     lda temp                // Get offset adjusted LSB
-    ror                     // Rotate Carry into LSB 
+    ror                     // Rotate Carry into LSB
     lsr                     // Divide by 2 again
     lsr                     // Divide by 2 again
 
@@ -504,7 +504,7 @@ check_collision:
     asl
 
     sta column
-    
+
     jsr get_yl              // Get y-position LSB
     sec                     // Set carry for borrow purpose
     sbc #$2b                // Subtract for bottom offset
@@ -515,12 +515,12 @@ check_collision:
 
     ldx row
     lda ScreenMemLowByte,x
-    sta $fd
+    sta $f7
     lda ScreenMemHighByte,x
-    sta $fe
+    sta $f8
 
     ldy column
-    lda ($fd),y
+    lda ($f7),y
 
     // Nothing should happen if the character is not a brick
     cmp #$80
@@ -544,9 +544,9 @@ check_collision:
 
 
     lda #$20                // Clear using space
-    sta ($fd),y             // Store in both left..
+    sta ($f7),y             // Store in both left..
     iny                     // ..and right half of block
-    sta ($fd),y
+    sta ($f7),y
 
     bounce_on_brick:
         jsr get_yv
@@ -594,7 +594,7 @@ check_sprite_collision:
 
     lda #$0
     jsr store_flags
-    
+
     jsr get_xl     // x-position LSB of ball
     sta balllo
     jsr get_xm     // x-position LSB of ball
@@ -657,7 +657,7 @@ bounce_off_paddle:
     cmp #TopOfPaddle
     bcc end_check_sprite_collision
     beq stop_ball
-    
+
     bounce:
         jsr get_yv              // Change the direction of the velocity
         clc
@@ -675,7 +675,7 @@ bounce_off_paddle:
 
         // Set the accellerated movement timer. Hitting the ball with the
         // paddle will add some extra speed for a few cycles. Otherwise the
-        // balls velocity will be reduced for each bounce, and it will 
+        // balls velocity will be reduced for each bounce, and it will
         // eventually stop.
         lda #$02
         sta accelerated_movement_timer
@@ -688,7 +688,7 @@ rts
 stop_ball:
     jsr get_yv
     clc
-    cmp #$2 
+    cmp #$2
     bpl bounce
     lda #$08
     jsr store_yv

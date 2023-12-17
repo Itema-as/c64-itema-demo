@@ -3,3 +3,8 @@
 /itema.vs
 /bin/
 source.txt
+.source.txt
+itema.asm
+petscii/convert-screens.prg
+petscii/convert-screens.mod
+petscii/convert-screens.sym

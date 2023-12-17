@@ -17,9 +17,10 @@
 #import "libSprite.asm"
 #import "libInput.asm"
 #import "libScreen.asm"
-#import "screens.asm"
+#import "font.asm"
 
 BasicUpstart2(initialize)
+
 
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
 .var demo_mode_movement_timer = $0
@@ -28,9 +29,9 @@ BasicUpstart2(initialize)
 initialize:
     jsr $e544               // Clear screen
 
-    lda #$06                // Set the background color
+    lda #$06                // Set the background color for the game area
     sta $d021
-    lda #$00                // Set the background color
+    lda #$00                // Set the background color for the border
     sta $d020
 
     lda #%11000011          // Enable sprites
@@ -48,16 +49,17 @@ initialize:
 
     lda #$00                // Set sprite/background priority
     sta $d01b
-    
-    
+
+
+
     lda #$00                // Disable xpand-x
     sta $d01d
-    
+
     lda #$0a                // Set sprite #1 individual color
     sta $d027
     lda #$0c                // Set sprite #2 individual color
     sta $d028
-    
+
     lda #paddleSpriteData/64
     sta $07f8               // Sprite #0
     lda #ballSpriteData/64
@@ -100,7 +102,7 @@ initialize:
 
 
 /*
-    Set character set pointer to our custom set, turn off 
+    Set character set pointer to our custom set, turn off
     multicolor for characters
 */
 
@@ -113,16 +115,24 @@ and #%11101111 // by clearing bit #4 of $D016
 sta $d016
 
 /*
-    Print the first level from the second line from the top
-*/
-MEMCOPY(background, $0400)
-MEMCOPY(colormap, $d800)
-
-/*
     Initialize IRQ
 */
 jsr init_irq
 
+/*
+    Load the initial screen
+    $4500 - intro screen
+    $4d00 - level 1
+*/
+lda #$4d
+sta $ff
+lda #$00
+sta $fe
+jsr load_screen
+
+/*
+    Main loop
+*/
 loop:
 jmp loop
 
@@ -137,7 +147,7 @@ demo_input:
     isSmaller:
     sta temp
     lda SpriteMem+9
-    sbc #$06        // Adjust for ball radius 
+    sbc #$06        // Adjust for ball radius
     adc temp
     jsr store_xl    // Store the paddle x-position
     rts
@@ -171,27 +181,20 @@ paddle_input:
     rts
 
 init_irq:
-
-    lda #$00
-    ldx #0
-    ldy #0
-    lda #music.startSong-1
-    jsr music.init
-
     sei
     lda #<irq_1
     ldx #>irq_1
     sta $0314
-    stx $0315       // Set interrupt addr    
+    stx $0315       // Set interrupt addr
     lda #$7f
     sta $dc0d       // Timer A off on cia1/kb
     sta $dd0d       // Timer A off on cia2
-
     lda #$81
     sta $d01a       // Raster interrupts on
+    /*
     lda #$1b        // Screen ctrl: default
     sta $d011
-
+    */
     lda #$01
     sta $d012       // Interrupt at line 0
 
@@ -205,7 +208,7 @@ irq_1:
     lda #$00
     sta SpriteIndex
     jsr paddle_input
-    
+
     animation_loop:
 
         clc
@@ -223,7 +226,7 @@ irq_1:
         move_ball_normally:
             jsr move_vertically
 
-        move_paddle:    
+        move_paddle:
             jsr move_horizontally
             jsr draw_sprite
             jsr check_collision
@@ -235,12 +238,7 @@ irq_1:
         beq done
         jmp animation_loop
     done:
-        asl $d019
-// No music in the main loop
-///    inc $d020
-//    jsr music.play
-//    dec $d020
-//    dec $d020
+        asl $d019 // Clear interrupt flag
         jmp $ea81 // set flag and end
 
 /*
@@ -264,8 +262,14 @@ accelerated_movement:
         jsr store_ya
     jmp move_ball_normally
 
-*=music.location "Music"
-.fill music.size, music.getData(i)              // <- Here we put the music in memory
+// Intro screen
+.var intro_background = LoadBinary("petscii/intro.bin")
+*=$4500 "Intro"
+.fill intro_background.getSize(), intro_background.get(i)
+// Level 1
+.var lvl1_background = LoadBinary("petscii/level_1.bin")
+*=$4d00 "Level 1"
+.fill lvl1_background.getSize(), lvl1_background.get(i)
 
 // -- Sprite Data --------------------------------------------------------------
 // Created using https://www.spritemate.com
