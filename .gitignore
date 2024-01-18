@@ -1,10 +1,7 @@
-/itema.prg
-/itema.sym
-/itema.vs
-/bin/
+*.prg
+*.sym
+bin/
+out/
 source.txt
 .source.txt
-itema.asm
-petscii/convert-screens.prg
 petscii/convert-screens.mod
-petscii/convert-screens.sym

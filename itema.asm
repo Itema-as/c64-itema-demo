@@ -205,7 +205,7 @@ init_irq:
     rts
 
 irq_1:
-    lda #$00
+    lda #$01
     sta SpriteIndex
     jsr paddle_input
 

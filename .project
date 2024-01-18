@@ -5,7 +5,13 @@
 	<projects>
 	</projects>
 	<buildSpec>
+		<buildCommand>
+			<name>net.resheim.eclipse.kickassembler.core.kickassemblerBuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
 	</buildSpec>
 	<natures>
+		<nature>net.resheim.eclipse.kickassembler.core.kickassemblerNature</nature>
 	</natures>
 </projectDescription>
