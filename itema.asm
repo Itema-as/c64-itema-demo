@@ -14,10 +14,10 @@
 * = $c000 "Main Program"
 
 // import our sprite library
-#import "libSprite.asm"
-#import "libInput.asm"
-#import "libScreen.asm"
-#import "font.asm"
+#import "library/libSprite.asm"
+#import "library/libInput.asm"
+#import "library/libScreen.asm"
+#import "library/font.asm"
 
 BasicUpstart2(initialize)
 
