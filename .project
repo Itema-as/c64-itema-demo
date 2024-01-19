@@ -6,12 +6,12 @@
 	</projects>
 	<buildSpec>
 		<buildCommand>
-			<name>net.resheim.eclipse.commodore-commander.core.kickassemblerBuilder</name>
+			<name>net.resheim.eclipse.commodore-commander.ui.kickassemblerBuilder</name>
 			<arguments>
 			</arguments>
 		</buildCommand>
 	</buildSpec>
 	<natures>
-		<nature>net.resheim.eclipse.commodore-commander.core.nature</nature>
+		<nature>net.resheim.eclipse.commodore-commander.ui.nature</nature>
 	</natures>
 </projectDescription>
