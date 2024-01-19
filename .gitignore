@@ -1,7 +1,10 @@
-*.prg
+out/*.prg
+out/*.log
+library/*.prg
+library/out/*
+petscii/*.prg
 *.sym
 bin/
-out/
 source.txt
 .source.txt
 petscii/convert-screens.mod
