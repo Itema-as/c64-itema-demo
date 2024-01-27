@@ -231,13 +231,14 @@ irq_1:
             jsr draw_sprite
             jsr check_collision
             jsr check_sprite_collision
-            inc SpriteIndex
-            lda SpriteIndex
 
-        cmp #$02
+        inc SpriteIndex
+        lda SpriteIndex
+        cmp #$02        // we only have two sprites
         beq done
         jmp animation_loop
     done:
+        jsr gameUpdateScore
         asl $d019 // Clear interrupt flag
         jmp $ea81 // set flag and end
 

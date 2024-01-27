@@ -1,18 +1,35 @@
 #importonce
 
-.macro PRINT_SCREEN(text,address)
-{
-    ldx #$00
-loop:
-    lda text,x
-    cmp #$ff
-    beq out
-    sta address,x
-    inx
-    jmp loop
-out:
-    rts:
-}
+#import "libDefines.asm"
+#import "libGame.asm"
+
+wScreenRAMRowStart: // SCREENRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
+    .word SCREENRAM,     SCREENRAM+40,  SCREENRAM+80,  SCREENRAM+120, SCREENRAM+160
+    .word SCREENRAM+200, SCREENRAM+240, SCREENRAM+280, SCREENRAM+320, SCREENRAM+360
+    .word SCREENRAM+400, SCREENRAM+440, SCREENRAM+480, SCREENRAM+520, SCREENRAM+560
+    .word SCREENRAM+600, SCREENRAM+640, SCREENRAM+680, SCREENRAM+720, SCREENRAM+760
+    .word SCREENRAM+800, SCREENRAM+840, SCREENRAM+880, SCREENRAM+920, SCREENRAM+960
+
+wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
+    .word COLORRAM,     COLORRAM+40,  COLORRAM+80,  COLORRAM+120, COLORRAM+160
+    .word COLORRAM+200, COLORRAM+240, COLORRAM+280, COLORRAM+320, COLORRAM+360
+    .word COLORRAM+400, COLORRAM+440, COLORRAM+480, COLORRAM+520, COLORRAM+560
+    .word COLORRAM+600, COLORRAM+640, COLORRAM+680, COLORRAM+720, COLORRAM+760
+    .word COLORRAM+800, COLORRAM+840, COLORRAM+880, COLORRAM+920, COLORRAM+960
+
+.const HUDScoreColumn1              = 36
+.const HUDScoreColumn2              = 37
+.const HUDScoreColumn3              = 38
+/*
+.const HUDHiScoreColumn1            = 36
+.const HUDHiScoreColumn2            = 37
+.const HUDHiScoreColumn3            = 38
+*/
+.const HUDRow                       = 1
+.const HUDStartColumn               = 10
+.const HUDStartRow                  = 24
+
+
 
 .const MEMCP_SRCVECT = $f9
 .const MEMCP_DSTVECT = MEMCP_SRCVECT + 2
@@ -122,6 +139,56 @@ continue_loop:
     inc MEMCP_DSTVECT+1     // If Y overflowed, increment high byte of target address
     jmp copy_loop           // Jump back to the start of the loop
 
-end_loop:
+    end_loop:
 
-rts
+    rts
+
+gameUpdateScore:
+    // -------- 1st digit --------
+    lda wHudScore+1
+    and #%00001111
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn1, HUDRow, ZeroPage9)
+    // -------- 2nd digit --------
+    lda wHudScore
+    and #%11110000
+    lsr
+    lsr
+    lsr
+    lsr
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn2, HUDRow, ZeroPage9)
+    // -------- 3rd digit --------
+    lda wHudScore
+    and #%00001111
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn3, HUDRow, ZeroPage9)
+    rts
+    rts
+
+.macro LIBSCREEN_SETCHARACTER_S_VVA(bXPos, bYPos, bChar)
+{
+    lda #bXPos
+    sta ZeroPage4
+    lda #bYPos
+    sta ZeroPage2
+    lda bChar
+    sta ZeroPage3
+    jsr libScreenSetCharacter
+}
+
+libScreenSetCharacter:
+    lda ZeroPage2               // load y position as index into list
+    asl                         // X2 as table is in words
+    tay                         // Copy A to Y
+    lda wScreenRAMRowStart,Y    // load low address byte
+    sta ZeroPage9
+    lda wScreenRAMRowStart+1,Y  // load high address byte
+    sta ZeroPage10
+    ldy ZeroPage4               // load x position into Y register
+    lda ZeroPage3
+    sta (ZeroPage9),Y
+    rts

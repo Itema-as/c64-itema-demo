@@ -25,6 +25,9 @@
 
 #importonce
 #import "libSpriteData.asm"
+#import "libScreen.asm"
+#import "libMath.asm"
+#import "libGame.asm"
 
 .macro FRAME_COLOR(color)
 {
@@ -59,8 +62,8 @@ ClearTable:
 .const ScreenBottomEdge = $eb // 229+6
 .const ScreenRightEdge  = $d7 // 231
 .const ScreenLeftEdge   = $14
-.const Gravity          = $02
-.const VelocityLoss     = $01
+.const Gravity          = 2
+.const VelocityLoss     = 1
 
 .const TopOfPaddle      = $e3 // 224 (bottom) - 3 (paddle hight) + 6 (margin)
 
@@ -543,12 +546,13 @@ check_collision:
     beq speed_up
 
 
-    lda #$20                // Clear using space
-    sta ($f7),y             // Store in both left..
-    iny                     // ..and right half of block
+    lda #$20                    // Clear using space
+    sta ($f7),y                 // Store in both left..
+    iny                         // ..and right half of block
     sta ($f7),y
 
     bounce_on_brick:
+        jsr gameIncreaseScore   // Increment he score
         jsr get_yv
         eor #$ff                // Flip the sign so that we get a positive number
         clc
@@ -584,10 +588,11 @@ check_collision:
         jmp end_char
 
     end_char:
-rts
+        rts
 
 check_sprite_collision:
 
+    // Do not perform the check if the paddle is the current sprite
     lda SpriteIndex
     cmp #$00
     beq end_check_sprite_collision
