@@ -18,6 +18,9 @@
 #import "library/libInput.asm"
 #import "library/libScreen.asm"
 #import "library/font.asm"
+#import "library/libUtility.asm"
+
+
 
 BasicUpstart2(initialize)
 
@@ -25,8 +28,11 @@ BasicUpstart2(initialize)
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
 .var demo_mode_movement_timer = $0
 
+.var demoInputToggle = $0
+
 // Initialize
 initialize:
+    //LIBUTILITY_DISABLEBASICANDKERNAL()          // Disable BASIC and Kernal ROMs
     jsr $e544               // Clear screen
 
     lda #$06                // Set the background color for the game area
@@ -137,39 +143,48 @@ loop:
 jmp loop
 
 demo_input:
-    lda $d012
-    eor $dc04
-    sbc $dc05       // Get a pseudo random number from CIA timers
-    and #$0F
-    cmp #$08
-    bcc isSmaller
-    sbc #$08
-    isSmaller:
-    sta temp
-    lda SpriteMem+9
-    sbc #$06        // Adjust for ball radius
-    adc temp
-    jsr store_xl    // Store the paddle x-position
+    lda SpriteMem+11
+    cmp #TopOfPaddle-12
+    bcs demo_input_toggle
     rts
 
+    demo_input_toggle:
+    
+    asl demoInputToggle
+    bcc demo_input_right
+    inc demoInputToggle
+
+    demo_input_left:
+        clc
+        lda SpriteMem+9         // Get the ball x-position LSB
+        sbc #$6
+        jsr store_xl            // Store the paddle x-position
+        rts
+    
+    demo_input_right:
+        lda SpriteMem+9         // Get the ball x-position LSB
+        adc #$4
+        jsr store_xl            // Store the paddle x-position
+        rts
+
 paddle_input:
-    lda $dc00       // Load value from CIA#1 Data Port A (pot lines are input)
-    and #%11111110  // Set bit 0 to input for pot x (paddle 1)
-    sta $dc00       // Store the result back to Data Port A
+    lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
+    and #%11111110          // Set bit 0 to input for pot x (paddle 1)
+    sta $dc00               // Store the result back to Data Port A
 
-    lda $dc01       // Load value from CIA#1 Data Port B (keyboard lines)
-    and #%11110111  // Clear bit 3 to low (selects pot x)
-    sta $dc01       // Store the result back to Data Port B
+    lda $dc01               // Load value from CIA#1 Data Port B (keyboard lines)
+    and #%11110111          // Clear bit 3 to low (selects pot x)
+    sta $dc01               // Store the result back to Data Port B
 
-    lda $d419       // Load value from Paddle X pot
-    eor #$ff        // XOR with 255 to reverse the range
+    lda $d419               // Load value from Paddle X pot
+    eor #$ff                // XOR with 255 to reverse the range
 
     // Update paddle position unless it is outside the playing area
 
     clc
-    cmp #$1a        // Compare with the minimum value
-    bcs piNotLess   // If carry is set (number >= minValue), branch to piNotLess
-    lda #$1a        // If carry is clear (number < minValue), load the minimum value into the accumulator
+    cmp #$1a                // Compare with the minimum value
+    bcs piNotLess           // If carry is set (number >= minValue), branch to piNotLess
+    lda #$1a                // If carry is clear (number < minValue), load the minimum value into the accumulator
     piNotLess:
     clc
     // Now check if the number is greater than the maximum value
@@ -207,14 +222,19 @@ init_irq:
 irq_1:
     lda #$00
     sta SpriteIndex
-    jsr paddle_input
+    //jsr paddle_input
+    jsr demo_input
   
     animation_loop:
+        // Print the LSB of the X-position of sprite 1 to the screen
+        LIBSCREEN_DEBUG8BIT_VVA(28,5,SpriteMem+9)
+        // Print the LSB of the Y-position of sprite 1 to the screen
+        LIBSCREEN_DEBUG8BIT_VVA(32,5,SpriteMem+11)
 
         clc
         lda SpriteIndex
         cmp #$00
-        beq move_paddle
+        beq move_ball_normally
 
         // Check if we should move the ball faster
         move_ball_accellerated:
@@ -225,8 +245,6 @@ irq_1:
 
         move_ball_normally:
             jsr move_vertically
-
-        move_paddle:
             jsr move_horizontally
             jsr draw_sprite
             jsr check_collision
@@ -251,7 +269,7 @@ accelerated_movement:
     lda accelerated_movement_timer
     cmp #$0
     beq end_accellerated_movement
-    FRAME_COLOR(4)
+    // FRAME_COLOR(4)
 
     lda #$80                // -1
     jsr store_ya
@@ -276,27 +294,27 @@ accelerated_movement:
 // Created using https://www.spritemate.com
 * = $2140 "Ball Sprite Data"
 ballSpriteData:
-.byte   0,   0,   0
-.byte   0,   0,   0
-.byte   0,   0,   0
-.byte   0,   0,   0
-.byte   0,   0,   0
-.byte   0,  40,   0
-.byte   0, 154,   0
-.byte   2, 106, 192
-.byte   2, 170, 192
-.byte   2, 170, 192
-.byte   2, 170, 192
-.byte   2, 171, 192
-.byte   2, 171, 192
-.byte   0, 175,   0
-.byte   0,  60,   0
-.byte   0,   0,   0
-.byte   0,   0,   0
-.byte   0,   0,   0
-.byte   0,   0,   0
-.byte   0,   0,   0
-.byte   0,   0,   0
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00101000, %00000000
+.byte %00000000, %10011010, %00000000
+.byte %00000010, %01101010, %11000000
+.byte %00000010, %10101010, %11000000
+.byte %00000010, %10101010, %11000000
+.byte %00000010, %10101010, %11000000
+.byte %00000010, %10101011, %11000000
+.byte %00000010, %10101011, %11000000
+.byte %00000000, %10101111, %00000000
+.byte %00000000, %00111100, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
+.byte %00000000, %00000000, %00000000
 
 * = $2180 "Paddle Sprite Data"
 paddleSpriteData:
