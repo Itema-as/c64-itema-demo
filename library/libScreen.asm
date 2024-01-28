@@ -1,5 +1,4 @@
 #importonce
-
 #import "libDefines.asm"
 #import "libGame.asm"
 
@@ -192,3 +191,27 @@ libScreenSetCharacter:
     lda ZeroPage3
     sta (ZeroPage9),Y
     rts
+
+.macro LIBSCREEN_DEBUG8BIT_VVA(bXPos, bYPos, bIn)
+{
+    LIBMATH_8BITTOBCD_AA(bIn, ZeroPage4)
+    lda ZeroPage4
+    and #%00001111      // get low nibble
+    ora #$30            // convert to ascii
+    sta ZeroPage6
+    LIBSCREEN_SETCHARACTER_S_VVA(bXPos+2, bYPos, ZeroPage6)
+    lda ZeroPage4
+    lsr                 // get high nibble
+    lsr
+    lsr
+    lsr
+    ora #$30            // convert to ascii
+    sta ZeroPage6
+    LIBSCREEN_SETCHARACTER_S_VVA(bXPos+1, bYPos, ZeroPage6)
+    lda ZeroPage5
+    and #%00001111      // get low nibble
+    ora #$30            // convert to ascii
+    sta ZeroPage6
+    LIBSCREEN_SETCHARACTER_S_VVA(bXPos, bYPos, ZeroPage6)
+}
+    
