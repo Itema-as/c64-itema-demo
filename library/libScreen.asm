@@ -1,5 +1,4 @@
 #importonce
-
 #import "libDefines.asm"
 #import "libGame.asm"
 
@@ -25,7 +24,7 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
 .const HUDHiScoreColumn2            = 37
 .const HUDHiScoreColumn3            = 38
 */
-.const HUDRow                       = 1
+.const HUDRow                       = 5
 .const HUDStartColumn               = 10
 .const HUDStartRow                  = 24
 
@@ -192,3 +191,26 @@ libScreenSetCharacter:
     lda ZeroPage3
     sta (ZeroPage9),Y
     rts
+
+.macro LIBSCREEN_DEBUG8BIT_VVA(bXPos, bYPos, bIn)
+{
+    LIBMATH_8BITTOBCD_AA(bIn, ZeroPage4)
+    lda ZeroPage4
+    and #%00001111      // get low nibble
+    ora #$30            // convert to ascii
+    sta ZeroPage6
+    LIBSCREEN_SETCHARACTER_S_VVA(bXPos+2, bYPos, ZeroPage6)
+    lda ZeroPage4
+    lsr                 // get high nibble
+    lsr
+    lsr
+    lsr
+    ora #$30            // convert to ascii
+    sta ZeroPage6
+    LIBSCREEN_SETCHARACTER_S_VVA(bXPos+1, bYPos, ZeroPage6)
+    lda ZeroPage5
+    and #%00001111      // get low nibble
+    ora #$30            // convert to ascii
+    sta ZeroPage6
+    LIBSCREEN_SETCHARACTER_S_VVA(bXPos, bYPos, ZeroPage6)
+}

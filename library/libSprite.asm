@@ -58,13 +58,13 @@ ClearTable:
 /*
     Sprite box
 */
-.const ScreenTopEdge    = $2e // $2e
-.const ScreenBottomEdge = $eb // 229+6
-.const ScreenRightEdge  = $d7 // 231
+.const ScreenTopEdge    = $2f
+.const ScreenBottomEdge = $f3
+.const ScreenRightEdge  = $d5
 .const ScreenLeftEdge   = $14
 .const Gravity          = 2
 .const VelocityLoss     = 1
-
+ 
 .const TopOfPaddle      = $e3 // 224 (bottom) - 3 (paddle hight) + 6 (margin)
 
 fire:
@@ -87,6 +87,12 @@ column:
 row:
     .byte %00000000
 
+/*
+    Keep track of these two variables while debugging
+    Press CMD/CTRL+W to see the actual values in the C64 Debugger.
+*/
+.watch column
+.watch row
 
 reslo:
     .byte %00000000
@@ -475,73 +481,60 @@ shift_right:
     clc
 rts
 
-/*
-    Screen memory lookup tables. Each corresponds to the address of the first
-    colum in each row.
-*/
-ScreenMemLowByte:
-    .byte $00,$28,$50,$78,$a0,$c8,$f0,$18
-    .byte $40,$68,$90,$b8,$e0,$08,$30,$58
-    .byte $80,$A8,$D0,$f8,$20,$48,$70,$98
-    .byte $c0
-ScreenMemHighByte:
-    .byte $04,$04,$04,$04,$04,$04,$04,$05
-    .byte $05,$05,$05,$05,$05,$06,$06,$06
-    .byte $06,$06,$06,$06,$07,$07,$07,$07
-    .byte $07
-
 check_collision:
-    jsr get_xl
-    sec                     // Set carry for borrow purpose
-    sbc #$09                // Subtract for left offset
-    sta temp                // Store the result
-    jsr get_xm              // Load x-position MSB
-    sbc #$00                // Subtract nothing, but make use of carry
-    lsr                     // MSB -> C, divide by 2
-    lda temp                // Get offset adjusted LSB
-    ror                     // Rotate Carry into LSB
-    lsr                     // Divide by 2 again
-    lsr                     // Divide by 2 again
+/*
+    See docs/ball.png
+    
+    Pt = (6+6, 5)
+    Pb = (6+6, 5+10)
+    Pl = (6, 5+5)
+    Pr = (6+12, 5+5)
+*/
 
-    lsr                     // Truncate to first address in block
-    asl
+    lda SpriteIndex
+    cmp #$00
+    bne continue_check
+    rts
+    
+    continue_check:
+        // Test Ptl
+        LIBSPRITE_COLLISION(7, 6)  // almost top left of ball (1px adjustment)
+        cmp #$80
+        bcs character_hit
+        // Test Pc
+        LIBSPRITE_COLLISION(12, 11)  // center of ball
+        cmp #$80
+        bcs character_hit
+        // Test Pbr
+        LIBSPRITE_COLLISION(17, 14) // almost bottom right of ball (1px adjustment)
+        cmp #$80
+        bcs character_hit
 
-    sta column
-
-    jsr get_yl              // Get y-position LSB
-    sec                     // Set carry for borrow purpose
-    sbc #$2b                // Subtract for bottom offset
-    lsr                     // Divide by 2
-    lsr                     // Divide by 2 again
-    lsr                     // And divide by 2 a last time
-    sta row                 // Store it for later
-
-    ldx row
-    lda ScreenMemLowByte,x
-    sta $f7
-    lda ScreenMemHighByte,x
-    sta $f8
-
-    ldy column
-    lda ($f7),y
-
-    // Nothing should happen if the character is not a brick
-    cmp #$80
-    bcc end_char
-
+    rts
+    
+    /*
+        The character under the sprite has the PETSCII code 128 or higher which
+        means it is a game piece. So we detect exactly which and act 
+        accordingly.
+    */
+    character_hit:
 
     cmp #%11110000
     bcs bounce_on_brick
 
+    // Brick that adds speed to the left
     cmp #$e0
     beq speed_left
 
+    // Brick that adds speed to the right
     cmp #$e1
     beq speed_right
 
+    // Brick that adds speed downwards
     cmp #$e2
     beq speed_down
 
+    // Brick that adds speed upwards
     cmp #$e3
     beq speed_up
 
@@ -699,3 +692,48 @@ stop_ball:
     jsr store_yv
     jmp bounce
 
+/*
+    Screen memory lookup tables. Each corresponds to the address of the first
+    colum in each row.
+*/
+ScreenMemLowByte:
+    .byte $00,$28,$50,$78,$a0,$c8,$f0,$18
+    .byte $40,$68,$90,$b8,$e0,$08,$30,$58
+    .byte $80,$A8,$D0,$f8,$20,$48,$70,$98
+    .byte $c0
+ScreenMemHighByte:
+    .byte $04,$04,$04,$04,$04,$04,$04,$05
+    .byte $05,$05,$05,$05,$05,$06,$06,$06
+    .byte $06,$06,$06,$06,$07,$07,$07,$07
+    .byte $07
+
+.macro LIBSPRITE_COLLISION(xOffset, yOffset) {
+    jsr get_xl
+    adc #xOffset
+    sec                     // Set carry for borrow purpose
+    sbc #VISIBLE_SCREEN_LEFT// Subtract for invisible part in the left of screen
+    lsr                     // MSB -> C, divide by 2
+    lsr                     // Divide by 2 again
+    lsr                     // Divide by 2 again
+    lsr
+    asl
+    sta column
+
+    jsr get_yl
+    adc #yOffset
+    sec                     // Set carry for borrow purpose
+    sbc #VISIBLE_SCREEN_TOP // Subtract for invisible part in the top of screen
+    lsr                     // Divide by 2
+    lsr                     // Divide by 2 again
+    lsr                     // And divide by 2 a last time
+    sta row                 // Store it for later
+
+    ldx row
+    lda ScreenMemLowByte,x
+    sta $f7
+    lda ScreenMemHighByte,x
+    sta $f8
+
+    ldy column
+    lda ($f7),y
+}
