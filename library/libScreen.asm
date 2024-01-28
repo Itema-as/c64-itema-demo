@@ -214,4 +214,3 @@ libScreenSetCharacter:
     sta ZeroPage6
     LIBSCREEN_SETCHARACTER_S_VVA(bXPos, bYPos, ZeroPage6)
 }
-    
