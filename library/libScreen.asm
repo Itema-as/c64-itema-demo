@@ -24,7 +24,7 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
 .const HUDHiScoreColumn2            = 37
 .const HUDHiScoreColumn3            = 38
 */
-.const HUDRow                       = 1
+.const HUDRow                       = 5
 .const HUDStartColumn               = 10
 .const HUDStartRow                  = 24
 
