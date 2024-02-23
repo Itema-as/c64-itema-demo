@@ -24,6 +24,15 @@
 BasicUpstart2(initialize)
 
 
+/*
+    Various game modes for actually playing, autoplaying and debugging
+*/
+.label MODE_NORMAL = $00
+.label MODE_AUTOPLAY = $01
+.label MODE_JOYSTICK = $02
+
+.var MODE = MODE_NORMAL
+
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
 .var demo_mode_movement_timer = $0
 
@@ -52,13 +61,16 @@ initialize:
     lda #$00                // Disable xpand-y
     sta $d017
 
+    lda #$00                // Disable xpand-x
+    sta $d01d
+
     lda #$00                // Set sprite/background priority
     sta $d01b
 
+    lda #$00
+    sta $d01e               // Init sprite collision
+    sta $d01f               // Init sprite collision
 
-
-    lda #$00                // Disable xpand-x
-    sta $d01d
 
     lda #$0a                // Set sprite #1 individual color
     sta $d027
@@ -70,9 +82,9 @@ initialize:
     lda #ballSpriteData/64
     sta $07f9               // Sprite #1
     sta $07fa               // Sprite #2
-    /*
     sta $07fb               // Sprite #3
     sta $07fc               // Sprite #4
+    /*
     sta $07fd               // Sprite #5
     */
 
@@ -192,6 +204,40 @@ paddle_input:
     jsr store_xl    // Store the paddle x-position
     rts
 
+joystick_input:
+     // Reset velocity on both axis
+     lda #$00
+     jsr store_xv
+     jsr store_yv
+     jsr store_ya
+     jsr store_xa
+
+     // Set acceleration according to joystick input
+     LIBINPUT_GET(GameportLeftMask)
+         bne inputRight
+         dec SpriteMem+9
+     inputRight:
+         LIBINPUT_GET(GameportRightMask)
+         bne inputUp
+         inc SpriteMem+9
+     inputUp:
+         LIBINPUT_GET(GameportUpMask)
+         bne inputDown  
+         dec SpriteMem+11
+     inputDown:
+         LIBINPUT_GET(GameportDownMask)
+         bne inputEnd
+         inc SpriteMem+11
+     inputFire:
+         lda #$00
+         sta fire
+         LIBINPUT_GET(GameportFireMask)
+         bne inputEnd
+         lda #$80
+         sta fire
+     inputEnd:   
+         rts 
+
 init_irq:
     sei
     lda #<irq_1
@@ -219,15 +265,19 @@ init_irq:
 irq_1:
     lda #$00
     sta SpriteIndex
-    //jsr paddle_input
-    jsr demo_input
+    .if (MODE == MODE_NORMAL) jsr paddle_input
+    .if (MODE == MODE_AUTOPLAY) jsr demo_input
+    .if (MODE == MODE_JOYSTICK) {
+        lda #$01
+        sta SpriteIndex
+        jsr joystick_input
+        jsr draw_sprite
+        jsr check_brick_collision
+        asl $d019 // Clear interrupt flag
+        jmp $ea81 // set flag and end
+    }
   
     animation_loop:
-        // Print the LSB of the X-position of sprite 1 to the screen
-        //LIBSCREEN_DEBUG8BIT_VVA(28,8,SpriteMem+9)
-        // Print the LSB of the Y-position of sprite 1 to the screen
-        //LIBSCREEN_DEBUG8BIT_VVA(32,8,SpriteMem+11)
-
         clc
         lda SpriteIndex
         cmp #$00
@@ -236,16 +286,17 @@ irq_1:
         // Check if we should move the ball faster
         move_ball_accellerated:
             clc
-            lda accelerated_movement_timer
-            cmp #$1
-            bcs accelerated_movement
+            // XXX: Does not work with multiple balls
+            //lda accelerated_movement_timer
+            //cmp #$1
+            //bcs accelerated_movement
 
         move_ball_normally:
             jsr move_vertically
             jsr move_horizontally
             jsr draw_sprite
-            jsr check_collision
-            jsr check_sprite_collision
+            jsr check_brick_collision
+            jsr check_paddle_collision
 
         inc SpriteIndex
         lda SpriteIndex
@@ -253,7 +304,6 @@ irq_1:
         beq done
         jmp animation_loop
     done:
-        jsr gameUpdateScore
         asl $d019 // Clear interrupt flag
         jmp $ea81 // set flag and end
 
