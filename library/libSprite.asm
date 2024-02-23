@@ -56,6 +56,21 @@ ClearTable:
     .byte %01111111
 
 /*
+    Screen memory lookup tables. Each corresponds to the address of the first
+    colum in each row.
+*/
+ScreenMemLowByte:
+    .byte $00,$28,$50,$78,$a0,$c8,$f0,$18
+    .byte $40,$68,$90,$b8,$e0,$08,$30,$58
+    .byte $80,$A8,$D0,$f8,$20,$48,$70,$98
+    .byte $c0
+ScreenMemHighByte:
+    .byte $04,$04,$04,$04,$04,$04,$04,$05
+    .byte $05,$05,$05,$05,$05,$06,$06,$06
+    .byte $06,$06,$06,$06,$07,$07,$07,$07
+    .byte $07
+
+/*
     Sprite box
 */
 .const ScreenTopEdge    = $2f
@@ -335,7 +350,7 @@ rts
 move_down:
     lda SpriteIndex
     cmp #$00
-    beq move_down_end
+    beq move_down_end       // Don' continue if we're working on the paddle
 
     // Make sure we don't move below the bottom of the screen, so do not
     // apply the velocity if the edge has already been hit.
@@ -430,22 +445,6 @@ right_edge:
     clc
     cmp #ScreenRightEdge
     bcs change_to_move_left
-/* Only when using fold
-    jsr get_xm
-    clc
-    cmp #$01                // Compare with #01 (over fold)
-    beq over_fold
-*/
-rts
-
-/*
-    Change direction and start moving leftwards
-*/
-over_fold:
-    jsr get_xl
-    clc
-    cmp #ScreenRightEdge
-    bcs change_to_move_left
 rts
 
 /*
@@ -481,7 +480,11 @@ shift_right:
     clc
 rts
 
-check_collision:
+/*
+    Determine whether or not the ball has hit a game block
+*/
+check_brick_collision:
+
 /*
     See docs/ball.png
     
@@ -492,26 +495,22 @@ check_collision:
 */
 
     lda SpriteIndex
-    cmp #$00
+    cmp #$00                    // Do not bother for the paddle, it will never
+                                // hit one of the bricks.
     bne continue_check
     rts
-    
-    continue_check:
-        // Test Ptl
-        LIBSPRITE_COLLISION(7, 6)  // almost top left of ball (1px adjustment)
-        cmp #$80
-        bcs character_hit
-        // Test Pc
-        LIBSPRITE_COLLISION(12, 11)  // center of ball
-        cmp #$80
-        bcs character_hit
-        // Test Pbr
-        LIBSPRITE_COLLISION(17, 14) // almost bottom right of ball (1px adjustment)
-        cmp #$80
-        bcs character_hit
 
+    continue_check:
+        // Test Pt
+        LIBSPRITE_COLLISION(12, 6)
+        // Test Pb
+        LIBSPRITE_COLLISION(12, 14)
+        // Test Pl
+        LIBSPRITE_COLLISION(6, 10)
+        // Test Pr
+        LIBSPRITE_COLLISION(18, 10)
     rts
-    
+
     /*
         The character under the sprite has the PETSCII code 128 or higher which
         means it is a game piece. So we detect exactly which and act 
@@ -519,33 +518,33 @@ check_collision:
     */
     character_hit:
 
-    cmp #%11110000
-    bcs bounce_on_brick
+        cmp #%11110000
+        bcs bounce_on_brick
 
-    // Brick that adds speed to the left
-    cmp #$e0
-    beq speed_left
+        // Brick that adds speed to the left
+        cmp #$e0
+        beq speed_left
 
-    // Brick that adds speed to the right
-    cmp #$e1
-    beq speed_right
+        // Brick that adds speed to the right
+        cmp #$e1
+        beq speed_right
 
-    // Brick that adds speed downwards
-    cmp #$e2
-    beq speed_down
+        // Brick that adds speed downwards
+        cmp #$e2
+        beq speed_down
 
-    // Brick that adds speed upwards
-    cmp #$e3
-    beq speed_up
+        // Brick that adds speed upwards
+        cmp #$e3
+        beq speed_up
 
-
-    lda #$20                    // Clear using space
-    sta ($f7),y                 // Store in both left..
-    iny                         // ..and right half of block
-    sta ($f7),y
+        lda #$20                    // Clear using space
+        sta ($f7),y                 // Store in both left..
+        iny                         // ..and right half of block
+        sta ($f7),y
 
     bounce_on_brick:
         jsr gameIncreaseScore   // Increment he score
+        jsr gameUpdateScore
         jsr get_yv
         eor #$ff                // Flip the sign so that we get a positive number
         clc
@@ -559,21 +558,28 @@ check_collision:
         jsr store_xv
         jmp end_char
 
+    // Accelerates the ball leftwards
     speed_left:
         jsr get_xv
         sbc #$10
         jsr store_xv
         jmp end_char
+
+    // Accelerates the ball rightwards
     speed_right:
         jsr get_xv
         adc #$10
         jsr store_xv
         jmp end_char
+
+    // Accelerates the ball upwards
     speed_up:
         jsr get_yv
         sbc #$20
         jsr store_yv
         jmp end_char
+
+    // Accelerates the ball downwards
     speed_down:
         jsr get_yv
         adc #$10
@@ -583,12 +589,12 @@ check_collision:
     end_char:
         rts
 
-check_sprite_collision:
+check_paddle_collision:
 
     // Do not perform the check if the paddle is the current sprite
     lda SpriteIndex
     cmp #$00
-    beq end_check_sprite_collision
+    beq end_check_paddle_collision
 
     lda #$0
     jsr store_flags
@@ -634,7 +640,7 @@ check_sprite_collision:
     bmi left_of_paddle
 
     jsr bounce_off_paddle
-    jsr end_check_sprite_collision
+    jsr end_check_paddle_collision
     rts
 
     left_of_paddle:
@@ -643,7 +649,7 @@ check_sprite_collision:
     right_of_paddle:
         //FRAME_COLOR(2) // right
         rts
-    end_check_sprite_collision:
+    end_check_paddle_collision:
         // store collision flag
         lda #$01
         jsr store_flags
@@ -653,7 +659,7 @@ bounce_off_paddle:
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
-    bcc end_check_sprite_collision
+    bcc end_check_paddle_collision
     beq stop_ball
 
     bounce:
@@ -692,37 +698,33 @@ stop_ball:
     jsr store_yv
     jmp bounce
 
-/*
-    Screen memory lookup tables. Each corresponds to the address of the first
-    colum in each row.
-*/
-ScreenMemLowByte:
-    .byte $00,$28,$50,$78,$a0,$c8,$f0,$18
-    .byte $40,$68,$90,$b8,$e0,$08,$30,$58
-    .byte $80,$A8,$D0,$f8,$20,$48,$70,$98
-    .byte $c0
-ScreenMemHighByte:
-    .byte $04,$04,$04,$04,$04,$04,$04,$05
-    .byte $05,$05,$05,$05,$05,$06,$06,$06
-    .byte $06,$06,$06,$06,$07,$07,$07,$07
-    .byte $07
-
 .macro LIBSPRITE_COLLISION(xOffset, yOffset) {
     jsr get_xl
+    clc
+    sbc #VIS_SCREEN_LEFT
     adc #xOffset
-    sec                     // Set carry for borrow purpose
-    sbc #VISIBLE_SCREEN_LEFT// Subtract for invisible part in the left of screen
+    sta ZeroPage10
+    jsr get_yl
+    clc
+    sbc #VIS_SCREEN_TOP
+    adc #yOffset
+    sta ZeroPage11
+    jsr get_brick_at_xy
+    cmp #$80
+    bcs character_hit
+}
+
+// 48
+get_brick_at_xy:
+    lda ZeroPage10
     lsr                     // MSB -> C, divide by 2
     lsr                     // Divide by 2 again
     lsr                     // Divide by 2 again
-    lsr
+    lsr                     // Deal with having double witdh blocks
     asl
     sta column
 
-    jsr get_yl
-    adc #yOffset
-    sec                     // Set carry for borrow purpose
-    sbc #VISIBLE_SCREEN_TOP // Subtract for invisible part in the top of screen
+    lda ZeroPage11
     lsr                     // Divide by 2
     lsr                     // Divide by 2 again
     lsr                     // And divide by 2 a last time
@@ -736,4 +738,4 @@ ScreenMemHighByte:
 
     ldy column
     lda ($f7),y
-}
+    rts

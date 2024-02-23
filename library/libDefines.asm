@@ -86,5 +86,5 @@
 // Interrupt Routines
 .label IRQROMROUTINE = $EA31
 
-.label VISIBLE_SCREEN_LEFT = 24;
-.label VISIBLE_SCREEN_TOP = 50;
+.label VIS_SCREEN_LEFT = 24;
+.label VIS_SCREEN_TOP = 50;
