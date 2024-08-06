@@ -33,23 +33,23 @@ SpriteMem:
 */
     .byte $73, $00, $e0, $00, $00, $00, $00, $00, $00    // Paddle (the player)
     .byte $30, $00, $30, $00, $00, $00, $00, $00, $00    // Ball 1
-    .byte $48, $00, $30, $00, $00, $00, $00, $00, $00    // Ball 2
-    .byte $60, $00, $30, $00, $00, $00, $00, $00, $00    // Ball 3
-    .byte $78, $00, $30, $00, $00, $00, $00, $00, $00    // Ball 4
+    .byte $48, $00, $35, $00, $00, $00, $00, $00, $00    // Ball 2
+    .byte $60, $00, $3a, $00, $00, $00, $00, $00, $00    // Ball 3
+    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
     .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
     .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
     .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
 
-.var xl = 0                 // Y-location LSB
-.var xm = 1                 // X-location MSB
-.var yl = 2                 // Y-location LSB
-.var ym = 3                 // X-location MSB
-.var xv = 4                 // X-velocity
-.var yv = 5                 // Y-velocity
-.var xa = 6                 // X-acceleration
-.var ya = 7                 // Y-acceleration
-.var f  = 8                 // Flags
-.var spritelen = 9
+.const xl = 0                 // Y-location LSB
+.const xm = 1                 // X-location MSB
+.const yl = 2                 // Y-location LSB
+.const ym = 3                 // X-location MSB
+.const xv = 4                 // X-velocity
+.const yv = 5                 // Y-velocity
+.const xa = 6                 // X-acceleration
+.const ya = 7                 // Y-acceleration
+.const f  = 8                 // Flags
+.const spritelen = 9
 
 .var motionless = %00000000 // whether or not the sprite is allowed to move
 
