@@ -5,6 +5,7 @@ library/out/*
 petscii/*.prg
 *.sym
 *.vs
+*.dbg
 bin/
 source.txt
 .source.txt

@@ -38,7 +38,9 @@ BasicUpstart2(initialize)
 
 .var demoInputToggle = $0
 
-// Initialize
+/*******************************************************************************
+ INITIALIZE THE THINGS
+*******************************************************************************/
 initialize:
     jsr $e544               // Clear screen
 
@@ -87,8 +89,9 @@ initialize:
     sta $07fa               // Sprite #2 - ball #2
     sta $07fb               // Sprite #3 - ball #3
 
-// #############################################################################
-// Itema Logo Sprites
+/*
+    Itema Logo Sprites
+*/
     lda #itemaLogoSwoosh/64
     sta $07fe               // Sprite #6
     lda #itemaLogoBall/64
@@ -112,8 +115,6 @@ initialize:
     sta $d02d
     lda #$0a
     sta $d02e
-// #############################################################################
-
 
 /*
     Set character set pointer to our custom set, turn off
@@ -128,9 +129,7 @@ lda $d016      // turn off multicolor for characters
 and #%11101111 // by clearing bit #4 of $D016
 sta $d016
 
-/*
-    Initialize IRQ
-*/
+// Initialize the IRQ
 jsr init_irq
 
 /*
@@ -153,14 +152,14 @@ jmp loop
 /*******************************************************************************
  DEMO INPUT
 
- Things to improve
- - Determine which ball is lowest
+ - Determine which ball is lowest (having the highest YL value)
  - Use that ball's x-position to determine paddle position
+ - Use the Y position of the selected ball to determine whether to toggle the
+   paddle offset to get a bit of an angle.
 *******************************************************************************/
 demo_input:
-
-    // determine which sprite is lowest (having the highest YL value) and load
-    // this value into the XL value of the paddle.
+    lda SpriteMem
+    tax                     // keep the original x-value
     lda SpriteMem+11
     clc
     sbc SpriteMem+20
@@ -172,7 +171,6 @@ demo_input:
     bcc ball_3_is_lower_than_ball_1
 
     // if we reach here, ball 1 is lowest
-    tax
     lda SpriteMem+9
     sta SpriteMem
     lda SpriteMem+11
@@ -190,6 +188,7 @@ demo_input:
       lda SpriteMem+20
       jmp end_ball_comparison
 
+    // ball 3 is lowest
     ball_3_is_lower_than_ball_1:
       lda SpriteMem+27
       sta SpriteMem
@@ -197,6 +196,7 @@ demo_input:
       jmp end_ball_comparison
 
 
+    // ball 3 is lowest
     ball_3_is_lower_than_ball_2:
       lda SpriteMem+27
       sta SpriteMem
@@ -204,9 +204,12 @@ demo_input:
 
     end_ball_comparison:
 
+    // Do not bother if the ball is already below (or inside) the paddle
+    cmp #TopOfPaddle+4
+    bcc demo_input_toggle
+    // restore the x-position
     txa
-    cmp #TopOfPaddle-12
-    bcs demo_input_toggle
+    sta SpriteMem
     rts
 
     // Use this mechanism to alter the direction of the ball
@@ -224,8 +227,10 @@ demo_input:
 
     demo_input_right:
         lda SpriteMem
-        adc #$4
+        adc #$6
         jsr handle_paddle_bounds
+        rts
+    end_demo_input:
         rts
 
 /*******************************************************************************
@@ -243,7 +248,7 @@ paddle_input:
     lda $d419               // Load value from Paddle X pot
     eor #$ff                // XOR with 255 to reverse the range
 
-    // Update paddle position unless it is outside the playing area
+    // Update paddle position unless it will end up outside the playing area
     handle_paddle_bounds:
     clc
     cmp #$1a                // Compare with the minimum value
@@ -323,6 +328,9 @@ init_irq:
     cli
     rts
 
+/*******************************************************************************
+ HANDLE INPUT AND SPRITE MOVEMENT
+*******************************************************************************/
 irq_1:
     lda #$00
     sta SpriteIndex
@@ -339,6 +347,7 @@ irq_1:
     }
 
     animation_loop:
+        FRAME_COLOR(0)
         clc
         lda SpriteIndex
         cmp #$00
@@ -346,11 +355,11 @@ irq_1:
 
         // Check if we should move the ball faster
         move_ball_accellerated:
-            clc
-            // XXX: Does not work with multiple balls
-            //lda accelerated_movement_timer
-            //cmp #$1
-            //bcs accelerated_movement
+          // TODO: User flags to check for accellerated movement
+          clc
+          jsr get_flags
+          and #%00000010
+          bne flagit
 
         move_ball_normally:
             jsr move_vertically
@@ -368,16 +377,26 @@ irq_1:
         asl $d019 // Clear interrupt flag
         jmp $ea81 // set flag and end
 
+flagit:
+    FRAME_COLOR(7)
+    jsr get_flags
+    and #%11111001
+    jsr store_flags
+    jmp move_ball_normally
+
 /*
     Add a little upwards acceleration for a period of time. This typically happens
     when the ball hits the paddle.
 */
 accelerated_movement:
-    dec accelerated_movement_timer
-    lda accelerated_movement_timer
-    cmp #$0
+    FRAME_COLOR(2)
+    jsr get_flags
+    and #%00000010
     beq end_accellerated_movement
-    // FRAME_COLOR(4)
+
+    //
+    lda #00
+    jsr store_flags
 
     lda #$80                // -1
     jsr store_ya
@@ -389,6 +408,9 @@ accelerated_movement:
         jsr store_ya
     jmp move_ball_normally
 
+/*******************************************************************************
+ LOAD DATA
+*******************************************************************************/
 // Intro screen
 .var intro_background = LoadBinary("petscii/intro.bin")
 *=$4500 "Intro"

@@ -78,14 +78,15 @@ ScreenMemHighByte:
 .const ScreenRightEdge  = $d5
 .const ScreenLeftEdge   = $14
 .const Gravity          = 2
-.const VelocityLoss     = 1
- 
+.const VelocityLoss     = 2
+
+/* The y position of the ball for it to be exactly touching the top of the paddle */
 .const TopOfPaddle      = $e3 // 224 (bottom) - 3 (paddle hight) + 6 (margin)
 
 fire:
     .byte $0
 
-.var accelerated_movement_timer = $2
+//.var accelerated_movement_timer = $2
 
 /*
     A helper "variable" we will need on occasion
@@ -106,8 +107,8 @@ row:
     Keep track of these two variables while debugging
     Press CMD/CTRL+W to see the actual values in the C64 Debugger.
 */
-.watch column
-.watch row
+//.watch column
+//.watch row
 
 reslo:
     .byte %00000000
@@ -368,28 +369,30 @@ move_down:
     adc temp                // Move down by the amount of velocity
     sta temp
 
-    // Only actually move if the ball has not collided with the paddle
+    // Only actually move down if the ball has not already collided with the
+    // paddle
     jsr get_flags
-    cmp #$01
+    and #%00000001
     bne store_position
 
+/* TODO: This does not work properly and may not even be needed
     lda temp
     cmp #TopOfPaddle
     bcc store_position
     lda #TopOfPaddle
     jsr store_yl
     jmp move_down_end
-
+*/
     store_position:
-    lda temp
-    jsr store_yl
-    cmp #ScreenBottomEdge   // Is bottom of screen hit?
-    /*
-        We don't want a normal bouncing effect, but rather loose a life and
-        start again with a new ball.
-        bcs change_to_move_up
-    */
-    bcs stop
+      lda temp
+      jsr store_yl
+      cmp #ScreenBottomEdge   // Is bottom of screen hit?
+      /*
+          We don't want a normal bouncing effect, but rather loose a life and
+          start again with a new ball.
+          bcs change_to_move_up
+      */
+      bcs stop
     move_down_end:
 rts
 
@@ -487,7 +490,7 @@ check_brick_collision:
 
 /*
     See docs/ball.png
-    
+
     Pt = (6+6, 5)
     Pb = (6+6, 5+10)
     Pl = (6, 5+5)
@@ -513,7 +516,7 @@ check_brick_collision:
 
     /*
         The character under the sprite has the PETSCII code 128 or higher which
-        means it is a game piece. So we detect exactly which and act 
+        means it is a game piece. So we detect exactly which and act
         accordingly.
     */
     character_hit:
@@ -596,7 +599,9 @@ check_paddle_collision:
     cmp #$00
     beq end_check_paddle_collision
 
-    lda #$0
+    // Reset the collision with paddle flag
+    jsr get_flags
+    and #%11111110
     jsr store_flags
 
     jsr get_xl     // x-position LSB of ball
@@ -651,7 +656,8 @@ check_paddle_collision:
         rts
     end_check_paddle_collision:
         // store collision flag
-        lda #$01
+        jsr get_flags
+        ora #%00000001
         jsr store_flags
 rts
 
@@ -659,8 +665,10 @@ bounce_off_paddle:
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
-    bcc end_check_paddle_collision
-    beq stop_ball
+    bcc end_check_paddle_collision // less than
+    beq stop_ball               // Make it rest on the paddle if velocity is low
+    //cmp #TopOfPaddle+4          // If already below the paddle, just go through
+    //bcs bounce_end
 
     bounce:
         jsr get_yv              // Change the direction of the velocity
@@ -681,8 +689,9 @@ bounce_off_paddle:
         // paddle will add some extra speed for a few cycles. Otherwise the
         // balls velocity will be reduced for each bounce, and it will
         // eventually stop.
-        lda #$02
-        sta accelerated_movement_timer
+        jsr get_flags
+        ora #%0000110
+        jsr store_flags
     bounce_end:
 rts
 /*
@@ -692,9 +701,9 @@ rts
 stop_ball:
     jsr get_yv
     clc
-    cmp #$2
+    cmp #Gravity
     bpl bounce
-    lda #$08
+    lda #$08    // (Gravity + Velocityloss) times two?
     jsr store_yv
     jmp bounce
 
