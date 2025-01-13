@@ -10,7 +10,7 @@
     - Arve Moen, amo@itema.no
     - Bjørn Leithe Karlsen, bka@itema.no
 */
-
+ 
 * = $c000 "Main Program"
 
 // import our sprite library
@@ -22,7 +22,6 @@
 
 BasicUpstart2(initialize)
 
-
 /*
     Various game modes for actually playing, autoplaying and debugging
 */
@@ -31,7 +30,7 @@ BasicUpstart2(initialize)
 .const MODE_JOYSTICK = $02  // Move the ball around using JS
 
 .var MODE = MODE_AUTOPLAY   // We start with automatic play
-.var BALLS = 3              // It gets slow at 4
+.var BALLS = 1              // It gets slow at 4
 
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
 .var demo_mode_movement_timer = $0
@@ -331,6 +330,7 @@ init_irq:
 /*******************************************************************************
  HANDLE INPUT AND SPRITE MOVEMENT
 *******************************************************************************/
+
 irq_1:
     lda #$00
     sta SpriteIndex
@@ -359,7 +359,7 @@ irq_1:
           clc
           jsr get_flags
           and #%00000010
-          bne flagit
+          bne flagit 
 
         move_ball_normally:
             jsr move_vertically

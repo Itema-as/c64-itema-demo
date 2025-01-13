@@ -42,7 +42,7 @@
         bpl wait
 }
 
-.var screen = LoadBinary("intro.seq")
+.var screen = LoadBinary("SEQFILE.seq")
 * = $4000 "Screen"; .fill screen.getSize(), screen.uget(i)
 * = $c000 "Program"
 
