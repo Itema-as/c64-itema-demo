@@ -10,7 +10,7 @@
     - Arve Moen, amo@itema.no
     - Bjørn Leithe Karlsen, bka@itema.no
 */
-
+ 
 * = $c000 "Main Program"
 
 // import our sprite library
@@ -20,27 +20,27 @@
 #import "library/font.asm"
 
 
-
 BasicUpstart2(initialize)
-
 
 /*
     Various game modes for actually playing, autoplaying and debugging
 */
-.label MODE_NORMAL = $00
-.label MODE_AUTOPLAY = $01
-.label MODE_JOYSTICK = $02
+.const MODE_NORMAL = $00    // Normal play
+.const MODE_AUTOPLAY = $01  // For demo purposes
+.const MODE_JOYSTICK = $02  // Move the ball around using JS
 
-.var MODE = MODE_NORMAL
+.var MODE = MODE_AUTOPLAY   // We start with automatic play
+.var BALLS = 1              // It gets slow at 4
 
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
 .var demo_mode_movement_timer = $0
 
 .var demoInputToggle = $0
 
-// Initialize
+/*******************************************************************************
+ INITIALIZE THE THINGS
+*******************************************************************************/
 initialize:
-    //LIBUTILITY_DISABLEBASICANDKERNAL()          // Disable BASIC and Kernal ROMs
     jsr $e544               // Clear screen
 
     lda #$00                // Set the background color for the game area
@@ -48,7 +48,7 @@ initialize:
     lda #$00                // Set the background color for the border
     sta $d020
 
-    lda #%11000011          // Enable sprites
+    lda #%11001111          // Enable sprites
     sta $d015
 
     lda #%00111110          // Specify multicolor for the ball sprites
@@ -72,24 +72,25 @@ initialize:
     sta $d01f               // Init sprite collision
 
 
-    lda #$0a                // Set sprite #1 individual color
+    lda #$01                // Set sprite #0 - the paddle individual color
     sta $d027
-    lda #$0c                // Set sprite #2 individual color (medium gray)
+    lda #$02                // Set sprite #1 - ball individual color
     sta $d028
+    lda #$05                // Set sprite #2 - ball individual color
+    sta $d029
+    lda #$06                // Set sprite #3 -ball individual color
+    sta $d02a
 
     lda #paddleSpriteData/64
-    sta $07f8               // Sprite #0
+    sta $07f8               // Sprite #0 – the paddle
     lda #ballSpriteData/64
-    sta $07f9               // Sprite #1
-    sta $07fa               // Sprite #2
-    sta $07fb               // Sprite #3
-    sta $07fc               // Sprite #4
-    /*
-    sta $07fd               // Sprite #5
-    */
+    sta $07f9               // Sprite #1 - ball #1
+    sta $07fa               // Sprite #2 - ball #2
+    sta $07fb               // Sprite #3 - ball #3
 
-// #############################################################################
-// Itema Logo Sprites
+/*
+    Itema Logo Sprites
+*/
     lda #itemaLogoSwoosh/64
     sta $07fe               // Sprite #6
     lda #itemaLogoBall/64
@@ -113,8 +114,6 @@ initialize:
     sta $d02d
     lda #$0a
     sta $d02e
-// #############################################################################
-
 
 /*
     Set character set pointer to our custom set, turn off
@@ -129,9 +128,7 @@ lda $d016      // turn off multicolor for characters
 and #%11101111 // by clearing bit #4 of $D016
 sta $d016
 
-/*
-    Initialize IRQ
-*/
+// Initialize the IRQ
 jsr init_irq
 
 /*
@@ -145,37 +142,99 @@ lda #$00
 sta $fe
 jsr load_screen
 
-/*
-    Main loop
-*/
+/*******************************************************************************
+ MAIN LOOP
+*******************************************************************************/
 loop:
 jmp loop
 
+/*******************************************************************************
+ DEMO INPUT
+
+ - Determine which ball is lowest (having the highest YL value)
+ - Use that ball's x-position to determine paddle position
+ - Use the Y position of the selected ball to determine whether to toggle the
+   paddle offset to get a bit of an angle.
+*******************************************************************************/
 demo_input:
+    lda SpriteMem
+    tax                     // keep the original x-value
     lda SpriteMem+11
-    cmp #TopOfPaddle-12
-    bcs demo_input_toggle
+    clc
+    sbc SpriteMem+20
+    bcc ball_2_is_lower_than_ball_1
+
+    lda SpriteMem+11
+    clc
+    sbc SpriteMem+29
+    bcc ball_3_is_lower_than_ball_1
+
+    // if we reach here, ball 1 is lowest
+    lda SpriteMem+9
+    sta SpriteMem
+    lda SpriteMem+11
+    jmp end_ball_comparison
+
+    ball_2_is_lower_than_ball_1:
+      lda SpriteMem+20
+      clc
+      sbc SpriteMem+29
+      bcc ball_3_is_lower_than_ball_2
+
+      // if we reach here, ball 2 is lowest
+      lda SpriteMem+18
+      sta SpriteMem
+      lda SpriteMem+20
+      jmp end_ball_comparison
+
+    // ball 3 is lowest
+    ball_3_is_lower_than_ball_1:
+      lda SpriteMem+27
+      sta SpriteMem
+      lda SpriteMem+29
+      jmp end_ball_comparison
+
+
+    // ball 3 is lowest
+    ball_3_is_lower_than_ball_2:
+      lda SpriteMem+27
+      sta SpriteMem
+      lda SpriteMem+29
+
+    end_ball_comparison:
+
+    // Do not bother if the ball is already below (or inside) the paddle
+    cmp #TopOfPaddle+4
+    bcc demo_input_toggle
+    // restore the x-position
+    txa
+    sta SpriteMem
     rts
 
+    // Use this mechanism to alter the direction of the ball
     demo_input_toggle:
-    
-    asl demoInputToggle
-    bcc demo_input_right
-    inc demoInputToggle
+      asl demoInputToggle
+      bcc demo_input_right
+      inc demoInputToggle
 
     demo_input_left:
         clc
-        lda SpriteMem+9         // Get the ball x-position LSB
+        lda SpriteMem
         sbc #$6
-        jsr store_xl            // Store the paddle x-position
-        rts
-    
-    demo_input_right:
-        lda SpriteMem+9         // Get the ball x-position LSB
-        adc #$4
-        jsr store_xl            // Store the paddle x-position
+        jsr handle_paddle_bounds
         rts
 
+    demo_input_right:
+        lda SpriteMem
+        adc #$6
+        jsr handle_paddle_bounds
+        rts
+    end_demo_input:
+        rts
+
+/*******************************************************************************
+ PLAYER/PADDLE INPUT
+*******************************************************************************/
 paddle_input:
     lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
     and #%11111110          // Set bit 0 to input for pot x (paddle 1)
@@ -188,8 +247,8 @@ paddle_input:
     lda $d419               // Load value from Paddle X pot
     eor #$ff                // XOR with 255 to reverse the range
 
-    // Update paddle position unless it is outside the playing area
-
+    // Update paddle position unless it will end up outside the playing area
+    handle_paddle_bounds:
     clc
     cmp #$1a                // Compare with the minimum value
     bcs piNotLess           // If carry is set (number >= minValue), branch to piNotLess
@@ -197,13 +256,16 @@ paddle_input:
     piNotLess:
     clc
     // Now check if the number is greater than the maximum value
-    cmp #$ce        // Compare with the maximum value
-    bcc piNotGreater// If carry is clear (number < maxValue), branch to piNotGreater
-    lda #$ce        // If carry is set (number >= maxValue), load the maximum value into the accumulator
+    cmp #$ce                // Compare with the maximum value
+    bcc piNotGreater        // If carry is clear (number < maxValue), branch to piNotGreater
+    lda #$ce                // If carry is set (number >= maxValue), load the maximum value into the accumulator
     piNotGreater:
-    jsr store_xl    // Store the paddle x-position
+    jsr store_xl            // Store the paddle x-position
     rts
 
+/*******************************************************************************
+ PLAYER/JOYSTICK INPUT (ONLY FOR DEBUGGING)
+*******************************************************************************/
 joystick_input:
      // Reset velocity on both axis
      lda #$00
@@ -222,7 +284,7 @@ joystick_input:
          inc SpriteMem+9
      inputUp:
          LIBINPUT_GET(GameportUpMask)
-         bne inputDown  
+         bne inputDown
          dec SpriteMem+11
      inputDown:
          LIBINPUT_GET(GameportDownMask)
@@ -235,9 +297,12 @@ joystick_input:
          bne inputEnd
          lda #$80
          sta fire
-     inputEnd:   
-         rts 
+     inputEnd:
+         rts
 
+/*******************************************************************************
+ INITIALIZE INTERRUPTS
+*******************************************************************************/
 init_irq:
     sei
     lda #<irq_1
@@ -262,6 +327,10 @@ init_irq:
     cli
     rts
 
+/*******************************************************************************
+ HANDLE INPUT AND SPRITE MOVEMENT
+*******************************************************************************/
+
 irq_1:
     lda #$00
     sta SpriteIndex
@@ -276,8 +345,9 @@ irq_1:
         asl $d019 // Clear interrupt flag
         jmp $ea81 // set flag and end
     }
-  
+
     animation_loop:
+        FRAME_COLOR(0)
         clc
         lda SpriteIndex
         cmp #$00
@@ -285,11 +355,11 @@ irq_1:
 
         // Check if we should move the ball faster
         move_ball_accellerated:
-            clc
-            // XXX: Does not work with multiple balls
-            //lda accelerated_movement_timer
-            //cmp #$1
-            //bcs accelerated_movement
+          // TODO: User flags to check for accellerated movement
+          clc
+          jsr get_flags
+          and #%00000010
+          bne flagit 
 
         move_ball_normally:
             jsr move_vertically
@@ -300,23 +370,33 @@ irq_1:
 
         inc SpriteIndex
         lda SpriteIndex
-        cmp #$02        // we only have two sprites
+        cmp #BALLS+1
         beq done
         jmp animation_loop
     done:
         asl $d019 // Clear interrupt flag
         jmp $ea81 // set flag and end
 
+flagit:
+    FRAME_COLOR(7)
+    jsr get_flags
+    and #%11111001
+    jsr store_flags
+    jmp move_ball_normally
+
 /*
     Add a little upwards acceleration for a period of time. This typically happens
     when the ball hits the paddle.
 */
 accelerated_movement:
-    dec accelerated_movement_timer
-    lda accelerated_movement_timer
-    cmp #$0
+    FRAME_COLOR(2)
+    jsr get_flags
+    and #%00000010
     beq end_accellerated_movement
-    // FRAME_COLOR(4)
+
+    //
+    lda #00
+    jsr store_flags
 
     lda #$80                // -1
     jsr store_ya
@@ -328,6 +408,9 @@ accelerated_movement:
         jsr store_ya
     jmp move_ball_normally
 
+/*******************************************************************************
+ LOAD DATA
+*******************************************************************************/
 // Intro screen
 .var intro_background = LoadBinary("petscii/intro.bin")
 *=$4500 "Intro"
