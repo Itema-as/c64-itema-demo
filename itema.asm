@@ -30,11 +30,23 @@ BasicUpstart2(initialize)
 .const MODE_AUTOPLAY = $01  // For demo purposes
 .const MODE_JOYSTICK = $02  // Move the ball around using JS
 
-.var MODE = MODE_AUTOPLAY   // We start with automatic play
+.var MODE = MODE_NORMAL     // We start with automatic play
 .var BALLS = 1              // It gets slow at 4
 
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
 .var demo_mode_movement_timer = $0
+
+demo_mode:
+    .byte %00000001
+    
+start_velocity:
+    .byte $00
+start_accelleration:
+    .byte $00
+start_x_position:
+    .byte $74
+start_y_position:
+    .byte $60
 
 /*******************************************************************************
  INITIALIZE THE THINGS
@@ -135,7 +147,8 @@ jsr init_irq
     $4500 - intro screen
     $4d00 - level 1
 */
-lda #$4d
+
+lda #$45
 sta $ff
 lda #$00
 sta $fe
@@ -147,6 +160,23 @@ jsr load_screen
 loop:
 jmp loop
 
+start_game:
+    // quit demo mode
+    lda #%0000000
+    sta demo_mode
+    // reset ball position
+    jsr reset_ball_position
+    // load the first level
+    lda #$4d
+    sta $ff
+    lda #$00
+    sta $fe    
+    jsr load_screen
+    jsr gameUpdateScore
+    jsr gameUpdateHighScore
+rts
+
+
 /*******************************************************************************
  DEMO INPUT
 
@@ -156,6 +186,13 @@ jmp loop
    paddle offset to get a bit of an angle.
 *******************************************************************************/
 demo_input:
+    // test if the fire button on paddle 2 is pressed,
+    // if so start the game
+	lda $dc01
+    and #%00000100          // left stick mask
+    beq start_game
+	
+    // figure out which ball is lowest
     lda SpriteMem+9			// ball 1 - xl
     sta SpriteMem
 
@@ -227,6 +264,11 @@ demo_input:
  PLAYER/PADDLE INPUT
 *******************************************************************************/
 paddle_input:
+        
+    lda demo_mode
+    cmp #%00000001
+    beq demo_input
+
     lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
     and #%11111110          // Set bit 0 to input for pot x (paddle 1)
     sta $dc00               // Store the result back to Data Port A
@@ -252,6 +294,7 @@ paddle_input:
     lda #$ce                // If carry is set (number >= maxValue), load the maximum value into the accumulator
     piNotGreater:
     jsr store_xl            // Store the paddle x-position
+    
     rts
 
 /*******************************************************************************

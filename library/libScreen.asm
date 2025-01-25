@@ -166,6 +166,30 @@ gameUpdateScore:
     sta ZeroPage9
     LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn3, HUDRow, ZeroPage9)
     rts
+
+gameUpdateHighScore:
+    // -------- 1st digit --------
+    lda wHudHiScore+1
+    and #%00001111
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn1, HUDRow+2, ZeroPage9)
+    // -------- 2nd digit --------
+    lda wHudHiScore
+    and #%11110000
+    lsr
+    lsr
+    lsr
+    lsr
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn2, HUDRow+2, ZeroPage9)
+    // -------- 3rd digit --------
+    lda wHudHiScore
+    and #%00001111
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn3, HUDRow+2, ZeroPage9)
     rts
 
 .macro LIBSCREEN_SETCHARACTER_S_VVA(bXPos, bYPos, bChar)
@@ -192,25 +216,3 @@ libScreenSetCharacter:
     sta (ZeroPage9),Y
     rts
 
-.macro LIBSCREEN_DEBUG8BIT_VVA(bXPos, bYPos, bIn)
-{
-    LIBMATH_8BITTOBCD_AA(bIn, ZeroPage4)
-    lda ZeroPage4
-    and #%00001111      // get low nibble
-    ora #$30            // convert to ascii
-    sta ZeroPage6
-    LIBSCREEN_SETCHARACTER_S_VVA(bXPos+2, bYPos, ZeroPage6)
-    lda ZeroPage4
-    lsr                 // get high nibble
-    lsr
-    lsr
-    lsr
-    ora #$30            // convert to ascii
-    sta ZeroPage6
-    LIBSCREEN_SETCHARACTER_S_VVA(bXPos+1, bYPos, ZeroPage6)
-    lda ZeroPage5
-    and #%00001111      // get low nibble
-    ora #$30            // convert to ascii
-    sta ZeroPage6
-    LIBSCREEN_SETCHARACTER_S_VVA(bXPos, bYPos, ZeroPage6)
-}

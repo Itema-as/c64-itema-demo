@@ -398,7 +398,7 @@ move_down:
           start again with a new ball.
           bcs change_to_move_up
       */
-      bcs stop
+      bcs reset_game
     move_down_end:
 rts
 
@@ -408,20 +408,44 @@ rts
     changed, as this would be confusing to the player since an actual paddle
     controller is used.
 */
-stop:
+reset_game:    
+    jsr reset_ball_position
+    // Load intro screen and enable demo mode
+    lda #$45
+    sta $ff
     lda #$00
-    jsr store_xa
-    jsr store_ya
-    jsr store_xv
-    jsr store_yv
-    jsr store_xm
-    jsr store_ym
-    lda #$60
-    jsr store_yl
-    lda #$73
-    jsr store_xl
+    sta $fe
+    jsr load_screen
+    lda #%00000001
+    sta demo_mode
+    lda #$00
+    sta wHudScore
+    sta wHudScore+1
+    jsr gameUpdateScore
+    jsr gameUpdateHighScore
 rts
 
+reset_ball_position:
+    ldx #$01
+    stx SpriteIndex
+
+    clc
+    
+    lda #$00
+    jsr store_ya
+    jsr store_xa
+    jsr store_ym
+    jsr store_xm
+    jsr store_yv
+    jsr store_xv
+
+    lda start_x_position
+    jsr store_xl
+    
+    lda start_y_position
+    jsr store_yl
+    
+rts
 
 /*
     Start moving from left to right.
@@ -554,6 +578,7 @@ check_brick_collision:
     bounce_on_brick:
         jsr gameIncreaseScore   // Increment he score
         jsr gameUpdateScore
+        jsr gameUpdateHighScore
         jsr get_yv
         eor #$ff                // Flip the sign so that we get a positive number
         clc
