@@ -23,14 +23,6 @@
 
 BasicUpstart2(initialize)
 
-/*
-    Various game modes for actually playing, autoplaying and debugging
-*/
-.const MODE_NORMAL = $00    // Normal play
-.const MODE_AUTOPLAY = $01  // For demo purposes
-.const MODE_JOYSTICK = $02  // Move the ball around using JS
-
-.var MODE = MODE_NORMAL     // We start with automatic play
 .var BALLS = 1              // It gets slow at 4
 
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
@@ -187,7 +179,7 @@ rts
 *******************************************************************************/
 demo_input:
     // test if the fire button on paddle 2 is pressed,
-    // if so start the game
+    // if so start the game instead of doing demo mode input
 	lda $dc01
     and #%00000100          // left stick mask
     beq start_game
@@ -368,17 +360,7 @@ init_irq:
 irq_1:
     lda #$00
     sta SpriteIndex
-    .if (MODE == MODE_NORMAL) jsr paddle_input
-    .if (MODE == MODE_AUTOPLAY) jsr demo_input
-    .if (MODE == MODE_JOYSTICK) {
-        lda #$01
-        sta SpriteIndex
-        jsr joystick_input
-        jsr draw_sprite
-        jsr check_brick_collision
-        asl $d019 // Clear interrupt flag
-        jmp $ea81 // set flag and end
-    }
+    jsr paddle_input
 
     animation_loop:
         FRAME_COLOR(0)
