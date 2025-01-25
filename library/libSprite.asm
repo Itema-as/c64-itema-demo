@@ -104,6 +104,12 @@ row:
     .byte %00000000
 
 /*
+	Used to determine whether or not to place the bat to the left or
+	to the right of the ball.
+*/
+demoInputToggle:
+	.byte 1
+/*
     Keep track of these two variables while debugging
     Press CMD/CTRL+W to see the actual values in the C64 Debugger.
 */
@@ -685,6 +691,10 @@ bounce_off_paddle:
         rol
         jsr store_xv
 
+		// Toggle the left/right position of the bat
+        lda demoInputToggle		
+        eor #$01
+        sta demoInputToggle
         // Set the accellerated movement timer. Hitting the ball with the
         // paddle will add some extra speed for a few cycles. Otherwise the
         // balls velocity will be reduced for each bounce, and it will

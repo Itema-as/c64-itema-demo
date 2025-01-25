@@ -19,6 +19,7 @@
 #import "library/libScreen.asm"
 #import "library/font.asm"
 
+// .watch wHudScore,,"store" 
 
 BasicUpstart2(initialize)
 
@@ -34,8 +35,6 @@ BasicUpstart2(initialize)
 
 .var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
 .var demo_mode_movement_timer = $0
-
-.var demoInputToggle = $0
 
 /*******************************************************************************
  INITIALIZE THE THINGS
@@ -157,79 +156,71 @@ jmp loop
    paddle offset to get a bit of an angle.
 *******************************************************************************/
 demo_input:
-    lda SpriteMem
-    tax                     // keep the original x-value
-    lda SpriteMem+11
+    lda SpriteMem+9			// ball 1 - xl
+    sta SpriteMem
+
+    lda SpriteMem+11		// ball 1 - yl
     clc
-    sbc SpriteMem+20
+    sbc SpriteMem+20		// ball 2 - yl
     bcc ball_2_is_lower_than_ball_1
 
-    lda SpriteMem+11
+    lda SpriteMem+11		// ball 1 - yl
     clc
-    sbc SpriteMem+29
+    sbc SpriteMem+29		// ball 3 - yl
     bcc ball_3_is_lower_than_ball_1
 
     // if we reach here, ball 1 is lowest
-    lda SpriteMem+9
+    lda SpriteMem+9			// ball 1 - xl
     sta SpriteMem
-    lda SpriteMem+11
     jmp end_ball_comparison
 
+	// determine whether ball 3 is lower than ball 2
     ball_2_is_lower_than_ball_1:
-      lda SpriteMem+20
+      lda SpriteMem+20		// ball 2 - yl
       clc
-      sbc SpriteMem+29
+      sbc SpriteMem+29		// ball 3 - yl
       bcc ball_3_is_lower_than_ball_2
 
       // if we reach here, ball 2 is lowest
-      lda SpriteMem+18
+      lda SpriteMem+18		// ball 2 - xl
       sta SpriteMem
-      lda SpriteMem+20
+      lda SpriteMem+20		// ball 2 - yl
       jmp end_ball_comparison
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_1:
-      lda SpriteMem+27
+      lda SpriteMem+27		// ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29
+      lda SpriteMem+29		// ball 3 - yl
       jmp end_ball_comparison
 
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_2:
-      lda SpriteMem+27
+      lda SpriteMem+27		// ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29
+      lda SpriteMem+29		// ball 3 - yl
 
     end_ball_comparison:
 
-    // Do not bother if the ball is already below (or inside) the paddle
-    cmp #TopOfPaddle+4
-    bcc demo_input_toggle
-    // restore the x-position
-    txa
-    sta SpriteMem
-    rts
-
-    // Use this mechanism to alter the direction of the ball
+    // Alternate between moving the ball to the left and to the right
     demo_input_toggle:
-      asl demoInputToggle
-      bcc demo_input_right
-      inc demoInputToggle
+      lda demoInputToggle
+      beq demo_input_right
 
     demo_input_left:
         clc
         lda SpriteMem
-        sbc #$6
+        sbc #$08
+        sta SpriteMem
         jsr handle_paddle_bounds
         rts
 
     demo_input_right:
         lda SpriteMem
-        adc #$6
-        jsr handle_paddle_bounds
-        rts
-    end_demo_input:
+        adc #$08
+        sta SpriteMem
+        jsr handle_paddle_bounds // XXX: Move to separate (without store_xl)
         rts
 
 /*******************************************************************************
@@ -330,7 +321,7 @@ init_irq:
 /*******************************************************************************
  HANDLE INPUT AND SPRITE MOVEMENT
 *******************************************************************************/
-
+ 
 irq_1:
     lda #$00
     sta SpriteIndex
