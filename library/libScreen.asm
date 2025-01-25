@@ -19,11 +19,6 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
 .const HUDScoreColumn1              = 36
 .const HUDScoreColumn2              = 37
 .const HUDScoreColumn3              = 38
-/*
-.const HUDHiScoreColumn1            = 36
-.const HUDHiScoreColumn2            = 37
-.const HUDHiScoreColumn3            = 38
-*/
 .const HUDRow                       = 5
 .const HUDStartColumn               = 10
 .const HUDStartRow                  = 24
@@ -190,6 +185,31 @@ gameUpdateHighScore:
     ora #$30 
     sta ZeroPage9
     LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn3, HUDRow+2, ZeroPage9)
+    rts
+
+gameUpdateLives:
+    // -------- 1st digit --------
+    lda wHudLives+1
+    and #%00001111
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn1, HUDRow+4, ZeroPage9)
+    // -------- 2nd digit --------
+    lda wHudLives
+    and #%11110000
+    lsr
+    lsr
+    lsr
+    lsr
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn2, HUDRow+4, ZeroPage9)
+    // -------- 3rd digit --------
+    lda wHudLives
+    and #%00001111
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn3, HUDRow+4, ZeroPage9)
     rts
 
 .macro LIBSCREEN_SETCHARACTER_S_VVA(bXPos, bYPos, bChar)

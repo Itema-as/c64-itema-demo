@@ -42,6 +42,7 @@ start_y_position:
     .byte $60
 ball_speed_up:
     .byte %00000000
+ 
 /*******************************************************************************
  INITIALIZE THE THINGS
 *******************************************************************************/
@@ -169,8 +170,11 @@ start_game:
     lda #$00
     sta wHudScore
     sta wHudScore+1
+    lda #$03
+    sta wHudLives
     jsr gameUpdateScore
     jsr gameUpdateHighScore
+    jsr gameUpdateLives
 rts
 
 

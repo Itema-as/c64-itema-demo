@@ -4,6 +4,8 @@
 
 wHudScore: .word 0
 wHudHiScore: .word 0
+wHudLives: .word 3
+
 .const HUDScoreIncrease = 1
 
 /*
@@ -26,4 +28,10 @@ gameIncreaseScore:
     lda wHudScore+1
     sta wHudHiScore+1
 gHCNotHi:
+    rts
+
+gameDecreaseLives:
+    sed // Set decimal mode
+    LIBMATH_SUB16BIT_AVA(wHudLives, 1, wHudLives)
+    cld // Clear decimal mode
     rts

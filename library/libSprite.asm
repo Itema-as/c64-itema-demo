@@ -410,6 +410,13 @@ rts
 */
 reset_game:    
     jsr reset_ball_position
+    jsr gameDecreaseLives
+    jsr gameUpdateLives
+    
+    lda wHudLives
+    cmp #$00
+    bne reset_game_not_finished
+    
     // Load intro screen and enable demo mode
     lda #$45
     sta $ff
@@ -423,6 +430,7 @@ reset_game:
 //    sta wHudScore+1
 //    jsr gameUpdateScore
     jsr gameUpdateHighScore
+    reset_game_not_finished:
 rts
 
 reset_ball_position:

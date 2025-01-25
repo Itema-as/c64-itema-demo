@@ -62,3 +62,14 @@ cnvBit:
     bne cnvBit
     cld             // Back to binary
 }
+
+.macro LIBMATH_SUB16BIT_AVA(wNum1, wNum2, wSum)
+{
+    sec             // sec is the same as clear borrow
+    lda wNum1       // Get LSB of first number
+    sbc #<wNum2     // Subtract LSB of second number
+    sta wSum        // Store in LSB of bSum
+    lda wNum1+1     // Get MSB of first number
+    sbc #>wNum2     // Subtract borrow and MSB of NUM2
+    sta wSum+1      // Store bSum in MSB of bSum
+}
