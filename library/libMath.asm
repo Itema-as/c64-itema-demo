@@ -62,28 +62,3 @@ cnvBit:
     bne cnvBit
     cld             // Back to binary
 }
-
-.macro LIBMATH_MAX16BIT_AV(wNum1, wNum2)
-{
-    lda wNum1+1     // high bytes
-    cmp #>wNum2
-    bcc LsThan      // hiVal1 < hiVal2 --> Val1 < Val2
-    bne GrtEqu      // hiVal1 ≠ hiVal2 --> Val1 > Val2
-    lda wNum1       // low bytes
-    cmp #<wNum2
-    bcs GrtEqu      // loVal1 ≥ loVal2 --> Val1 ≥ Val2
-LsThan:
-    lda #>wNum2     // replace wNum1 with wNum2
-    sta wNum1+1
-    lda #<wNum2
-    sta wNum1
-GrtEqu:
-}
-.macro LIBMATH_MAX8BIT_AV(bNum1, bNum2)
-{
-    lda #bNum2      // Load Number 2
-    cmp bNum1       // Compare with Number 1
-    bcc skip        // If Number 2 < Number 1 then skip
-    sta bNum1       // Else replace Number1 with Number2
-skip:
-}
