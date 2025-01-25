@@ -58,7 +58,7 @@ initialize:
 
     lda #%00111110          // Specify multicolor for the ball sprites
     sta $d01c
-    lda #$0f                // Color light gray
+    lda #$01                // Color light gray
     sta $d025               // Set shared multicolor #1
     lda #$0b                // Color dark gray
     sta $d026               // Set shared multicolor #2
@@ -79,7 +79,7 @@ initialize:
 
     lda #$01                // Set sprite #0 - the paddle individual color
     sta $d027
-    lda #$02                // Set sprite #1 - ball individual color
+    lda #$0c                // Set sprite #1 - ball individual color (medium gray)
     sta $d028
     lda #$05                // Set sprite #2 - ball individual color
     sta $d029
