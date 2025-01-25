@@ -20,6 +20,7 @@
 #import "library/font.asm"
 
 // .watch wHudScore,,"store" 
+//.watch ball_speed_up,,"store" 
 
 BasicUpstart2(initialize)
 
@@ -39,7 +40,8 @@ start_x_position:
     .byte $74
 start_y_position:
     .byte $60
-
+ball_speed_up:
+    .byte %00000000
 /*******************************************************************************
  INITIALIZE THE THINGS
 *******************************************************************************/
@@ -164,6 +166,9 @@ start_game:
     lda #$00
     sta $fe    
     jsr load_screen
+    lda #$00
+    sta wHudScore
+    sta wHudScore+1
     jsr gameUpdateScore
     jsr gameUpdateHighScore
 rts
@@ -256,21 +261,36 @@ demo_input:
  PLAYER/PADDLE INPUT
 *******************************************************************************/
 paddle_input:
-        
+
     lda demo_mode
     cmp #%00000001
-    beq demo_input
+    beq demo_input          // If we are in demo mode we do the demo input
 
+    lda #$01                // Set sprite #0 - the paddle individual color
+    sta $d027
+
+    lda #%00000000
+    sta ball_speed_up
+                
     lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
-    and #%11111110          // Set bit 0 to input for pot x (paddle 1)
+    and #%01111111          // Set bit 0 to input for pot x (paddle 1)
     sta $dc00               // Store the result back to Data Port A
 
-    lda $dc01               // Load value from CIA#1 Data Port B (keyboard lines)
-    and #%11110111          // Clear bit 3 to low (selects pot x)
-    sta $dc01               // Store the result back to Data Port B
+    lda $dc01
+    and #%00000100
+    bne paddle_input_cont
+
+    lda #$03                // Set sprite #0 - the paddle individual color
+    sta $d027
+    
+    lda #%00000001
+    sta ball_speed_up
+
+    paddle_input_cont:
 
     lda $d419               // Load value from Paddle X pot
     eor #$ff                // XOR with 255 to reverse the range
+
 
     // Update paddle position unless it will end up outside the playing area
     handle_paddle_bounds:
@@ -288,43 +308,6 @@ paddle_input:
     jsr store_xl            // Store the paddle x-position
     
     rts
-
-/*******************************************************************************
- PLAYER/JOYSTICK INPUT (ONLY FOR DEBUGGING)
-*******************************************************************************/
-joystick_input:
-     // Reset velocity on both axis
-     lda #$00
-     jsr store_xv
-     jsr store_yv
-     jsr store_ya
-     jsr store_xa
-
-     // Set acceleration according to joystick input
-     LIBINPUT_GET(GameportLeftMask)
-         bne inputRight
-         dec SpriteMem+9
-     inputRight:
-         LIBINPUT_GET(GameportRightMask)
-         bne inputUp
-         inc SpriteMem+9
-     inputUp:
-         LIBINPUT_GET(GameportUpMask)
-         bne inputDown
-         dec SpriteMem+11
-     inputDown:
-         LIBINPUT_GET(GameportDownMask)
-         bne inputEnd
-         inc SpriteMem+11
-     inputFire:
-         lda #$00
-         sta fire
-         LIBINPUT_GET(GameportFireMask)
-         bne inputEnd
-         lda #$80
-         sta fire
-     inputEnd:
-         rts
 
 /*******************************************************************************
  INITIALIZE INTERRUPTS

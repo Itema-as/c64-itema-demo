@@ -418,10 +418,10 @@ reset_game:
     jsr load_screen
     lda #%00000001
     sta demo_mode
-    lda #$00
-    sta wHudScore
-    sta wHudScore+1
-    jsr gameUpdateScore
+//    lda #$00
+//    sta wHudScore
+//    sta wHudScore+1
+//    jsr gameUpdateScore
     jsr gameUpdateHighScore
 rts
 
@@ -720,14 +720,19 @@ bounce_off_paddle:
         lda demoInputToggle		
         eor #$01
         sta demoInputToggle
-        // Set the accellerated movement timer. Hitting the ball with the
-        // paddle will add some extra speed for a few cycles. Otherwise the
-        // balls velocity will be reduced for each bounce, and it will
-        // eventually stop.
-        jsr get_flags
-        ora #%0000110
-        jsr store_flags
-    bounce_end:
+
+        // The paddle button is pressed, so we're going to negate the effect
+        // of the velocity loss when the ball hits the bat
+        clc
+        lda ball_speed_up
+        cmp #%00000000
+        beq bounce_end
+                
+        jsr get_yv              // Change the direction of the velocity
+        sbc #VelocityLoss+3
+        jsr store_yv
+        
+    bounce_end:    
 rts
 /*
     This function will stop the ball if the velocity is too low. This is used
