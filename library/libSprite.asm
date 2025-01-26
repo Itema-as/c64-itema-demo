@@ -408,7 +408,8 @@ rts
     changed, as this would be confusing to the player since an actual paddle
     controller is used.
 */
-reset_game:    
+reset_game:
+//    LIBSOUND_PLAYSFX_AA(music.location,SFX_Fail1)
     jsr reset_ball_position
     jsr gameDecreaseLives
     jsr gameUpdateLives
