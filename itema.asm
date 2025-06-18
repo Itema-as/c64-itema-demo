@@ -10,8 +10,10 @@
     - Arve Moen, amo@itema.no
     - Bjørn Leithe Karlsen, bka@itema.no
 */
- 
+
 .var music = LoadSid("../music/Calypso_Bar.sid")
+*=music.location "Music"
+.fill music.size, music.getData(i)
 
 * = $c000 "Main Program"
 
@@ -20,7 +22,6 @@
 #import "library/libInput.asm"
 #import "library/libScreen.asm"
 #import "library/font.asm"
-//#import "library/libMusic.asm"
 
 // .watch wHudScore,,"store" 
 //.watch ball_speed_up,,"store" 
@@ -152,10 +153,6 @@ initialize:
 	sta $fe
 	jsr load_screen
 
-    //lda #music.startSong-1
-    //jsr music.init  
-
-
 // Initialize the IRQ
 jsr init_irq
 
@@ -193,7 +190,6 @@ start_game:
     jsr gameUpdateScore
     jsr gameUpdateHighScore
     jsr gameUpdateLives
-    //LIBSOUND_PLAYSFX_AA(music,SFX_Fail1)
 rts
 
 
@@ -567,21 +563,3 @@ itemaLogoBall:
 .byte $00, $00, $00
 .byte $00, $00, $00
 .byte $00, $00, $00
-
-*=music.location "Music"
-    .fill music.size, music.getData(i)
-
-SFX_Crab:          .byte $0E,$EE,$00,$DC,$81,$DC,$DC,$DC,$B1,$31,$B0,$AF,$AE,$AF,$AE,$AD,$AC,$90,$11,$00
-SFX_Fail1:         .byte $0E,$EE,$00,$98,$21,$98,$98,$98,$98,$98,$94,$94,$94,$94,$94,$92,$92,$92,$92,$92,$90,$11,$00
-SFX_Fail2:         .byte $0E,$EE,$00,$AC,$81,$AC,$21,$AB,$81,$AB,$21,$AA,$81,$AA,$21,$A9,$81,$A9,$21,$A8,$81,$A8,$21,$A7,$81,$A7,$21,$A6,$81,$A6,$21,$A5,$81,$A5,$21,$A4,$81,$A4,$21,$A3,$81,$A3,$21,$A2,$81,$A2,$21,$A1,$81,$A1,$21,$90,$11,$00
-SFX_Great:         .byte $0E,$00,$00,$B0,$21,$B0,$B0,$B4,$B4,$B4,$B7,$B7,$B7,$BC,$BC,$BC,$A0,$11,$00
-SFX_NewCustomer:   .byte $0E,$EE,$00,$CC,$11,$CC,$CC,$CC,$C8,$C8,$C8,$C8,$90,$00
-SFX_Tadaah:        .byte $0E,$00,$33,$B0,$21,$B4,$B7,$BC,$A0,$11,$A0,$B0,$21,$B4,$B7,$BC,$B0,$B4,$B7,$BC,$B0,$B4,$B7,$BC,$B0,$B4,$B7,$BC,$B0,$B4,$B7,$BC,$A0,$11,$00
-
-.macro LIBSOUND_PLAYSFX_AA(wSidfile, wSound)   
-{   
-    lda #<wSound
-    ldy #>wSound
-    ldx #14
-    jsr wSidfile+6
-}
