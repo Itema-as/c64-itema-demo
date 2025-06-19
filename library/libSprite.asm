@@ -398,7 +398,7 @@ move_down:
           start again with a new ball.
           bcs change_to_move_up
       */
-      bcs stop
+      bcs reset_game
     move_down_end:
 rts
 
@@ -408,20 +408,50 @@ rts
     changed, as this would be confusing to the player since an actual paddle
     controller is used.
 */
-stop:
+reset_game:
+    jsr reset_ball_position
+    jsr gameDecreaseLives
+    jsr gameUpdateLives
+    
+    lda wHudLives
+    cmp #$00
+    // we're not done yet, so continue the game
+    bne reset_game_not_finished
+    
+    // Load intro screen and enable demo mode
+    lda #$45
+    sta $ff
     lda #$00
-    jsr store_xa
-    jsr store_ya
-    jsr store_xv
-    jsr store_yv
-    jsr store_xm
-    jsr store_ym
-    lda #$60
-    jsr store_yl
-    lda #$73
-    jsr store_xl
+    sta $fe
+    jsr load_screen
+    lda #%00000001  // enable demo mode
+    sta demo_mode
+    // update the high score (if requred)
+    jsr gameUpdateHighScore
+    reset_game_not_finished:
 rts
 
+reset_ball_position:
+    ldx #$01
+    stx SpriteIndex
+
+    clc
+    
+    lda #$00
+    jsr store_ya
+    jsr store_xa
+    jsr store_ym
+    jsr store_xm
+    jsr store_yv
+    jsr store_xv
+
+    lda start_x_position
+    jsr store_xl
+    
+    lda start_y_position
+    jsr store_yl
+    
+rts
 
 /*
     Start moving from left to right.
@@ -554,6 +584,7 @@ check_brick_collision:
     bounce_on_brick:
         jsr gameIncreaseScore   // Increment he score
         jsr gameUpdateScore
+        jsr gameUpdateHighScore
         jsr get_yv
         eor #$ff                // Flip the sign so that we get a positive number
         clc
@@ -695,14 +726,19 @@ bounce_off_paddle:
         lda demoInputToggle		
         eor #$01
         sta demoInputToggle
-        // Set the accellerated movement timer. Hitting the ball with the
-        // paddle will add some extra speed for a few cycles. Otherwise the
-        // balls velocity will be reduced for each bounce, and it will
-        // eventually stop.
-        jsr get_flags
-        ora #%0000110
-        jsr store_flags
-    bounce_end:
+
+        // The paddle button is pressed, so we're going to negate the effect
+        // of the velocity loss when the ball hits the bat
+        clc
+        lda ball_speed_up
+        cmp #%00000000
+        beq bounce_end
+                
+        jsr get_yv              // Change the direction of the velocity
+        sbc #VelocityLoss+3
+        jsr store_yv
+        
+    bounce_end:    
 rts
 /*
     This function will stop the ball if the velocity is too low. This is used

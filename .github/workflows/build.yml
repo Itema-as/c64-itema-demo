@@ -11,12 +11,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Download Kick Assembler
-      run: wget https://resheim.net/files/KickAss.jar
     - name: Build .prg file
       run: |
         mkdir target
-        java -jar KickAss.jar -o target/itema.prg itema.asm
+        java -jar ./tools/KickAss.jar -o ./target/itema.prg itema.asm
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:

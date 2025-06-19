@@ -10,7 +10,11 @@
     - Arve Moen, amo@itema.no
     - Bjørn Leithe Karlsen, bka@itema.no
 */
- 
+
+.var music = LoadSid("./music/Calypso_Bar.sid")
+*=music.location "Music"
+.fill music.size, music.getData(i)
+
 * = $c000 "Main Program"
 
 // import our sprite library
@@ -20,26 +24,36 @@
 #import "library/font.asm"
 
 // .watch wHudScore,,"store" 
+//.watch ball_speed_up,,"store" 
 
 BasicUpstart2(initialize)
 
-/*
-    Various game modes for actually playing, autoplaying and debugging
-*/
-.const MODE_NORMAL = $00    // Normal play
-.const MODE_AUTOPLAY = $01  // For demo purposes
-.const MODE_JOYSTICK = $02  // Move the ball around using JS
-
-.var MODE = MODE_AUTOPLAY   // We start with automatic play
 .var BALLS = 1              // It gets slow at 4
 
-.var music = LoadSid("music/Nightshift.sid")      //<- Here we load the sid file
 .var demo_mode_movement_timer = $0
 
+
+demo_mode:
+    .byte %00000001
+    
+start_velocity:
+    .byte $00
+start_accelleration:
+    .byte $00
+start_x_position:
+    .byte $74
+start_y_position:
+    .byte $60
+ball_speed_up:
+    .byte %00000000
+
+ 
 /*******************************************************************************
  INITIALIZE THE THINGS
 *******************************************************************************/
 initialize:
+
+
     jsr $e544               // Clear screen
 
     lda #$00                // Set the background color for the game area
@@ -52,7 +66,7 @@ initialize:
 
     lda #%00111110          // Specify multicolor for the ball sprites
     sta $d01c
-    lda #$0f                // Color light gray
+    lda #$01                // Color light gray
     sta $d025               // Set shared multicolor #1
     lda #$0b                // Color dark gray
     sta $d026               // Set shared multicolor #2
@@ -73,7 +87,7 @@ initialize:
 
     lda #$01                // Set sprite #0 - the paddle individual color
     sta $d027
-    lda #$02                // Set sprite #1 - ball individual color
+    lda #$0c                // Set sprite #1 - ball individual color (medium gray)
     sta $d028
     lda #$05                // Set sprite #2 - ball individual color
     sta $d029
@@ -114,38 +128,70 @@ initialize:
     lda #$0a
     sta $d02e
 
-/*
-    Set character set pointer to our custom set, turn off
-    multicolor for characters
-*/
-
-lda $d018
-ora #%00001110 // Set chars location to $3800 for displaying the custom font
-sta $d018      // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
-               // $400 + $200*$0E = $3800
-lda $d016      // turn off multicolor for characters
-and #%11101111 // by clearing bit #4 of $D016
-sta $d016
+	/*
+	    Set character set pointer to our custom set, turn off
+	    multicolor for characters
+	*/
+	
+	lda $d018
+	ora #%00001110 // Set chars location to $3800 for displaying the custom font
+	sta $d018      // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
+	               // $400 + $200*$0E = $3800
+	lda $d016      // turn off multicolor for characters
+	and #%11101111 // by clearing bit #4 of $D016
+	sta $d016
+	
+	/*
+	    Load the initial screen
+	    $4500 - intro screen
+	    $4d00 - level 1
+	*/
+	
+	lda #$45
+	sta $ff
+	lda #$00
+	sta $fe
+	jsr load_screen
 
 // Initialize the IRQ
 jsr init_irq
 
-/*
-    Load the initial screen
-    $4500 - intro screen
-    $4d00 - level 1
-*/
-lda #$4d
-sta $ff
-lda #$00
-sta $fe
-jsr load_screen
 
 /*******************************************************************************
  MAIN LOOP
 *******************************************************************************/
 loop:
 jmp loop
+
+start_game:
+    // quit demo mode
+    lda #%0000000
+    sta demo_mode
+    lda #0
+    // Silence the SID
+    ldx #$18
+    clear_sid:
+    sta $d400,x   // Clear each SID register from $D400-$D418
+    dex
+    bpl clear_sid
+    // reset ball position
+    jsr reset_ball_position
+    // load the first level
+    lda #$4d
+    sta $ff
+    lda #$00
+    sta $fe    
+    jsr load_screen
+    lda #$00
+    sta wHudScore
+    sta wHudScore+1
+    lda #$03
+    sta wHudLives
+    jsr gameUpdateScore
+    jsr gameUpdateHighScore
+    jsr gameUpdateLives
+rts
+
 
 /*******************************************************************************
  DEMO INPUT
@@ -156,6 +202,16 @@ jmp loop
    paddle offset to get a bit of an angle.
 *******************************************************************************/
 demo_input:
+    // only play music while in demo mode
+    jsr music.play
+
+    // test if the fire button on paddle 2 is pressed,
+    // if so start the game instead of doing demo mode input
+	lda $dc01
+    and #%00000100          // left stick mask
+    beq start_game
+	
+    // figure out which ball is lowest
     lda SpriteMem+9			// ball 1 - xl
     sta SpriteMem
 
@@ -227,16 +283,36 @@ demo_input:
  PLAYER/PADDLE INPUT
 *******************************************************************************/
 paddle_input:
+
+    lda demo_mode
+    cmp #%00000001
+    beq demo_input          // If we are in demo mode we do the demo input
+
+    lda #$01                // Set sprite #0 - the paddle individual color
+    sta $d027
+
+    lda #%00000000
+    sta ball_speed_up
+                
     lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
-    and #%11111110          // Set bit 0 to input for pot x (paddle 1)
+    and #%01111111          // Set bit 0 to input for pot x (paddle 1)
     sta $dc00               // Store the result back to Data Port A
 
-    lda $dc01               // Load value from CIA#1 Data Port B (keyboard lines)
-    and #%11110111          // Clear bit 3 to low (selects pot x)
-    sta $dc01               // Store the result back to Data Port B
+    lda $dc01
+    and #%00000100
+    bne paddle_input_cont
+
+    lda #$03                // Set sprite #0 - the paddle individual color
+    sta $d027
+    
+    lda #%00000001
+    sta ball_speed_up
+
+    paddle_input_cont:
 
     lda $d419               // Load value from Paddle X pot
     eor #$ff                // XOR with 255 to reverse the range
+
 
     // Update paddle position unless it will end up outside the playing area
     handle_paddle_bounds:
@@ -252,44 +328,8 @@ paddle_input:
     lda #$ce                // If carry is set (number >= maxValue), load the maximum value into the accumulator
     piNotGreater:
     jsr store_xl            // Store the paddle x-position
+    
     rts
-
-/*******************************************************************************
- PLAYER/JOYSTICK INPUT (ONLY FOR DEBUGGING)
-*******************************************************************************/
-joystick_input:
-     // Reset velocity on both axis
-     lda #$00
-     jsr store_xv
-     jsr store_yv
-     jsr store_ya
-     jsr store_xa
-
-     // Set acceleration according to joystick input
-     LIBINPUT_GET(GameportLeftMask)
-         bne inputRight
-         dec SpriteMem+9
-     inputRight:
-         LIBINPUT_GET(GameportRightMask)
-         bne inputUp
-         inc SpriteMem+9
-     inputUp:
-         LIBINPUT_GET(GameportUpMask)
-         bne inputDown
-         dec SpriteMem+11
-     inputDown:
-         LIBINPUT_GET(GameportDownMask)
-         bne inputEnd
-         inc SpriteMem+11
-     inputFire:
-         lda #$00
-         sta fire
-         LIBINPUT_GET(GameportFireMask)
-         bne inputEnd
-         lda #$80
-         sta fire
-     inputEnd:
-         rts
 
 /*******************************************************************************
  INITIALIZE INTERRUPTS
@@ -323,19 +363,10 @@ init_irq:
 *******************************************************************************/
  
 irq_1:
+    
     lda #$00
     sta SpriteIndex
-    .if (MODE == MODE_NORMAL) jsr paddle_input
-    .if (MODE == MODE_AUTOPLAY) jsr demo_input
-    .if (MODE == MODE_JOYSTICK) {
-        lda #$01
-        sta SpriteIndex
-        jsr joystick_input
-        jsr draw_sprite
-        jsr check_brick_collision
-        asl $d019 // Clear interrupt flag
-        jmp $ea81 // set flag and end
-    }
+    jsr paddle_input
 
     animation_loop:
         FRAME_COLOR(0)
