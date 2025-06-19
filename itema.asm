@@ -11,7 +11,7 @@
     - Bjørn Leithe Karlsen, bka@itema.no
 */
 
-.var music = LoadSid("../music/Calypso_Bar.sid")
+.var music = LoadSid("./music/Calypso_Bar.sid")
 *=music.location "Music"
 .fill music.size, music.getData(i)
 
