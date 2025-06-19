@@ -409,13 +409,13 @@ rts
     controller is used.
 */
 reset_game:
-//    LIBSOUND_PLAYSFX_AA(music.location,SFX_Fail1)
     jsr reset_ball_position
     jsr gameDecreaseLives
     jsr gameUpdateLives
     
     lda wHudLives
     cmp #$00
+    // we're not done yet, so continue the game
     bne reset_game_not_finished
     
     // Load intro screen and enable demo mode
@@ -424,12 +424,9 @@ reset_game:
     lda #$00
     sta $fe
     jsr load_screen
-    lda #%00000001
+    lda #%00000001  // enable demo mode
     sta demo_mode
-//    lda #$00
-//    sta wHudScore
-//    sta wHudScore+1
-//    jsr gameUpdateScore
+    // update the high score (if requred)
     jsr gameUpdateHighScore
     reset_game_not_finished:
 rts
