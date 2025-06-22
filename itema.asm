@@ -49,15 +49,12 @@ ball_speed_up:
 
 
 flash_text:
-    .text "FLASHING TEXT EXAMPLE!"
-    .byte 0
+    .byte 6,12,1,19,8,9,14,7,32,20,5,24,20,32,5,24,1,13,16,12,5,33,0
 
 ready_text:
-    .text "GET READY!"
-    .byte 0
+    .byte 7,5,20,32,18,5,1,4,25,33,0
 game_over_text:
-    .text "GAME OVER!"
-    .byte 0
+    .byte 7,1,13,5,32,15,22,5,18,33,0
 
  
 /*******************************************************************************
