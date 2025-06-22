@@ -47,6 +47,14 @@ start_y_position:
 ball_speed_up:
     .byte %00000000
 
+flash_text:
+    .byte $46, $4C, $41, $53, $48, $49, $4E, $47, $20, $54, $45, $58, $54, $20, $45, $58, $41, $4D, $50, $4C, $45, $21, $00
+
+ready_text:
+    .byte $47, $45, $54, $20, $52, $45, $41, $44, $59, $21, $00
+game_over_text:
+    .byte $47, $41, $4d, $45, $20, $4f, $56, $45, $52, $21, $00
+
  
 /*******************************************************************************
  INITIALIZE THE THINGS
@@ -149,9 +157,10 @@ initialize:
 	
 	lda #$45
 	sta $ff
-	lda #$00
-	sta $fe
-	jsr load_screen
+        lda #$00
+        sta $fe
+        jsr load_screen
+        LIBSCREEN_START_FLASHLINE_S_VVA(0, 12, flash_text)
 
 // Initialize the IRQ
 jsr init_irq
@@ -168,6 +177,7 @@ start_game:
     lda #%0000000
     sta demo_mode
     lda #0
+    LIBSCREEN_CLEAR_FLASHLINE()
     // Silence the SID
     ldx #$18
     clear_sid:
@@ -190,6 +200,7 @@ start_game:
     jsr gameUpdateScore
     jsr gameUpdateHighScore
     jsr gameUpdateLives
+    LIBSCREEN_START_FLASHLINE_S_VVA(7, 12, ready_text)
 rts
 
 
@@ -363,10 +374,11 @@ init_irq:
 *******************************************************************************/
  
 irq_1:
-    
+
     lda #$00
     sta SpriteIndex
     jsr paddle_input
+    LIBSCREEN_UPDATE_FLASHLINE()
 
     animation_loop:
         FRAME_COLOR(0)

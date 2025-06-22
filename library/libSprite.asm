@@ -417,6 +417,7 @@ reset_game:
     cmp #$00
     // we're not done yet, so continue the game
     bne reset_game_not_finished
+    LIBSCREEN_START_FLASHLINE_S_VVA(7, 12, game_over_text)
     
     // Load intro screen and enable demo mode
     lda #$45

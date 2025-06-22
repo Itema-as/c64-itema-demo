@@ -236,3 +236,240 @@ libScreenSetCharacter:
     sta (ZeroPage9),Y
     rts
 
+
+// Flashing text support
+flashColors:
+    .byte $01, $02, $05, $0f
+flashColorIndex:
+    .byte $00
+
+flashCharsBackup:
+    .fill 25, $00
+flashColorsBackup:
+    .fill 25, $00
+flashLinePointer:
+    .word $0000
+flashLineLen:
+    .byte $00
+flashLineX:
+    .byte $00
+flashLineY:
+    .byte $00
+flashLineActive:
+    .byte $00
+flashLineTimer:
+    .byte $00
+
+.const FlashLineDuration = 150
+
+.macro LIBSCREEN_PRINT_FLASHLINE_S_VVA(bXPos, bYPos, addr)
+{
+    lda #<addr
+    sta ZeroPage11
+    lda #>addr
+    sta ZeroPage12
+    lda #bXPos
+    sta ZeroPage4
+    lda #bYPos
+    sta ZeroPage2
+    jsr libScreenPrintFlashLine
+}
+
+.macro LIBSCREEN_START_FLASHLINE_S_VVA(bXPos, bYPos, addr)
+{
+    lda #<addr
+    sta flashLinePointer
+    lda #>addr
+    sta flashLinePointer+1
+    lda #bXPos
+    sta flashLineX
+    lda #bYPos
+    sta flashLineY
+    jsr libScreenFlashLineInit
+}
+
+.macro LIBSCREEN_UPDATE_FLASHLINE()
+{
+    jsr libScreenUpdateFlashLine
+}
+
+.macro LIBSCREEN_CLEAR_FLASHLINE()
+{
+    jsr libScreenRestoreFlashLine
+}
+
+libScreenPrintFlashLine:
+    lda flashColorIndex
+    clc
+    adc #$01
+    cmp #$04
+    bcc lf_set
+    lda #$00
+lf_set:
+    sta flashColorIndex
+    tax
+    lda flashColors,x
+    sta ZeroPage15          // current color
+
+    lda ZeroPage2
+    asl
+    tay
+    lda wScreenRAMRowStart,y
+    sta ZeroPage9
+    lda wScreenRAMRowStart+1,y
+    sta ZeroPage10
+    lda wColorRAMRowStart,y
+    sta ZeroPage5
+    lda wColorRAMRowStart+1,y
+    sta ZeroPage6
+
+    ldx #$00
+    ldy ZeroPage4
+lf_loop:
+    lda (ZeroPage11),x
+    beq lf_done
+    sta (ZeroPage9),y
+    lda ZeroPage15
+    sta (ZeroPage5),y
+    inx
+    iny
+    cpx #$19        // limit to 25 characters
+    bcc lf_loop
+lf_done:
+    rts
+
+libScreenFlashLineInit:
+    lda flashLinePointer
+    sta ZeroPage11
+    lda flashLinePointer+1
+    sta ZeroPage12
+    ldx #$00
+lf_len_loop:
+    lda (ZeroPage11),x
+    beq lf_len_done
+    inx
+    cpx #$19
+    bcc lf_len_loop
+lf_len_done:
+    stx flashLineLen
+
+    lda flashLineY
+    asl
+    tay
+    lda wScreenRAMRowStart,y
+    sta ZeroPage9
+    lda wScreenRAMRowStart+1,y
+    sta ZeroPage10
+    lda wColorRAMRowStart,y
+    sta ZeroPage5
+    lda wColorRAMRowStart+1,y
+    sta ZeroPage6
+    ldy flashLineX
+    ldx #$00
+lf_save_loop:
+    cpx flashLineLen
+    bcs lf_save_done
+    lda (ZeroPage9),y
+    sta flashCharsBackup,x
+    lda (ZeroPage5),y
+    sta flashColorsBackup,x
+    inx
+    iny
+    jmp lf_save_loop
+lf_save_done:
+    lda #$01
+    sta flashLineActive
+    lda #FlashLineDuration
+    sta flashLineTimer
+    lda #$00
+    sta flashColorIndex
+    jsr libScreenUpdateFlashLine
+    rts
+
+libScreenUpdateFlashLine:
+    lda flashLineActive
+    beq lf_updone
+    lda flashLineTimer
+    beq lf_call_restore
+    dec flashLineTimer
+    lda flashLineTimer
+    beq lf_call_restore
+    lda flashColorIndex
+    clc
+    adc #$01
+    cmp #$04
+    bcc lf_us_set
+    lda #$00
+lf_us_set:
+    sta flashColorIndex
+    tax
+    lda flashColors,x
+    sta ZeroPage15
+
+    lda flashLinePointer
+    sta ZeroPage11
+    lda flashLinePointer+1
+    sta ZeroPage12
+    lda flashLineY
+    asl
+    tay
+    lda wScreenRAMRowStart,y
+    sta ZeroPage9
+    lda wScreenRAMRowStart+1,y
+    sta ZeroPage10
+    lda wColorRAMRowStart,y
+    sta ZeroPage5
+    lda wColorRAMRowStart+1,y
+    sta ZeroPage6
+
+    ldx #$00
+    ldy flashLineX
+lf_up_loop:
+    cpx flashLineLen
+    bcs lf_updone
+    lda (ZeroPage11),x
+    beq lf_updone
+    sta (ZeroPage9),y
+    lda ZeroPage15
+    sta (ZeroPage5),y
+    inx
+    iny
+    jmp lf_up_loop
+lf_updone:
+    rts
+lf_call_restore:
+    jsr libScreenRestoreFlashLine
+    rts
+
+libScreenRestoreFlashLine:
+    lda flashLineActive
+    beq lf_restore_done
+    lda flashLineY
+    asl
+    tay
+    lda wScreenRAMRowStart,y
+    sta ZeroPage9
+    lda wScreenRAMRowStart+1,y
+    sta ZeroPage10
+    lda wColorRAMRowStart,y
+    sta ZeroPage5
+    lda wColorRAMRowStart+1,y
+    sta ZeroPage6
+    ldx #$00
+    ldy flashLineX
+lf_restore_loop:
+    cpx flashLineLen
+    bcs lf_restore_end
+    lda flashCharsBackup,x
+    sta (ZeroPage9),y
+    lda flashColorsBackup,x
+    sta (ZeroPage5),y
+    inx
+    iny
+    jmp lf_restore_loop
+lf_restore_end:
+    lda #$00
+    sta flashLineActive
+    sta flashLineTimer
+lf_restore_done:
+    rts
