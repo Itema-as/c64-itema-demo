@@ -5,6 +5,7 @@ This game requires a paddle to play. When using the VICE emulator, add the follo
 ## Screenshots
 ![](./petscii/intro.png)
 ![](./petscii/level_1.png)
+![](./petscii/level_2.png)
 
 
 ## Useful resources

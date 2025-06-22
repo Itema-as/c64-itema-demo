@@ -20,3 +20,4 @@ function convert() {
 rm -rf *.bin
 convert "intro"
 convert "level_1"
+convert "level_2"
