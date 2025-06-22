@@ -3,9 +3,10 @@
 KICK_ASSEMBLER_PATH=$HOME/Developer/C64/KickAssembler/KickAss.jar
 
 function convert() {
-  sed "s/SEQFILE/$1/g" convert-screens.asm > convert-screens.mod 
+  sed "s/intro/$1/g" convert-screens.asm > convert-screens.mod 
   java -jar $KICK_ASSEMBLER_PATH convert-screens.mod
-  x64sc -moncommands commands.txt -initbreak 0x0845 -autostart convert-screens.prg -warp
+  # See "convert-screens.sym" for the address (loop) where to quit
+  x64sc --exitscreenshot $1.png -moncommands commands.txt -initbreak 0x0895 -VICIIborders 3 -autostart convert-screens.prg 
   dd bs=2 skip=1 if=screen.bin of=screen_trimmed.bin
   dd bs=2 skip=1 if=color.bin of=color_trimmed.bin
   cat screen_trimmed.bin color_trimmed.bin > $1.bin
