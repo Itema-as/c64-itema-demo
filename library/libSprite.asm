@@ -424,8 +424,8 @@ reset_game:
     lda #$00
     sta $fe
     jsr load_screen
-    lda #%00000001  // enable demo mode
-    sta demo_mode
+    lda MODE_INTRO
+    sta mode
     // update the high score (if requred)
     jsr gameUpdateHighScore
     reset_game_not_finished:

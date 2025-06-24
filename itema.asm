@@ -17,25 +17,32 @@
 
 * = $c000 "Main Program"
 
-// import our sprite library
+/*******************************************************************************
+ GAMEPLAY CONSTANTS
+*******************************************************************************/
+.const MODE_GAME = $00      // Actually play the game
+.const MODE_INTRO = $01     // Show intro screen and demo mode
+
+/*******************************************************************************
+ IMPORTS
+*******************************************************************************/
 #import "library/libSprite.asm"
 #import "library/libInput.asm"
 #import "library/libScreen.asm"
 #import "library/font.asm"
 
 // .watch wHudScore,,"store" 
-//.watch ball_speed_up,,"store" 
+// .watch ball_speed_up,,"store" 
 
 BasicUpstart2(initialize)
 
+
+/*******************************************************************************
+ GAMEPLAY VARIABLES
+*******************************************************************************/
 .var BALLS = 1              // It gets slow at 4
-
-.var demo_mode_movement_timer = $0
-
-
-demo_mode:
-    .byte %00000001
-    
+mode:
+    .byte $00    
 start_velocity:
     .byte $00
 start_accelleration:
@@ -53,6 +60,8 @@ ball_speed_up:
 *******************************************************************************/
 initialize:
 
+    lda MODE_INTRO          // Start in the intro mode
+    sta mode
 
     jsr $e544               // Clear screen
 
@@ -165,8 +174,8 @@ jmp loop
 
 start_game:
     // quit demo mode
-    lda #%0000000
-    sta demo_mode
+    lda MODE_GAME
+    sta mode
     lda #0
     // Silence the SID
     ldx #$18
@@ -284,8 +293,8 @@ demo_input:
 *******************************************************************************/
 paddle_input:
 
-    lda demo_mode
-    cmp #%00000001
+    lda mode
+    cmp MODE_INTRO
     beq demo_input          // If we are in demo mode we do the demo input
 
     lda #$01                // Set sprite #0 - the paddle individual color
