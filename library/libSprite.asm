@@ -86,8 +86,6 @@ ScreenMemHighByte:
 fire:
     .byte $0
 
-//.var accelerated_movement_timer = $2
-
 /*
     A helper "variable" we will need on occasion
 */
@@ -769,7 +767,6 @@ stop_ball:
     bcs character_hit
 }
 
-// 48
 get_brick_at_xy:
     lda ZeroPage10
     lsr                     // MSB -> C, divide by 2
