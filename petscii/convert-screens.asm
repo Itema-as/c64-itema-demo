@@ -11,38 +11,56 @@
     load into the program as a blob. This is much faster, but requires a bit
     of extra work to get the screen into the program.
  */
-.const LOADSEQ_SRCVECT = $fb
-.macro LOADSEQ(start)
-{
-    lda #<start     // Store src address to src vector in zero-page
-    sta LOADSEQ_SRCVECT
-    lda #>start
-    sta LOADSEQ_SRCVECT + 1
-    read_loop:
-        clc
-        lda $d6    // load the cursor row
-        cmp #$18
-        bne read_data
-        lda $d3     // load the cursor column
-        cmp #$26
-        beq end_loop// To avoid scrolling, don't print the last character
-    read_data:
-        lda ($fb),y // Load the character from the SEQ address
-        jsr $ffd2   // Excute the CHROUT routine to print the character
-        inc $fb     // increment the low byte of the address
-        bne read_loop // if the low byte is not 0 (no overflow), branch to read_loop
-        inc $fc // if there was overflow, increment the high byte of the address
-        jmp read_loop // jump back to the start of the loop
-    end_loop:
 
+.const SRC_PTR = $FB
+.const END_PTR = $FD
+
+.macro WAIT()
+{
+    // wait one full frame
     lda #$00
-    sta $d012
-    wait:
+    sta $D012             // set raster-compare = 0
+
+    vbl_wait1:
+        bit $d012         // N = bit7 of current raster
+        bpl vbl_wait1     // loop while N=0 (raster <128)
+
+    vbl_wait2:
         bit $d012
-        bpl wait
+        bmi vbl_wait2     // loop while N=1 (raster ≥128)
 }
 
-.var screen = LoadBinary("SEQFILE.seq")
+.macro LOADSEQ(start, len)
+{        
+    lda #<start
+    sta SRC_PTR
+    lda #>start
+    sta SRC_PTR+1
+    
+    lda #<(start+len)
+    sta END_PTR
+    lda #>((start+len))
+    sta END_PTR+1
+    
+    ldy #$00
+    print_loop:
+        lda (SRC_PTR),y
+        jsr $FFD2
+        inc SRC_PTR
+        bne skip_hi
+        inc SRC_PTR+1
+    skip_hi:
+        lda SRC_PTR
+        cmp END_PTR
+        bne print_loop
+        lda SRC_PTR+1
+        cmp END_PTR+1
+        bne print_loop
+  
+}
+
+#import "../library/font.asm"
+.var screen = LoadBinary("intro.seq")
 * = $4000 "Screen"; .fill screen.getSize(), screen.uget(i)
 * = $c000 "Program"
 
@@ -50,12 +68,94 @@ BasicUpstart2(initialize)
 
 initialize:
 
-    lda #$06        // Set the background color for the game area
+    lda #%11000000          // Enable sprites
+    sta $d015
+
+    lda #itemaLogoSwoosh/64
+    sta $07fe               // Sprite #6
+    lda #itemaLogoBall/64
+    sta $07ff               // Sprite #7
+
+    // Set MSB for sprite 6 and 7
+    lda $d010
+    ora #%11000000
+    sta $d010
+
+    // Position both sprites overlapping
+    lda #$02
+    sta $d00c
+    sta $d00e
+    lda #$d7
+    sta $d00d
+    sta $d00f
+
+    // Set colors for the sprites in the Itema logo
+    lda #$0f
+    sta $d02d
+    lda #$0a
+    sta $d02e
+
+    lda #$00        // Set the background color for the game area
     sta $d021
     lda #$00        // Set the background color for the border
     sta $d020
 
-    LOADSEQ($4000)
+    LOADSEQ($4000,screen.getSize()-2)
+
+    lda #$1e
+    sta $d018
+
+    WAIT()
+    WAIT()
 
     loop:
     jmp loop
+    
+* = $2200 "itemaLogoSwoosh"
+itemaLogoSwoosh:
+.byte $00, $00, $00
+.byte $01, $C1, $C0
+.byte $07, $80, $70
+.byte $0E, $00, $38
+.byte $1C, $00, $1C
+.byte $38, $7C, $0C
+.byte $38, $7C, $0E
+.byte $70, $1C, $0E
+.byte $70, $1C, $0E
+.byte $70, $1C, $0E
+.byte $F0, $1C, $0E
+.byte $F0, $1C, $0E
+.byte $70, $1C, $1C
+.byte $70, $1C, $3C
+.byte $78, $1C, $78
+.byte $78, $1F, $E0
+.byte $3C, $1F, $C0
+.byte $1E, $1E, $00
+.byte $0F, $00, $00
+.byte $07, $C2, $00
+.byte $00, $FC, $00
+
+* = $2240 "itemaLogoBall"
+itemaLogoBall:
+.byte $00, $1C, $00
+.byte $00, $3E, $00
+.byte $00, $3E, $00
+.byte $00, $1C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+    

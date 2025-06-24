@@ -1,6 +1,12 @@
-# Bouncing Ball
+# Ricochet
 
 This game requires a paddle to play. When using the VICE emulator, add the following to the command line in order to use the mouse as a paddle in port 1: `-mouse -controlport1device 2`. On macOS use ⌘M to toggle mouse grabbing.
+
+## Screenshots
+![](./petscii/intro.png)
+![](./petscii/level_1.png)
+![](./petscii/level_2.png)
+
 
 ## Useful resources
 
