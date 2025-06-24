@@ -379,6 +379,13 @@ init_irq:
  
 irq_1:
 
+    lda flashLineActive
+    beq irq_continue
+    LIBSCREEN_UPDATE_FLASHLINE()
+    asl $d019
+    jmp $ea81
+
+irq_continue:
     lda #$00
     sta SpriteIndex
     jsr paddle_input
