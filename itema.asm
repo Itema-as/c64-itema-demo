@@ -492,30 +492,6 @@ paddleSpriteData:
 .byte %11111111,%11111111,%11111111
 .byte %11111111,%11111111,%11111111
 
-* = $21c0 "itemaLogo"
-itemaLogo:
-.byte $00, $1C, $00
-.byte $01, $BE, $C0
-.byte $07, $BE, $70
-.byte $0E, $1C, $38
-.byte $1C, $00, $1C
-.byte $38, $7C, $0C
-.byte $38, $7C, $0E
-.byte $70, $1C, $0E
-.byte $70, $1C, $0E
-.byte $70, $1C, $0E
-.byte $F0, $1C, $0E
-.byte $F0, $1C, $0E
-.byte $70, $1C, $1C
-.byte $70, $1C, $3C
-.byte $78, $1C, $78
-.byte $78, $1F, $E0
-.byte $3C, $1F, $C0
-.byte $1E, $1E, $00
-.byte $0F, $00, $00
-.byte $07, $C2, $00
-.byte $00, $FC, $00
-
 * = $2200 "itemaLogoSwoosh"
 itemaLogoSwoosh:
 .byte $00, $00, $00
