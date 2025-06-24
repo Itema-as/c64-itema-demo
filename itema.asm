@@ -17,25 +17,32 @@
 
 * = $c000 "Main Program"
 
-// import our sprite library
+/*******************************************************************************
+ GAMEPLAY CONSTANTS
+*******************************************************************************/
+.const MODE_GAME = $00      // Actually play the game
+.const MODE_INTRO = $01     // Show intro screen and demo mode
+
+/*******************************************************************************
+ IMPORTS
+*******************************************************************************/
 #import "library/libSprite.asm"
 #import "library/libInput.asm"
 #import "library/libScreen.asm"
 #import "library/font.asm"
 
 // .watch wHudScore,,"store" 
-//.watch ball_speed_up,,"store" 
+// .watch ball_speed_up,,"store" 
 
 BasicUpstart2(initialize)
 
+
+/*******************************************************************************
+ GAMEPLAY VARIABLES
+*******************************************************************************/
 .var BALLS = 1              // It gets slow at 4
-
-.var demo_mode_movement_timer = $0
-
-
-demo_mode:
-    .byte %00000001
-    
+mode:
+    .byte $00    
 start_velocity:
     .byte $00
 start_accelleration:
@@ -53,6 +60,8 @@ ball_speed_up:
 *******************************************************************************/
 initialize:
 
+    lda MODE_INTRO          // Start in the intro mode
+    sta mode
 
     jsr $e544               // Clear screen
 
@@ -165,8 +174,8 @@ jmp loop
 
 start_game:
     // quit demo mode
-    lda #%0000000
-    sta demo_mode
+    lda MODE_GAME
+    sta mode
     lda #0
     // Silence the SID
     ldx #$18
@@ -284,8 +293,8 @@ demo_input:
 *******************************************************************************/
 paddle_input:
 
-    lda demo_mode
-    cmp #%00000001
+    lda mode
+    cmp MODE_INTRO
     beq demo_input          // If we are in demo mode we do the demo input
 
     lda #$01                // Set sprite #0 - the paddle individual color
@@ -339,96 +348,48 @@ init_irq:
     lda #<irq_1
     ldx #>irq_1
     sta $0314
-    stx $0315       // Set interrupt addr
+    stx $0315               // Set interrupt addr
     lda #$7f
-    sta $dc0d       // Timer A off on cia1/kb
-    sta $dd0d       // Timer A off on cia2
+    sta $dc0d               // Timer A off on cia1/kb
+    sta $dd0d               // Timer A off on cia2
     lda #$81
-    sta $d01a       // Raster interrupts on
+    sta $d01a               // Raster interrupts on
     /*
-    lda #$1b        // Screen ctrl: default
+    lda #$1b                // Screen ctrl: default
     sta $d011
     */
     lda #$01
-    sta $d012       // Interrupt at line 0
+    sta $d012               // Interrupt at line 0
 
-    lda $dc0d       // Clrflg (cia1)
-    lda $dd0d       // Clrflg (cia2)
-    asl $d019       // Clr interrupt flag (just in case)
+    lda $dc0d               // Clrflg (cia1)
+    lda $dd0d               // Clrflg (cia2)
+    asl $d019               // Clr interrupt flag (just in case)
     cli
     rts
 
 /*******************************************************************************
- HANDLE INPUT AND SPRITE MOVEMENT
+ HANDLE INPUT AND SPRITE MOVEMENT DURING INTERRUPT
 *******************************************************************************/
- 
 irq_1:
-    
     lda #$00
     sta SpriteIndex
     jsr paddle_input
 
-    animation_loop:
-        FRAME_COLOR(0)
-        clc
-        lda SpriteIndex
-        cmp #$00
-        beq move_ball_normally
-
-        // Check if we should move the ball faster
-        move_ball_accellerated:
-          // TODO: User flags to check for accellerated movement
-          clc
-          jsr get_flags
-          and #%00000010
-          bne flagit 
-
-        move_ball_normally:
-            jsr move_vertically
-            jsr move_horizontally
-            jsr draw_sprite
-            jsr check_brick_collision
-            jsr check_paddle_collision
-
+    animation_loop:        
+	    jsr move_vertically
+	    jsr move_horizontally
+	    jsr draw_sprite
+	    jsr check_brick_collision
+	    jsr check_paddle_collision
         inc SpriteIndex
         lda SpriteIndex
         cmp #BALLS+1
         beq done
         jmp animation_loop
+
     done:
         asl $d019 // Clear interrupt flag
         jmp $ea81 // set flag and end
-
-flagit:
-    FRAME_COLOR(7)
-    jsr get_flags
-    and #%11111001
-    jsr store_flags
-    jmp move_ball_normally
-
-/*
-    Add a little upwards acceleration for a period of time. This typically happens
-    when the ball hits the paddle.
-*/
-accelerated_movement:
-    FRAME_COLOR(2)
-    jsr get_flags
-    and #%00000010
-    beq end_accellerated_movement
-
-    //
-    lda #00
-    jsr store_flags
-
-    lda #$80                // -1
-    jsr store_ya
-    jmp move_ball_normally
-
-    end_accellerated_movement:
-        FRAME_COLOR(0)
-        lda #$00
-        jsr store_ya
-    jmp move_ball_normally
 
 /*******************************************************************************
  LOAD DATA
@@ -491,30 +452,6 @@ paddleSpriteData:
 .byte %11111111,%11111111,%11111111
 .byte %11111111,%11111111,%11111111
 .byte %11111111,%11111111,%11111111
-
-* = $21c0 "itemaLogo"
-itemaLogo:
-.byte $00, $1C, $00
-.byte $01, $BE, $C0
-.byte $07, $BE, $70
-.byte $0E, $1C, $38
-.byte $1C, $00, $1C
-.byte $38, $7C, $0C
-.byte $38, $7C, $0E
-.byte $70, $1C, $0E
-.byte $70, $1C, $0E
-.byte $70, $1C, $0E
-.byte $F0, $1C, $0E
-.byte $F0, $1C, $0E
-.byte $70, $1C, $1C
-.byte $70, $1C, $3C
-.byte $78, $1C, $78
-.byte $78, $1F, $E0
-.byte $3C, $1F, $C0
-.byte $1E, $1E, $00
-.byte $0F, $00, $00
-.byte $07, $C2, $00
-.byte $00, $FC, $00
 
 * = $2200 "itemaLogoSwoosh"
 itemaLogoSwoosh:
