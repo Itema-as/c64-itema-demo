@@ -424,7 +424,7 @@ irq_1:
 
     lda readyTimer
     beq start_loop
-    dec readyTimer          // Count down the timer
+    dec readyTimer          // Count down the display text timer
     bne start_loop          // If not yet "0" run the "GET READY" loop
     jsr clear_get_ready     // Replace the text with the original background
 
@@ -433,11 +433,11 @@ irq_1:
     // Allow the paddle to move while showing the text, but do not do normal ball movement
     animation_loop:
         lda readyTimer
-        beq normal_motion
-        lda SpriteIndex
-        beq normal_motion
-        jsr draw_sprite
-        jmp next_sprite
+        beq normal_motion   // If the timer is "0" we do normal motion
+        lda SpriteIndex     // Load the current sprite
+        beq normal_motion   // If equals "0" (the paddle) we do normal motion
+        jsr draw_sprite     // Draw the paddle sprite
+        jmp next_sprite     // Move other sprites (balls)
 
     normal_motion:
         jsr move_vertically
