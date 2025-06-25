@@ -40,7 +40,6 @@ get_ready_text:
 
 BasicUpstart2(initialize)
 
-
 /*******************************************************************************
  GAMEPLAY VARIABLES
 *******************************************************************************/
@@ -370,7 +369,6 @@ paddle_input:
 
     lda $d419               // Load value from Paddle X pot
     eor #$ff                // XOR with 255 to reverse the range
-
 
     // Update paddle position unless it will end up outside the playing area
     handle_paddle_bounds:
