@@ -53,8 +53,13 @@ start_y_position:
     .byte $60
 ball_speed_up:
     .byte %00000000
+readyTimer:                 // Countdown timer for the temp text
+    .byte $00
+getReadyBackupChars:        // The original characters under the temp text
+    .fill 9, $00
+getReadyBackupColors:       // The original colours under the temp text
+    .fill 9, $00
 
- 
 /*******************************************************************************
  INITIALIZE THE THINGS
 *******************************************************************************/
@@ -172,8 +177,41 @@ jsr init_irq
 loop:
 jmp loop
 
+show_get_ready:
+    ldx #$08
+save_loop:
+    lda SCREENRAM + (40*12) + 7,x
+    sta getReadyBackupChars,x
+    lda COLORRAM + (40*12) + 7,x
+    sta getReadyBackupColors,x
+    dex
+    bpl save_loop
+    MEMCOPY(get_ready_text, SCREENRAM + (40*12) + 7)
+    ldx #$08
+color_loop:
+    lda #$01
+    sta COLORRAM + (40*12) + 7,x
+    dex
+    bpl color_loop
+    rts
+
+clear_get_ready:
+    ldx #$08
+restore_loop:
+    lda getReadyBackupChars,x
+    sta SCREENRAM + (40*12) + 7,x
+    lda getReadyBackupColors,x
+    sta COLORRAM + (40*12) + 7,x
+    dex
+    bpl restore_loop
+    rts
+
+get_ready_text:
+    .text "get ready"
+    .byte $ff
+
 start_game:
-    // quit demo mode
+    // Quit demo mode
     lda MODE_GAME
     sta mode
     lda #0
@@ -183,9 +221,9 @@ start_game:
     sta $d400,x   // Clear each SID register from $D400-$D418
     dex
     bpl clear_sid
-    // reset ball position
+    // Reset ball position
     jsr reset_ball_position
-    // load the first level
+    // Koad the first level
     lda #$4d
     sta $ff
     lda #$00
@@ -199,6 +237,10 @@ start_game:
     jsr gameUpdateScore
     jsr gameUpdateHighScore
     jsr gameUpdateLives
+    // Show the get ready text for about 3 seconds, counter updates at 50Hz
+    jsr show_get_ready
+    lda #150
+    sta readyTimer
 rts
 
 
@@ -375,12 +417,31 @@ irq_1:
     sta SpriteIndex
     jsr paddle_input
 
-    animation_loop:        
-	    jsr move_vertically
-	    jsr move_horizontally
-	    jsr draw_sprite
-	    jsr check_brick_collision
-	    jsr check_paddle_collision
+    lda readyTimer
+    beq start_loop
+    dec readyTimer          // count down the time
+    bne start_loop          // if not yet "0" run the "GET READY" loop
+    jsr clear_get_ready     // replace the text with the original background
+
+    start_loop:
+
+    // allow the paddle to move while showing the text, but do not do normal ball movement
+    animation_loop:
+        lda readyTimer
+        beq normal_motion
+        lda SpriteIndex
+        beq normal_motion
+        jsr draw_sprite
+        jmp next_sprite
+
+    normal_motion:
+        jsr move_vertically
+        jsr move_horizontally
+        jsr draw_sprite
+        jsr check_brick_collision
+        jsr check_paddle_collision
+
+    next_sprite:
         inc SpriteIndex
         lda SpriteIndex
         cmp #BALLS+1
