@@ -23,6 +23,10 @@
 .const MODE_GAME = $00      // Actually play the game
 .const MODE_INTRO = $01     // Show intro screen and demo mode
 
+get_ready_text:
+    .text "get ready"
+    .byte $ff
+
 /*******************************************************************************
  IMPORTS
 *******************************************************************************/
@@ -169,14 +173,11 @@ initialize:
 
 
     jsr init_irq           // Initialize the IRQ
-
+    jmp loop               // Go go the endless main loop
 
 /*******************************************************************************
- MAIN LOOP
+ TIMED TEXT DISPLAY
 *******************************************************************************/
-loop:
-jmp loop
-
 show_get_ready:
     ldx #$08
 save_loop:
@@ -207,9 +208,11 @@ restore_loop:
     bpl restore_loop
     rts
 
-get_ready_text:
-    .text "get ready"
-    .byte $ff
+/*******************************************************************************
+ MAIN LOOP
+*******************************************************************************/
+loop:
+jmp loop
 
 start_game:
     // Quit demo mode
@@ -247,7 +250,6 @@ start_game:
     lda #150
     sta readyTimer
 rts
-
 
 /*******************************************************************************
  DEMO INPUT
