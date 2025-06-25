@@ -148,11 +148,11 @@ initialize:
 	*/
 	
 	lda $d018
-	ora #%00001110 // Set chars location to $3800 for displaying the custom font
-	sta $d018      // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
-	               // $400 + $200*$0E = $3800
-	lda $d016      // turn off multicolor for characters
-	and #%11101111 // by clearing bit #4 of $D016
+	ora #%00001110         // Set chars location to $3800 for displaying the custom font
+	sta $d018              // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
+	                       // $400 + $200*$0E = $3800
+	lda $d016              // Turn off multicolor for characters
+	and #%11101111         // by clearing bit #4 of $D016
 	sta $d016
 	
 	/*
@@ -167,8 +167,8 @@ initialize:
 	sta $fe
 	jsr load_screen
 
-// Initialize the IRQ
-jsr init_irq
+
+    jsr init_irq           // Initialize the IRQ
 
 
 /*******************************************************************************
@@ -197,6 +197,7 @@ color_loop:
 
 clear_get_ready:
     ldx #$08
+
 restore_loop:
     lda getReadyBackupChars,x
     sta SCREENRAM + (40*12) + 7,x
@@ -215,15 +216,18 @@ start_game:
     lda MODE_GAME
     sta mode
     lda #0
+
     // Silence the SID
     ldx #$18
     clear_sid:
-    sta $d400,x   // Clear each SID register from $D400-$D418
+    sta $d400,x             // Clear each SID register from $D400-$D418
     dex
     bpl clear_sid
+
     // Reset ball position
     jsr reset_ball_position
-    // Koad the first level
+
+    // Load the first level
     lda #$4d
     sta $ff
     lda #$00
@@ -237,6 +241,7 @@ start_game:
     jsr gameUpdateScore
     jsr gameUpdateHighScore
     jsr gameUpdateLives
+
     // Show the get ready text for about 3 seconds, counter updates at 50Hz
     jsr show_get_ready
     lda #150
@@ -419,13 +424,13 @@ irq_1:
 
     lda readyTimer
     beq start_loop
-    dec readyTimer          // count down the time
-    bne start_loop          // if not yet "0" run the "GET READY" loop
-    jsr clear_get_ready     // replace the text with the original background
+    dec readyTimer          // Count down the timer
+    bne start_loop          // If not yet "0" run the "GET READY" loop
+    jsr clear_get_ready     // Replace the text with the original background
 
     start_loop:
 
-    // allow the paddle to move while showing the text, but do not do normal ball movement
+    // Allow the paddle to move while showing the text, but do not do normal ball movement
     animation_loop:
         lda readyTimer
         beq normal_motion
@@ -449,8 +454,8 @@ irq_1:
         jmp animation_loop
 
     done:
-        asl $d019 // Clear interrupt flag
-        jmp $ea81 // set flag and end
+        asl $d019           // Clear interrupt flag
+        jmp $ea81           // set flag and end
 
 /*******************************************************************************
  LOAD DATA
