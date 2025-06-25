@@ -59,9 +59,9 @@ ball_speed_up:
 readyTimer:                 // Countdown timer for the temp text
     .byte $00
 getReadyBackupChars:        // The original characters under the temp text
-    .fill 9, $00
+    .fill 25, $00
 getReadyBackupColors:       // The original colours under the temp text
-    .fill 9, $00
+    .fill 25, $00
 
 /*******************************************************************************
  INITIALIZE THE THINGS
