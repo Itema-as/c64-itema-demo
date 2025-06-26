@@ -269,50 +269,50 @@ demo_input:
     beq start_game
 	
     // figure out which ball is lowest
-    lda SpriteMem+9			// ball 1 - xl
+    lda SpriteMem+9         // ball 1 - xl
     sta SpriteMem
 
-    lda SpriteMem+11		// ball 1 - yl
+    lda SpriteMem+11        // ball 1 - yl
     clc
-    sbc SpriteMem+20		// ball 2 - yl
+    sbc SpriteMem+20        // ball 2 - yl
     bcc ball_2_is_lower_than_ball_1
 
-    lda SpriteMem+11		// ball 1 - yl
+    lda SpriteMem+11        // ball 1 - yl
     clc
-    sbc SpriteMem+29		// ball 3 - yl
+    sbc SpriteMem+29        // ball 3 - yl
     bcc ball_3_is_lower_than_ball_1
 
     // if we reach here, ball 1 is lowest
-    lda SpriteMem+9			// ball 1 - xl
+    lda SpriteMem+9         // ball 1 - xl
     sta SpriteMem
     jmp end_ball_comparison
 
 	// determine whether ball 3 is lower than ball 2
     ball_2_is_lower_than_ball_1:
-      lda SpriteMem+20		// ball 2 - yl
+      lda SpriteMem+20      // ball 2 - yl
       clc
-      sbc SpriteMem+29		// ball 3 - yl
+      sbc SpriteMem+29      // ball 3 - yl
       bcc ball_3_is_lower_than_ball_2
 
       // if we reach here, ball 2 is lowest
-      lda SpriteMem+18		// ball 2 - xl
+      lda SpriteMem+18      // ball 2 - xl
       sta SpriteMem
-      lda SpriteMem+20		// ball 2 - yl
+      lda SpriteMem+20      // ball 2 - yl
       jmp end_ball_comparison
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_1:
-      lda SpriteMem+27		// ball 3 - xl
+      lda SpriteMem+27      // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29		// ball 3 - yl
+      lda SpriteMem+29      // ball 3 - yl
       jmp end_ball_comparison
 
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_2:
-      lda SpriteMem+27		// ball 3 - xl
+      lda SpriteMem+27      // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29		// ball 3 - yl
+      lda SpriteMem+29      // ball 3 - yl
 
     end_ball_comparison:
 
