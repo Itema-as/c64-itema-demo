@@ -236,3 +236,53 @@ libScreenSetCharacter:
     sta (ZeroPage9),Y
     rts
 
+
+/*******************************************************************************
+ TIMED TEXT DISPLAY
+*******************************************************************************/
+
+textTimer:                 // Countdown timer for the temp text
+    .byte $00
+getReadyBackupChars:        // The original characters under the temp text
+    .fill 25, $00
+getReadyBackupColors:       // The original colours under the temp text
+    .fill 25, $00
+
+.macro LIBSCREEN_TIMED_TEXT(text){
+    // Show the get ready text for about 3 seconds, the IRQ updates at 50Hz
+    lda #150
+    sta textTimer
+    ldx #$17
+    jsr save_loop
+    MEMCOPY(text, SCREENRAM + (40*12) + 7)
+    ldx #$08
+    color_loop:
+        lda #$01
+        sta COLORRAM + (40*12) + 7,x
+        dex
+        bpl color_loop
+}
+
+// Save the characters and the colours for the area under the temporarily displayed text. Only the actual game area is
+// covered, excluding the frame (23 characters)
+save_loop:
+    lda SCREENRAM + (40*12) + 1,x
+    sta getReadyBackupChars,x
+    lda COLORRAM + (40*12) + 1,x
+    sta getReadyBackupColors,x
+    dex
+    bpl save_loop
+    rts
+
+clear_timed_text:
+    ldx #$17
+
+restore_loop:
+    lda getReadyBackupChars,x
+    sta SCREENRAM + (40*12) + 1,x
+    lda getReadyBackupColors,x
+    sta COLORRAM + (40*12) + 1,x
+    dex
+    bpl restore_loop
+    rts
+
