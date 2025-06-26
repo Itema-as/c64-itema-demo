@@ -416,6 +416,10 @@ reset_game:
     // we're not done yet, so continue the game
     bne reset_game_not_finished
 
+    lda #1
+    ldx #<music.init
+    ldy #>music.init
+    jsr music.init
     // Change to end of game mode
     lda MODE_END
     sta mode

@@ -222,9 +222,6 @@ rts
    paddle offset to get a bit of an angle.
 *******************************************************************************/
 demo_input:
-    // only play music while in demo mode
-    jsr music.play
-
     // test if the fire button on paddle 2 is pressed,
     // if so start the game instead of doing demo mode input
 	lda $dc01
@@ -381,12 +378,21 @@ init_irq:
  HANDLE INPUT AND SPRITE MOVEMENT DURING INTERRUPT
 *******************************************************************************/
 irq_1:
+
+    // only play music when we are not in the game
+    lda mode
+    cmp MODE_GAME
+    beq music_done
+    jsr music.play
+
+    music_done:
+    
     lda #$00
     sta SpriteIndex
     jsr paddle_input
 
     lda textTimer
-    beq start_loop
+    beq start_loop          // Jump if there is not a timer running (textTimer == 0)
     dec textTimer           // Count down the display text timer
     bne start_loop          // If not yet "0" run the timed text loop
     jsr clear_timed_text    // Replace the text with the original background
@@ -396,6 +402,11 @@ irq_1:
     lda mode
     cmp MODE_END
     bne start_loop
+
+    lda #$00
+    ldx #<music.init
+    ldy #>music.init
+    jsr music.init
 
     // Load intro screen and enable demo mode
     lda #$45
@@ -411,7 +422,7 @@ irq_1:
     // Allow the paddle to move while showing the text, but do not do normal ball movement
     animation_loop:
         lda textTimer
-        beq normal_motion   // If the timer is "0" we do normal motion
+        beq normal_motion   // Jump if there is not a timer running (textTimer == 0)
         lda SpriteIndex     // Load the current sprite
         beq normal_motion   // If equals "0" (the paddle) we do normal motion
         jsr draw_sprite     // Draw the paddle sprite
