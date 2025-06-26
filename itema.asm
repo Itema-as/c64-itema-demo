@@ -22,9 +22,14 @@
 *******************************************************************************/
 .const MODE_GAME = $00      // Actually play the game
 .const MODE_INTRO = $01     // Show intro screen and demo mode
+.const MODE_END = $02
 
 get_ready_text:
     .text "get ready"
+    .byte $ff
+
+game_over_text:
+    .text "game over"
     .byte $ff
 
 /*******************************************************************************
@@ -56,12 +61,6 @@ start_y_position:
     .byte $60
 ball_speed_up:
     .byte %00000000
-readyTimer:                 // Countdown timer for the temp text
-    .byte $00
-getReadyBackupChars:        // The original characters under the temp text
-    .fill 25, $00
-getReadyBackupColors:       // The original colours under the temp text
-    .fill 25, $00
 
 /*******************************************************************************
  INITIALIZE THE THINGS
@@ -175,39 +174,6 @@ initialize:
     jmp loop               // Go go the endless main loop
 
 /*******************************************************************************
- TIMED TEXT DISPLAY
-*******************************************************************************/
-show_get_ready:
-    ldx #$08
-save_loop:
-    lda SCREENRAM + (40*12) + 7,x
-    sta getReadyBackupChars,x
-    lda COLORRAM + (40*12) + 7,x
-    sta getReadyBackupColors,x
-    dex
-    bpl save_loop
-    MEMCOPY(get_ready_text, SCREENRAM + (40*12) + 7)
-    ldx #$08
-color_loop:
-    lda #$01
-    sta COLORRAM + (40*12) + 7,x
-    dex
-    bpl color_loop
-    rts
-
-clear_get_ready:
-    ldx #$08
-
-restore_loop:
-    lda getReadyBackupChars,x
-    sta SCREENRAM + (40*12) + 7,x
-    lda getReadyBackupColors,x
-    sta COLORRAM + (40*12) + 7,x
-    dex
-    bpl restore_loop
-    rts
-
-/*******************************************************************************
  MAIN LOOP
 *******************************************************************************/
 loop:
@@ -244,10 +210,7 @@ start_game:
     jsr gameUpdateHighScore
     jsr gameUpdateLives
 
-    // Show the get ready text for about 3 seconds, counter updates at 50Hz
-    jsr show_get_ready
-    lda #150
-    sta readyTimer
+    LIBSCREEN_TIMED_TEXT(get_ready_text)
 rts
 
 /*******************************************************************************
@@ -422,17 +385,32 @@ irq_1:
     sta SpriteIndex
     jsr paddle_input
 
-    lda readyTimer
+    lda textTimer
     beq start_loop
-    dec readyTimer          // Count down the display text timer
-    bne start_loop          // If not yet "0" run the "GET READY" loop
-    jsr clear_get_ready     // Replace the text with the original background
+    dec textTimer           // Count down the display text timer
+    bne start_loop          // If not yet "0" run the timed text loop
+    jsr clear_timed_text    // Replace the text with the original background
+
+    // The end game mode will show a timed text, allow the paddle to be moved
+    // but will not animate the balls
+    lda mode
+    cmp MODE_END
+    bne start_loop
+
+    // Load intro screen and enable demo mode
+    lda #$45
+    sta $ff
+    lda #$00
+    sta $fe
+    jsr load_screen
+    lda MODE_INTRO
+    sta mode
 
     start_loop:
 
     // Allow the paddle to move while showing the text, but do not do normal ball movement
     animation_loop:
-        lda readyTimer
+        lda textTimer
         beq normal_motion   // If the timer is "0" we do normal motion
         lda SpriteIndex     // Load the current sprite
         beq normal_motion   // If equals "0" (the paddle) we do normal motion

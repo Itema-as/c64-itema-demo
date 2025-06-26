@@ -415,15 +415,13 @@ reset_game:
     cmp #$00
     // we're not done yet, so continue the game
     bne reset_game_not_finished
-    
-    // Load intro screen and enable demo mode
-    lda #$45
-    sta $ff
-    lda #$00
-    sta $fe
-    jsr load_screen
-    lda MODE_INTRO
+
+    // Change to end of game mode
+    lda MODE_END
     sta mode
+    // Show the end game text
+    LIBSCREEN_TIMED_TEXT(game_over_text)
+
     // update the high score (if requred)
     jsr gameUpdateHighScore
     reset_game_not_finished:
