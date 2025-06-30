@@ -616,17 +616,11 @@ check_paddle_collision:
     lda balllo
     sbc SpriteMem           // x-position LSB of paddle
     sta reslo
-    lda ballhi
-    sbc SpriteMem+1
-    sta reshi
 
     sec
     lda reslo
     sbc #$11
     sta reslo
-    lda reshi
-    sbc #$00
-    sta reshi
 
     bpl right_of_paddle
 
