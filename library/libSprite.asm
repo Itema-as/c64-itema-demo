@@ -622,21 +622,19 @@ check_paddle_collision:
     sbc #$11
     sta reslo
 
-    bpl right_of_paddle
+    bpl right_of_paddle     // The ball is on the right side of the padde
 
     clc
     lda balllo
     adc #$11
     sta balllo
-    lda ballhi
-    adc #$00
-    sta ballhi
+
     sec
     lda balllo
     sbc SpriteMem           // x-position LSB of paddle
     sta reslo
 
-    bmi left_of_paddle
+    bmi left_of_paddle      // The ball is on the left side of the paddle
 
     jsr bounce_off_paddle
     jsr end_check_paddle_collision
