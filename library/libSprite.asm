@@ -420,7 +420,6 @@ reset_ball_position:
     lda #$00
     jsr store_ya
     jsr store_xa
-    jsr store_ym
     jsr store_yv
     jsr store_xv
 
@@ -610,14 +609,12 @@ check_paddle_collision:
     and #%11111110
     jsr store_flags
 
-    jsr get_xl     // x-position LSB of ball
+    jsr get_xl              // x-position LSB of ball
     sta balllo
-    jsr get_xm     // x-position LSB of ball
-    sta ballhi
 
     sec
     lda balllo
-    sbc SpriteMem
+    sbc SpriteMem           // x-position LSB of paddle
     sta reslo
     lda ballhi
     sbc SpriteMem+1
@@ -642,11 +639,8 @@ check_paddle_collision:
     sta ballhi
     sec
     lda balllo
-    sbc SpriteMem
+    sbc SpriteMem           // x-position LSB of paddle
     sta reslo
-    lda ballhi
-    sbc SpriteMem+1
-    sta reshi
 
     bmi left_of_paddle
 
@@ -702,11 +696,11 @@ bounce_off_paddle:
         lda ball_speed_up
         cmp #%00000000
         beq bounce_end
-                
+
         jsr get_yv              // Change the direction of the velocity
         sbc #VelocityLoss+3
         jsr store_yv
-        
+
     bounce_end:    
 rts
 /*
