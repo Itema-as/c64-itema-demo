@@ -379,14 +379,6 @@ move_down:
     and #%00000001
     bne store_position
 
-/* TODO: This does not work properly and may not even be needed
-    lda temp
-    cmp #TopOfPaddle
-    bcc store_position
-    lda #TopOfPaddle
-    jsr store_yl
-    jmp move_down_end
-*/
     store_position:
       lda temp
       jsr store_yl
@@ -413,17 +405,22 @@ reset_game:
     
     lda wHudLives
     cmp #$00
-    // we're not done yet, so continue the game
+    // We're not done yet, so continue the game
     bne reset_game_not_finished
-    
-    // Load intro screen and enable demo mode
-    lda #$45
-    sta $ff
-    lda #$00
-    sta $fe
-    jsr load_screen
-    lda MODE_INTRO
+
+    // We're done – play the end of game tune
+    lda #1
+    ldx #<music.init
+    ldy #>music.init
+    jsr music.init
+
+    // Change to end of game mode
+    lda MODE_END
     sta mode
+
+    // Show the end game text
+    LIBSCREEN_TIMED_TEXT(game_over_text)
+
     // update the high score (if requred)
     jsr gameUpdateHighScore
     reset_game_not_finished:

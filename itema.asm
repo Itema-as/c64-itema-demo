@@ -22,6 +22,15 @@
 *******************************************************************************/
 .const MODE_GAME = $00      // Actually play the game
 .const MODE_INTRO = $01     // Show intro screen and demo mode
+.const MODE_END = $02
+
+get_ready_text:
+    .text "get ready"
+    .byte $ff
+
+game_over_text:
+    .text "game over"
+    .byte $ff
 
 /*******************************************************************************
  IMPORTS
@@ -35,7 +44,6 @@
 // .watch ball_speed_up,,"store" 
 
 BasicUpstart2(initialize)
-
 
 /*******************************************************************************
  GAMEPLAY VARIABLES
@@ -54,7 +62,6 @@ start_y_position:
 ball_speed_up:
     .byte %00000000
 
- 
 /*******************************************************************************
  INITIALIZE THE THINGS
 *******************************************************************************/
@@ -143,11 +150,11 @@ initialize:
 	*/
 	
 	lda $d018
-	ora #%00001110 // Set chars location to $3800 for displaying the custom font
-	sta $d018      // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
-	               // $400 + $200*$0E = $3800
-	lda $d016      // turn off multicolor for characters
-	and #%11101111 // by clearing bit #4 of $D016
+	ora #%00001110         // Set chars location to $3800 for displaying the custom font
+	sta $d018              // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
+	                       // $400 + $200*$0E = $3800
+	lda $d016              // Turn off multicolor for characters
+	and #%11101111         // by clearing bit #4 of $D016
 	sta $d016
 	
 	/*
@@ -162,9 +169,9 @@ initialize:
 	sta $fe
 	jsr load_screen
 
-// Initialize the IRQ
-jsr init_irq
 
+    jsr init_irq           // Initialize the IRQ
+    jmp loop               // Go go the endless main loop
 
 /*******************************************************************************
  MAIN LOOP
@@ -173,19 +180,22 @@ loop:
 jmp loop
 
 start_game:
-    // quit demo mode
+    // Quit demo mode
     lda MODE_GAME
     sta mode
     lda #0
+
     // Silence the SID
     ldx #$18
     clear_sid:
-    sta $d400,x   // Clear each SID register from $D400-$D418
+    sta $d400,x             // Clear each SID register from $D400-$D418
     dex
     bpl clear_sid
-    // reset ball position
+
+    // Reset ball position
     jsr reset_ball_position
-    // load the first level
+
+    // Load the first level
     lda #$4d
     sta $ff
     lda #$00
@@ -199,8 +209,9 @@ start_game:
     jsr gameUpdateScore
     jsr gameUpdateHighScore
     jsr gameUpdateLives
-rts
 
+    LIBSCREEN_TIMED_TEXT(get_ready_text)
+rts
 
 /*******************************************************************************
  DEMO INPUT
@@ -211,9 +222,6 @@ rts
    paddle offset to get a bit of an angle.
 *******************************************************************************/
 demo_input:
-    // only play music while in demo mode
-    jsr music.play
-
     // test if the fire button on paddle 2 is pressed,
     // if so start the game instead of doing demo mode input
 	lda $dc01
@@ -221,50 +229,50 @@ demo_input:
     beq start_game
 	
     // figure out which ball is lowest
-    lda SpriteMem+9			// ball 1 - xl
+    lda SpriteMem+9         // ball 1 - xl
     sta SpriteMem
 
-    lda SpriteMem+11		// ball 1 - yl
+    lda SpriteMem+11        // ball 1 - yl
     clc
-    sbc SpriteMem+20		// ball 2 - yl
+    sbc SpriteMem+20        // ball 2 - yl
     bcc ball_2_is_lower_than_ball_1
 
-    lda SpriteMem+11		// ball 1 - yl
+    lda SpriteMem+11        // ball 1 - yl
     clc
-    sbc SpriteMem+29		// ball 3 - yl
+    sbc SpriteMem+29        // ball 3 - yl
     bcc ball_3_is_lower_than_ball_1
 
     // if we reach here, ball 1 is lowest
-    lda SpriteMem+9			// ball 1 - xl
+    lda SpriteMem+9         // ball 1 - xl
     sta SpriteMem
     jmp end_ball_comparison
 
 	// determine whether ball 3 is lower than ball 2
     ball_2_is_lower_than_ball_1:
-      lda SpriteMem+20		// ball 2 - yl
+      lda SpriteMem+20      // ball 2 - yl
       clc
-      sbc SpriteMem+29		// ball 3 - yl
+      sbc SpriteMem+29      // ball 3 - yl
       bcc ball_3_is_lower_than_ball_2
 
       // if we reach here, ball 2 is lowest
-      lda SpriteMem+18		// ball 2 - xl
+      lda SpriteMem+18      // ball 2 - xl
       sta SpriteMem
-      lda SpriteMem+20		// ball 2 - yl
+      lda SpriteMem+20      // ball 2 - yl
       jmp end_ball_comparison
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_1:
-      lda SpriteMem+27		// ball 3 - xl
+      lda SpriteMem+27      // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29		// ball 3 - yl
+      lda SpriteMem+29      // ball 3 - yl
       jmp end_ball_comparison
 
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_2:
-      lda SpriteMem+27		// ball 3 - xl
+      lda SpriteMem+27      // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29		// ball 3 - yl
+      lda SpriteMem+29      // ball 3 - yl
 
     end_ball_comparison:
 
@@ -307,12 +315,12 @@ paddle_input:
     and #%01111111          // Set bit 0 to input for pot x (paddle 1)
     sta $dc00               // Store the result back to Data Port A
 
-    lda $dc01
+    lda $dc01               // Check whether the fire button is held
     and #%00000100
-    bne paddle_input_cont
+    bne paddle_input_cont   // If not we'll just continue
 
-    lda #$03                // Set sprite #0 - the paddle individual color
-    sta $d027
+    lda #$03                // Otherwise we'll indicate the the bat will hit harder
+    sta $d027               // Set sprite #0 - the paddle individual color
     
     lda #%00000001
     sta ball_speed_up
@@ -321,7 +329,6 @@ paddle_input:
 
     lda $d419               // Load value from Paddle X pot
     eor #$ff                // XOR with 255 to reverse the range
-
 
     // Update paddle position unless it will end up outside the playing area
     handle_paddle_bounds:
@@ -371,16 +378,64 @@ init_irq:
  HANDLE INPUT AND SPRITE MOVEMENT DURING INTERRUPT
 *******************************************************************************/
 irq_1:
+
+    // only play music when we are not in the game
+    lda mode
+    cmp MODE_GAME
+    beq music_done
+    jsr music.play
+
+    music_done:
+    
     lda #$00
     sta SpriteIndex
     jsr paddle_input
 
-    animation_loop:        
-	    jsr move_vertically
-	    jsr move_horizontally
-	    jsr draw_sprite
-	    jsr check_brick_collision
-	    jsr check_paddle_collision
+    lda textTimer
+    beq start_loop          // Jump if there is not a timer running (textTimer == 0)
+    dec textTimer           // Count down the display text timer
+    bne start_loop          // If not yet "0" run the timed text loop
+    jsr clear_timed_text    // Replace the text with the original background
+
+    // The end game mode will show a timed text, allow the paddle to be moved
+    // but will not animate the balls
+    lda mode
+    cmp MODE_END
+    bne start_loop
+
+    lda #$00
+    ldx #<music.init
+    ldy #>music.init
+    jsr music.init
+
+    // Load intro screen and enable demo mode
+    lda #$45
+    sta $ff
+    lda #$00
+    sta $fe
+    jsr load_screen
+    lda MODE_INTRO
+    sta mode
+
+    start_loop:
+
+    // Allow the paddle to move while showing the text, but do not do normal ball movement
+    animation_loop:
+        lda textTimer
+        beq normal_motion   // Jump if there is not a timer running (textTimer == 0)
+        lda SpriteIndex     // Load the current sprite
+        beq normal_motion   // If equals "0" (the paddle) we do normal motion
+        jsr draw_sprite     // Draw the paddle sprite
+        jmp next_sprite     // Move other sprites (balls)
+
+    normal_motion:
+        jsr move_vertically
+        jsr move_horizontally
+        jsr draw_sprite
+        jsr check_brick_collision
+        jsr check_paddle_collision
+
+    next_sprite:
         inc SpriteIndex
         lda SpriteIndex
         cmp #BALLS+1
@@ -388,8 +443,8 @@ irq_1:
         jmp animation_loop
 
     done:
-        asl $d019 // Clear interrupt flag
-        jmp $ea81 // set flag and end
+        asl $d019           // Clear interrupt flag
+        jmp $ea81           // set flag and end
 
 /*******************************************************************************
  LOAD DATA
