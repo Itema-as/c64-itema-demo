@@ -315,12 +315,12 @@ paddle_input:
     and #%01111111          // Set bit 0 to input for pot x (paddle 1)
     sta $dc00               // Store the result back to Data Port A
 
-    lda $dc01
+    lda $dc01               // Check whether the fire button is held
     and #%00000100
-    bne paddle_input_cont
+    bne paddle_input_cont   // If not we'll just continue
 
-    lda #$03                // Set sprite #0 - the paddle individual color
-    sta $d027
+    lda #$03                // Otherwise we'll indicate the the bat will hit harder
+    sta $d027               // Set sprite #0 - the paddle individual color
     
     lda #%00000001
     sta ball_speed_up
