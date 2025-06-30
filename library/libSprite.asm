@@ -154,15 +154,6 @@ draw_sprite:
     tay
     jsr get_xl
     sta $d000,y
-
-    // set horizontal position msb
-    jsr get_xm
-    cmp #$01
-    beq set_msb
-
-    jsr get_xm
-    cmp #$00
-    beq clear_msb
 rts
 
 set_msb:
@@ -206,9 +197,6 @@ move_left:
     sec
     sbc temp                // Move left by the amount of velocity
     jsr store_xl
-    jsr get_xm
-    sbc #$00                // Subtract zero and borrow from lsb subtraction
-    jsr store_xm
     jsr left_edge
 rts
 
@@ -223,9 +211,6 @@ move_right:
     clc
     adc temp                // Move right by the amount of velocity
     jsr store_xl
-    jsr get_xm
-    adc #$00                // Add zero and carry from lsb addition
-    jsr store_xm
     jsr right_edge
 rts
 
@@ -435,8 +420,6 @@ reset_ball_position:
     lda #$00
     jsr store_ya
     jsr store_xa
-    jsr store_ym
-    jsr store_xm
     jsr store_yv
     jsr store_xv
 
@@ -486,16 +469,6 @@ rts
     screen
 */
 left_edge:
-    jsr get_xm
-    clc
-    cmp #$01                // Compare with #01 (at fold)
-    bne at_left_edge
-rts
-
-/*
-    Change direction and start moving rightwards
-*/
-at_left_edge:
     jsr get_xl
     clc
     cmp #ScreenLeftEdge
@@ -636,45 +609,32 @@ check_paddle_collision:
     and #%11111110
     jsr store_flags
 
-    jsr get_xl     // x-position LSB of ball
+    jsr get_xl              // x-position LSB of ball
     sta balllo
-    jsr get_xm     // x-position LSB of ball
-    sta ballhi
 
     sec
     lda balllo
-    sbc SpriteMem
+    sbc SpriteMem           // x-position LSB of paddle
     sta reslo
-    lda ballhi
-    sbc SpriteMem+1
-    sta reshi
 
     sec
     lda reslo
     sbc #$11
     sta reslo
-    lda reshi
-    sbc #$00
-    sta reshi
 
-    bpl right_of_paddle
+    bpl right_of_paddle     // The ball is on the right side of the padde
 
     clc
     lda balllo
     adc #$11
     sta balllo
-    lda ballhi
-    adc #$00
-    sta ballhi
+
     sec
     lda balllo
-    sbc SpriteMem
+    sbc SpriteMem           // x-position LSB of paddle
     sta reslo
-    lda ballhi
-    sbc SpriteMem+1
-    sta reshi
 
-    bmi left_of_paddle
+    bmi left_of_paddle      // The ball is on the left side of the paddle
 
     jsr bounce_off_paddle
     jsr end_check_paddle_collision
@@ -728,11 +688,11 @@ bounce_off_paddle:
         lda ball_speed_up
         cmp #%00000000
         beq bounce_end
-                
+
         jsr get_yv              // Change the direction of the velocity
         sbc #VelocityLoss+3
         jsr store_yv
-        
+
     bounce_end:    
 rts
 /*
