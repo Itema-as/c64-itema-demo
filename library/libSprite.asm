@@ -154,15 +154,6 @@ draw_sprite:
     tay
     jsr get_xl
     sta $d000,y
-
-    // set horizontal position msb
-    jsr get_xm
-    cmp #$01
-    beq set_msb
-
-    jsr get_xm
-    cmp #$00
-    beq clear_msb
 rts
 
 set_msb:
@@ -206,9 +197,6 @@ move_left:
     sec
     sbc temp                // Move left by the amount of velocity
     jsr store_xl
-    jsr get_xm
-    sbc #$00                // Subtract zero and borrow from lsb subtraction
-    jsr store_xm
     jsr left_edge
 rts
 
@@ -223,9 +211,6 @@ move_right:
     clc
     adc temp                // Move right by the amount of velocity
     jsr store_xl
-    jsr get_xm
-    adc #$00                // Add zero and carry from lsb addition
-    jsr store_xm
     jsr right_edge
 rts
 
@@ -436,7 +421,6 @@ reset_ball_position:
     jsr store_ya
     jsr store_xa
     jsr store_ym
-    jsr store_xm
     jsr store_yv
     jsr store_xv
 
@@ -486,16 +470,6 @@ rts
     screen
 */
 left_edge:
-    jsr get_xm
-    clc
-    cmp #$01                // Compare with #01 (at fold)
-    bne at_left_edge
-rts
-
-/*
-    Change direction and start moving rightwards
-*/
-at_left_edge:
     jsr get_xl
     clc
     cmp #ScreenLeftEdge
