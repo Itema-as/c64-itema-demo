@@ -116,14 +116,8 @@ demoInputToggle:
 
 reslo:
     .byte %00000000
-reshi:
-    .byte %00000000
-
 balllo:
     .byte %00000000
-ballhi:
-    .byte %00000000
-
 /*
     Determine the offset of the sprite x-position address
 */
@@ -154,6 +148,28 @@ draw_sprite:
     tay
     jsr get_xl
     sta $d000,y
+    
+    lda SpriteIndex
+    beq draw_sprite_end
+    
+    tax                     // Put the sprite number in X
+    jsr get_frame           // Load the current animation frame into A
+    sta temp
+    asl                     // Multiply by two to index word table
+    tay
+    lda BallFramePtr,y      // Load sprite pointer value
+    sta $07f8,x
+    lda temp
+    clc
+    adc #$01
+    cmp #$08
+    bcc store_current_frame
+    lda #$00
+    store_current_frame:
+        jsr store_frame
+    
+    draw_sprite_end:
+    
 rts
 
 set_msb:
