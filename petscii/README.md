@@ -1,12 +1,16 @@
+# Designing levels and sprites
+
+Use      to design levels and sprites. Save as *.pe file
+in order to be able to load and the entire project. 
+
+
 # Generating level files
 
-Use http://petscii.krissz.hu/ to design the levels:
-
 1. Load `itemaball.pe` found in this folder
-2. Edit levels
+2. Edit levels using "Screens" in the PETSCII editor
 3. Export levels to `*.seq` files
    - intro screen must be named 'intro.seq'
    - level screens must be named 'level_<n>.seq'
-4. Update 'convert-screens.sh'
+4. Update 'convert-screens.sh' if required
 5. Run 'convert-screens.sh'
 

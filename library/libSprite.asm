@@ -72,16 +72,21 @@ ScreenMemHighByte:
 
 /*
     Sprite box
+    
+    Paddle is placed
 */
-.const ScreenTopEdge    = $2f
-.const ScreenBottomEdge = $f3
-.const ScreenRightEdge  = $d5
-.const ScreenLeftEdge   = $14
+.const ScreenTopEdge    = 47
+.const ScreenBottomEdge = 243
+.const ScreenRightEdge  = 213
+.const ScreenLeftEdge   = 20
 .const Gravity          = 2
 .const VelocityLoss     = 2
 
-/* The y position of the ball for it to be exactly touching the top of the paddle */
-.const TopOfPaddle      = $e3 // 224 (bottom) - 3 (paddle hight) + 6 (margin)
+/* 
+    The y position of the ball for it to be exactly touching the top of the
+    paddle. The paddle itself is at x,227 so the top of it is x,226
+*/
+.const TopOfPaddle      = 226
 
 fire:
     .byte $0
@@ -116,14 +121,8 @@ demoInputToggle:
 
 reslo:
     .byte %00000000
-reshi:
-    .byte %00000000
-
 balllo:
     .byte %00000000
-ballhi:
-    .byte %00000000
-
 /*
     Determine the offset of the sprite x-position address
 */
@@ -154,6 +153,56 @@ draw_sprite:
     tay
     jsr get_xl
     sta $d000,y
+    
+    /*
+        Animate the sprite
+    */
+    lda SpriteIndex
+    beq draw_sprite_end     // Only animate the balls
+    
+    jsr get_frame           // Load the current animation frame into A
+    sta temp                // Keep current frame in temp
+
+    jsr get_xv              // Get horizontal velocity
+    sta temp1               // Preserve value for later
+    cmp #$00
+    bmi rotate_left         // Negative velocity rotates left
+
+    // Velocity is zero or positive -- rotate right
+    jsr shift_right         // step = velocity >> 4
+    clc
+    ror                     // Divide by two again -> velocity >> 5
+    sta temp2
+    lda temp
+    clc
+    adc temp2
+    jmp continue_animation
+
+    rotate_left:
+        lda temp1
+        eor #$ff            // step = abs(velocity)
+	    clc
+	    ror                     // Divide by two again -> velocity >> 5
+        adc #$01
+        jsr shift_right
+        sta temp2
+        lda temp
+        sec
+        sbc temp2
+
+    continue_animation:
+    and #$07                // Wrap frame to [0,7]
+    sta temp                // Store updated frame    jsr store_frame
+    asl                     // Multiply by two to index word table
+    tay
+    lda SpriteIndex
+    tax                     // Put the sprite number in X
+    lda BallFramePtr,y      // Load sprite pointer value
+    sta $07f8,x
+    lda temp
+    jsr store_frame
+    draw_sprite_end:
+    
 rts
 
 set_msb:
@@ -220,11 +269,6 @@ rts
     velocity to be lost.
 */
 bounce_up:
-    /*
-    lda motionless
-    cmp #$0
-    bne bounce_up_end
-    */
     jsr get_yv
     clc
     adc #Gravity            // Simulate gravity
@@ -237,12 +281,6 @@ rts
     maximum value of #$7f is not exceeded because that would mean moving up.
 */
 fall_down:
-    /*
-    lda motionless
-    cmp #$0
-    bne fall_down_end
-    */
-
     jsr get_yv
     clc
     adc #Gravity            // Simulate gravity
@@ -432,6 +470,25 @@ reset_ball_position:
 rts
 
 /*
+    When the current sprite is motionless, place it on top of the paddle and
+    align the horizontal position with the paddle.
+*/
+follow_paddle:
+    lda SpriteIndex
+    beq follow_paddle_end   // Ignore the paddle
+
+    jsr get_flags           // Se if the resting on paddle bit is set
+    and #%00000010
+    beq follow_paddle_end
+
+    lda SpriteMem           // Paddle X position
+    clc
+    adc #$01                // Offset for centering the ball
+    jsr store_xl
+
+    follow_paddle_end:
+rts
+/*
     Start moving from left to right.
 */
 change_to_move_right:
@@ -525,8 +582,8 @@ check_brick_collision:
     */
     character_hit:
 
-        cmp #%11110000
-        bcs bounce_on_brick
+        cmp #$f0            // simply bounce if a wall/hard brick
+        bcs bounce_on_brick // If A ≥ 240 → bounce
 
         // Brick that adds speed to the left
         cmp #$e0
@@ -544,25 +601,26 @@ check_brick_collision:
         cmp #$e3
         beq speed_up
 
-        lda #$20                    // Clear using space
-        sta ($f7),y                 // Store in both left..
-        iny                         // ..and right half of block
+        lda #$20            // Clear using space
+        sta ($f7),y         // Store in both left..
+        iny                 // ..and right half of block
         sta ($f7),y
 
-    bounce_on_brick:
-        jsr gameIncreaseScore   // Increment he score
+        jsr gameIncreaseScore
         jsr gameUpdateScore
         jsr gameUpdateHighScore
+
+    bounce_on_brick:
         jsr get_yv
-        eor #$ff                // Flip the sign so that we get a positive number
+        eor #$ff            // Flip the sign so that we get a positive number
         clc
-        adc #$01                // fix after flip
+        adc #$01            // fix after flip
         jsr store_yv
 
         jsr get_xv
-        eor #$ff                // Flip the sign so that we get a positive number
+        eor #$ff            // Flip the sign so that we get a positive number
         clc
-        adc #$01                // fix after flip
+        adc #$01            // fix after flip
         jsr store_xv
         jmp end_char
 
@@ -654,18 +712,40 @@ check_paddle_collision:
 rts
 
 bounce_off_paddle:
+    FRAME_COLOR(0)
+    jsr get_flags           // reset the resting on paddle flag 
+    and #%11111101
+    jsr store_flags
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
-    bcc end_check_paddle_collision // less than
-    beq stop_ball               // Make it rest on the paddle if velocity is low
-    //cmp #TopOfPaddle+4          // If already below the paddle, just go through
-    //bcs bounce_end
+    bcc end_check_paddle_collision
+    /*
+        Stop the ball if the velocity is too low. This is used to make it rest
+        on top of the paddle so that it can be be launched.
+    */
+    jsr get_xv
+    bne bounce              // There is horizontal movement
+
+    jsr get_xa
+    bne bounce              // There is horizontal movement
+    
+    jsr get_yv
+    cmp #Gravity            // Compare with gravity, which is always present
+    bpl bounce              // We still have movement
+
+    lda #$08                // (Gravity + Velocityloss) times two
+    jsr store_yv
+    FRAME_COLOR(2)
+    jsr get_flags           // Set the resting on paddle flag
+    ora #%00000010
+    jsr store_flags
+    jmp bounce_end          // No bounce for you
 
     bounce:
-        jsr get_yv              // Change the direction of the velocity
+        jsr get_yv          // Change the direction of the velocity
         clc
-        eor #$ff                // Flip the sign
+        eor #$ff            // Flip the sign
         clc
         adc #VelocityLoss
         jsr store_yv
@@ -677,8 +757,8 @@ bounce_off_paddle:
         rol
         jsr store_xv
 
-		// Toggle the left/right position of the bat
-        lda demoInputToggle		
+        // Toggle the left/right position of the bat
+        lda demoInputToggle
         eor #$01
         sta demoInputToggle
 
@@ -689,25 +769,16 @@ bounce_off_paddle:
         cmp #%00000000
         beq bounce_end
 
-        jsr get_yv              // Change the direction of the velocity
+        jsr get_yv          // Change the direction of the velocity
         sbc #VelocityLoss+3
         jsr store_yv
 
     bounce_end:    
 rts
-/*
-    This function will stop the ball if the velocity is too low. This is used
-    to make it rest on top of the paddle.
-*/
-stop_ball:
-    jsr get_yv
-    clc
-    cmp #Gravity
-    bpl bounce
-    lda #$08    // (Gravity + Velocityloss) times two?
-    jsr store_yv
-    jmp bounce
 
+/*
+    Used to determine whether or not a character is hit by a ball
+*/
 .macro LIBSPRITE_COLLISION(xOffset, yOffset) {
     jsr get_xl
     clc
@@ -721,7 +792,7 @@ stop_ball:
     sta ZeroPage11
     jsr get_brick_at_xy
     cmp #$80
-    bcs character_hit
+    bcs character_hit       // If A ≥ 128 (first brick character)
 }
 
 get_brick_at_xy:
