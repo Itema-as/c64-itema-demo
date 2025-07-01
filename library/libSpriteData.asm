@@ -21,41 +21,42 @@ Static:
 SpriteMem:
 /*
           +------------------------------------ X-location least significant bits
-          |    +------------------------------- X-location most significant bits
-          |    |    +-------------------------- Y-location least significant bits
-          |    |    |    +--------------------- Y-location most significant bits
-          |    |    |    |    +---------------- X-velocity (signed integer)
-          |    |    |    |    |    +----------- Y-velocity (signed integer)
-          |    |    |    |    |    |    +------ X-acceleration (signed integer)
-          |    |    |    |    |    |    |    +- Y-acceleration (signed integer)
-          |    |    |    |    |    |    |    |    +- Various flags
-          xl   xm   yl   ym   xv   yv   xa   ya   f
+          |    
+          |    +-------------------------- Y-location least significant bits
+          |    |    
+          |    |    +---------------- X-velocity (signed integer)
+          |    |    |    +----------- Y-velocity (signed integer)
+          |    |    |    |    +------ X-acceleration (signed integer)
+          |    |    |    |    |    +- Y-acceleration (signed integer)
+          |    |    |    |    |    |    +- Various flags
+          |    |    |    |    |    |    |  0 - collision with paddle
+          |    |    |    |    |    |    |    +- Animation frame
+          |    |    |    |    |    |    |    |    
+          xl   yl   xv   yv   xa   ya   f    frame
 */
-    .byte $73, $00, $e0, $00, $00, $00, $00, $00, $00    // Paddle (the player)
-    .byte $30, $00, $30, $00, $00, $00, $00, $00, $00    // Ball 1
-    .byte $48, $00, $35, $00, $00, $00, $00, $00, $00    // Ball 2
-    .byte $60, $00, $3a, $00, $00, $00, $00, $00, $00    // Ball 3
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte $73, $e0, $00, $00, $00, $00, $00, $00    // Paddle (the player)
+    .byte $30, $30, $00, $00, $00, $00, $00, $00    // Ball 1
+    .byte $48, $35, $00, $00, $00, $00, $00, $00    // Ball 2
+    .byte $60, $3a, $00, $00, $00, $00, $00, $00    // Ball 3
+    .byte $00, $00, $00, $00, $00, $00, $00, $00
+    .byte $00, $00, $00, $00, $00, $00, $00, $00
+    .byte $00, $00, $00, $00, $00, $00, $00, $00
+    .byte $00, $00, $00, $00, $00, $00, $00, $00
 
-.const xl = 0                 // Y-location LSB
-.const xm = 1                 // X-location MSB
-.const yl = 2                 // Y-location LSB
-.const ym = 3                 // X-location MSB
-.const xv = 4                 // X-velocity
-.const yv = 5                 // Y-velocity
-.const xa = 6                 // X-acceleration
-.const ya = 7                 // Y-acceleration
-.const f  = 8                 // Flags
-.const spritelen = 9
+.const  xl = 0              // Y-location LSB
+.const  yl = 1              // Y-location LSB
+.const  xv = 2              // X-velocity
+.const  yv = 3              // Y-velocity
+.const  xa = 4              // X-acceleration
+.const  ya = 5              // Y-acceleration
+.const  f  = 6              // Flags
+.const  frame = 7           // Current animation frame
+.const spritelen = 8
 
 .var motionless = %00000000 // whether or not the sprite is allowed to move
 
 ldx #0
 stx SpriteIndex
-jsr get_xm                  // xm for 0 in a
 
 get_flags:
     php
@@ -65,11 +66,11 @@ get_flags:
     jmp get_val
 
 
-get_xm:
+get_frame:
     php
     jsr getspritebase       // Get spritebase in .A
     clc                     // Clear the carry flag
-    adc #xm                 // Add index to get fieldaddr
+    adc #frame              // Add index to get fieldaddr
     jmp get_val
 
 get_xl:
@@ -77,13 +78,6 @@ get_xl:
     jsr getspritebase       // Get spritebase in .A
     clc                     // Clear the carry flag
     adc #xl                 // Add index to get fieldaddr
-    jmp get_val
-
-get_ym:
-    php
-    jsr getspritebase       // Get spritebase in .A
-    clc                     // Clear the carry flag
-    adc #ym                 // Add index to get fieldaddr
     jmp get_val
 
 get_yl:
@@ -136,12 +130,12 @@ store_flags:
     adc #f                  // Add index to get fieldaddr
     jmp store_val
 
-store_xm:
+store_frame:
     php
     pha
     jsr getspritebase       // Get spritebase in .A
     clc                     // Clear the carry flag
-    adc #xm                 // Add index to get fieldaddr
+    adc #frame              // Add index to get fieldaddr
     jmp store_val
 
 store_xl:
@@ -150,14 +144,6 @@ store_xl:
     jsr getspritebase       // Get spritebase in .A
     clc
     adc #xl                 // Add index to get fieldaddr
-    jmp store_val
-
-store_ym:
-    php
-    pha
-    jsr getspritebase       // Get spritebase in .A
-    clc
-    adc #ym                 // Add index to get fieldaddr
     jmp store_val
 
 store_yl:

@@ -199,7 +199,7 @@ start_game:
     lda #$4d
     sta $ff
     lda #$00
-    sta $fe    
+    sta $fe
     jsr load_screen
     lda #$00
     sta wHudScore
@@ -229,50 +229,50 @@ demo_input:
     beq start_game
 	
     // figure out which ball is lowest
-    lda SpriteMem+9         // ball 1 - xl
-    sta SpriteMem
+    lda SpriteMem+8         // ball 1 - xl
+    sta SpriteMem           // paddle - xl
 
-    lda SpriteMem+11        // ball 1 - yl
+    lda SpriteMem+9         // ball 1 - yl
     clc
-    sbc SpriteMem+20        // ball 2 - yl
+    sbc SpriteMem+17        // ball 2 - yl
     bcc ball_2_is_lower_than_ball_1
 
-    lda SpriteMem+11        // ball 1 - yl
+    lda SpriteMem+9         // ball 1 - yl
     clc
-    sbc SpriteMem+29        // ball 3 - yl
+    sbc SpriteMem+25        // ball 3 - yl
     bcc ball_3_is_lower_than_ball_1
 
     // if we reach here, ball 1 is lowest
-    lda SpriteMem+9         // ball 1 - xl
+    lda SpriteMem+8         // ball 1 - xl
     sta SpriteMem
     jmp end_ball_comparison
 
 	// determine whether ball 3 is lower than ball 2
     ball_2_is_lower_than_ball_1:
-      lda SpriteMem+20      // ball 2 - yl
+      lda SpriteMem+17      // ball 2 - yl
       clc
-      sbc SpriteMem+29      // ball 3 - yl
+      sbc SpriteMem+25      // ball 3 - yl
       bcc ball_3_is_lower_than_ball_2
 
       // if we reach here, ball 2 is lowest
-      lda SpriteMem+18      // ball 2 - xl
+      lda SpriteMem+16      // ball 2 - xl
       sta SpriteMem
-      lda SpriteMem+20      // ball 2 - yl
+      lda SpriteMem+17      // ball 2 - yl
       jmp end_ball_comparison
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_1:
-      lda SpriteMem+27      // ball 3 - xl
+      lda SpriteMem+24      // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29      // ball 3 - yl
+      lda SpriteMem+25      // ball 3 - yl
       jmp end_ball_comparison
 
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_2:
-      lda SpriteMem+27      // ball 3 - xl
+      lda SpriteMem+24      // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29      // ball 3 - yl
+      lda SpriteMem+25      // ball 3 - yl
 
     end_ball_comparison:
 
@@ -310,7 +310,7 @@ paddle_input:
 
     lda #%00000000
     sta ball_speed_up
-                
+
     lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
     and #%01111111          // Set bit 0 to input for pot x (paddle 1)
     sta $dc00               // Store the result back to Data Port A
