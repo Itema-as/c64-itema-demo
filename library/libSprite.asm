@@ -269,11 +269,6 @@ rts
     velocity to be lost.
 */
 bounce_up:
-    /*
-    lda motionless
-    cmp #$0
-    bne bounce_up_end
-    */
     jsr get_yv
     clc
     adc #Gravity            // Simulate gravity
@@ -286,12 +281,6 @@ rts
     maximum value of #$7f is not exceeded because that would mean moving up.
 */
 fall_down:
-    /*
-    lda motionless
-    cmp #$0
-    bne fall_down_end
-    */
-
     jsr get_yv
     clc
     adc #Gravity            // Simulate gravity

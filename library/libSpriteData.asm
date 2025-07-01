@@ -54,8 +54,6 @@ SpriteMem:
 .const  frame = 7           // Current animation frame
 .const spritelen = 8
 
-.var motionless = %00000000 // whether or not the sprite is allowed to move
-
 ldx #0
 stx SpriteIndex
 
