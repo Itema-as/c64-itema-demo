@@ -72,16 +72,21 @@ ScreenMemHighByte:
 
 /*
     Sprite box
+    
+    Paddle is placed
 */
-.const ScreenTopEdge    = $2f
-.const ScreenBottomEdge = $f3
-.const ScreenRightEdge  = $d5
-.const ScreenLeftEdge   = $14
+.const ScreenTopEdge    = 47
+.const ScreenBottomEdge = 243
+.const ScreenRightEdge  = 213
+.const ScreenLeftEdge   = 20
 .const Gravity          = 2
 .const VelocityLoss     = 2
 
-/* The y position of the ball for it to be exactly touching the top of the paddle */
-.const TopOfPaddle      = $e3 // 224 (bottom) - 3 (paddle hight) + 6 (margin)
+/* 
+    The y position of the ball for it to be exactly touching the top of the
+    paddle. The paddle itself is at x,227 so the top of it is x,226
+*/
+.const TopOfPaddle      = 226
 
 fire:
     .byte $0
@@ -701,15 +706,13 @@ bounce_off_paddle:
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
-    bcc end_check_paddle_collision // less than
-    beq stop_ball               // Make it rest on the paddle if velocity is low
-    //cmp #TopOfPaddle+4          // If already below the paddle, just go through
-    //bcs bounce_end
+    bcc end_check_paddle_collision
+    beq stop_ball           // Make it rest on the paddle if velocity is low
 
     bounce:
-        jsr get_yv              // Change the direction of the velocity
+        jsr get_yv          // Change the direction of the velocity
         clc
-        eor #$ff                // Flip the sign
+        eor #$ff            // Flip the sign
         clc
         adc #VelocityLoss
         jsr store_yv
@@ -721,8 +724,8 @@ bounce_off_paddle:
         rol
         jsr store_xv
 
-		// Toggle the left/right position of the bat
-        lda demoInputToggle		
+        // Toggle the left/right position of the bat
+        lda demoInputToggle
         eor #$01
         sta demoInputToggle
 
@@ -733,12 +736,13 @@ bounce_off_paddle:
         cmp #%00000000
         beq bounce_end
 
-        jsr get_yv              // Change the direction of the velocity
+        jsr get_yv          // Change the direction of the velocity
         sbc #VelocityLoss+3
         jsr store_yv
 
     bounce_end:    
 rts
+
 /*
     This function will stop the ball if the velocity is too low. This is used
     to make it rest on top of the paddle.
@@ -748,10 +752,13 @@ stop_ball:
     clc
     cmp #Gravity
     bpl bounce
-    lda #$08    // (Gravity + Velocityloss) times two?
+    lda #$08    // (Gravity + Velocityloss) times two
     jsr store_yv
     jmp bounce
 
+/*
+    Used to determine whether or not a character is hit by a ball
+*/
 .macro LIBSPRITE_COLLISION(xOffset, yOffset) {
     jsr get_xl
     clc
