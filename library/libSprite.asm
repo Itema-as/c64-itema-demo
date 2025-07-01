@@ -156,7 +156,38 @@ draw_sprite:
     beq draw_sprite_end     // Only animate the balls
     
     jsr get_frame           // Load the current animation frame into A
-    sta temp
+    sta temp                // Keep current frame in temp
+
+    jsr get_xv              // Get horizontal velocity
+    sta temp1               // Preserve value for later
+    cmp #$00
+    bmi rotate_left         // Negative velocity rotates left
+
+    // Velocity is zero or positive -- rotate right
+    jsr shift_right         // step = velocity >> 4
+    clc
+    ror                     // Divide by two again -> velocity >> 5
+    sta temp2
+    lda temp
+    clc
+    adc temp2
+    jmp continue_animation
+
+    rotate_left:
+        lda temp1
+        eor #$ff            // step = abs(velocity)
+	    clc
+	    ror                     // Divide by two again -> velocity >> 5
+        adc #$01
+        jsr shift_right
+        sta temp2
+        lda temp
+        sec
+        sbc temp2
+
+    continue_animation:
+    and #$07                // Wrap frame to [0,7]
+    sta temp                // Store updated frame    jsr store_frame
     asl                     // Multiply by two to index word table
     tay
     lda SpriteIndex
@@ -164,14 +195,7 @@ draw_sprite:
     lda BallFramePtr,y      // Load sprite pointer value
     sta $07f8,x
     lda temp
-    clc
-    adc #$01
-    cmp #$08
-    bcc store_current_frame
-    lda #$00
-    store_current_frame:
-        jsr store_frame
-    
+    jsr store_frame
     draw_sprite_end:
     
 rts
