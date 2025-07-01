@@ -149,14 +149,18 @@ draw_sprite:
     jsr get_xl
     sta $d000,y
     
+    /*
+        Animate the sprite
+    */
     lda SpriteIndex
-    beq draw_sprite_end
+    beq draw_sprite_end     // Only animate the balls
     
-    tax                     // Put the sprite number in X
     jsr get_frame           // Load the current animation frame into A
     sta temp
     asl                     // Multiply by two to index word table
     tay
+    lda SpriteIndex
+    tax                     // Put the sprite number in X
     lda BallFramePtr,y      // Load sprite pointer value
     sta $07f8,x
     lda temp
