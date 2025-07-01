@@ -734,10 +734,16 @@ bounce_off_paddle:
         Stop the ball if the velocity is too low. This is used to make it rest
         on top of the paddle so that it can be be launched.
     */
+    jsr get_xv
+    bne bounce              // There is horizontal movement
+
+    jsr get_xa
+    bne bounce              // There is horizontal movement
+    
     jsr get_yv
-    clc
-    cmp #Gravity
+    cmp #Gravity            // Compare with gravity, which is always present
     bpl bounce              // We still have movement
+
     lda #$08                // (Gravity + Velocityloss) times two
     jsr store_yv
     FRAME_COLOR(2)

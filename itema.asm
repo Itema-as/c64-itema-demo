@@ -309,15 +309,18 @@ demo_input:
         jsr handle_paddle_bounds // XXX: Move to separate (without store_xl)
         rts
 
+decide_on_input:
+    lda #$00
+    sta SpriteIndex
+    lda mode
+    cmp MODE_INTRO
+    beq demo_input          // If we are in demo mode we do the demo input
+    jmp paddle_input
+
 /*******************************************************************************
  PLAYER/PADDLE INPUT
 *******************************************************************************/
 paddle_input:
-
-    lda mode
-    cmp MODE_INTRO
-    beq demo_input          // If we are in demo mode we do the demo input
-
     lda #$01                // Set sprite #0 - the paddle individual color
     sta $d027
 
@@ -399,10 +402,8 @@ irq_1:
     jsr music.play
 
     music_done:
-    
-    lda #$00
-    sta SpriteIndex
-    jsr paddle_input
+
+    jsr decide_on_input
 
     lda textTimer
     beq start_loop          // Jump if there is not a timer running (textTimer == 0)
@@ -429,6 +430,8 @@ irq_1:
     jsr load_screen
     lda MODE_INTRO
     sta mode
+    // Update the high score as it will have been overwritten
+    jsr gameUpdateHighScore
 
     start_loop:
 
