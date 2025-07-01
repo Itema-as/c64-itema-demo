@@ -309,12 +309,17 @@ rts
     Perform vertical movement
 */
 move_vertically:
+    jsr get_flags           // Se if the "resting on paddle bit" is set
+    and #%00000010
+    bne dont_move_vertically
+
     jsr v_acceleration      // Apply vertical acceleration
     jsr get_yv
     clc
     cmp #$00                // Compare with signed integer
     bmi up                  // Move up if value is negative
     bpl move_down           // Move down if value is positive
+    dont_move_vertically:
 rts
 
 /*
@@ -479,7 +484,7 @@ follow_paddle:
 
     jsr get_flags           // Se if the resting on paddle bit is set
     and #%00000010
-    beq follow_paddle_end
+    beq follow_paddle_end   // If not we don't follow the paddle
 
     lda SpriteMem           // Paddle X position
     clc
@@ -724,18 +729,16 @@ bounce_off_paddle:
         Stop the ball if the velocity is too low. This is used to make it rest
         on top of the paddle so that it can be be launched.
     */
-    jsr get_xv
-    bne bounce              // There is horizontal movement
-
-    jsr get_xa
-    bne bounce              // There is horizontal movement
-    
     jsr get_yv
     cmp #Gravity            // Compare with gravity, which is always present
     bpl bounce              // We still have movement
 
-    lda #$08                // (Gravity + Velocityloss) times two
+    lda #$00
     jsr store_yv
+    jsr store_xv
+    jsr store_ya
+    jsr store_xa
+    
     FRAME_COLOR(2)
     jsr get_flags           // Set the resting on paddle flag
     ora #%00000010
