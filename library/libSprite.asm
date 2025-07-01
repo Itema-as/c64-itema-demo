@@ -582,8 +582,8 @@ check_brick_collision:
     */
     character_hit:
 
-        cmp #%11110000
-        bcs bounce_on_brick
+        cmp #$f0            // simply bounce if a wall/hard brick
+        bcs bounce_on_brick // If A ≥ 240 → bounce
 
         // Brick that adds speed to the left
         cmp #$e0
@@ -601,25 +601,26 @@ check_brick_collision:
         cmp #$e3
         beq speed_up
 
-        lda #$20                    // Clear using space
-        sta ($f7),y                 // Store in both left..
-        iny                         // ..and right half of block
+        lda #$20            // Clear using space
+        sta ($f7),y         // Store in both left..
+        iny                 // ..and right half of block
         sta ($f7),y
 
-    bounce_on_brick:
-        jsr gameIncreaseScore   // Increment he score
+        jsr gameIncreaseScore
         jsr gameUpdateScore
         jsr gameUpdateHighScore
+
+    bounce_on_brick:
         jsr get_yv
-        eor #$ff                // Flip the sign so that we get a positive number
+        eor #$ff            // Flip the sign so that we get a positive number
         clc
-        adc #$01                // fix after flip
+        adc #$01            // fix after flip
         jsr store_yv
 
         jsr get_xv
-        eor #$ff                // Flip the sign so that we get a positive number
+        eor #$ff            // Flip the sign so that we get a positive number
         clc
-        adc #$01                // fix after flip
+        adc #$01            // fix after flip
         jsr store_xv
         jmp end_char
 
@@ -791,7 +792,7 @@ rts
     sta ZeroPage11
     jsr get_brick_at_xy
     cmp #$80
-    bcs character_hit
+    bcs character_hit       // If A ≥ 128 (first brick character)
 }
 
 get_brick_at_xy:
