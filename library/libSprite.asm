@@ -481,6 +481,25 @@ reset_ball_position:
 rts
 
 /*
+    When the current sprite is motionless, place it on top of the paddle and
+    align the horizontal position with the paddle.
+*/
+follow_paddle:
+    lda SpriteIndex
+    beq follow_paddle_end   // Ignore the paddle
+
+    jsr get_flags           // Se if the resting on paddle bit is set
+    and #%00000010
+    beq follow_paddle_end
+
+    lda SpriteMem           // Paddle X position
+    clc
+    adc #$01                // Offset for centering the ball
+    jsr store_xl
+
+    follow_paddle_end:
+rts
+/*
     Start moving from left to right.
 */
 change_to_move_right:
@@ -703,11 +722,29 @@ check_paddle_collision:
 rts
 
 bounce_off_paddle:
+    FRAME_COLOR(0)
+    jsr get_flags           // reset the resting on paddle flag 
+    and #%11111101
+    jsr store_flags
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
     bcc end_check_paddle_collision
-    beq stop_ball           // Make it rest on the paddle if velocity is low
+    /*
+        Stop the ball if the velocity is too low. This is used to make it rest
+        on top of the paddle so that it can be be launched.
+    */
+    jsr get_yv
+    clc
+    cmp #Gravity
+    bpl bounce              // We still have movement
+    lda #$08                // (Gravity + Velocityloss) times two
+    jsr store_yv
+    FRAME_COLOR(2)
+    jsr get_flags           // Set the resting on paddle flag
+    ora #%00000010
+    jsr store_flags
+    jmp bounce_end          // No bounce for you
 
     bounce:
         jsr get_yv          // Change the direction of the velocity
@@ -742,19 +779,6 @@ bounce_off_paddle:
 
     bounce_end:    
 rts
-
-/*
-    This function will stop the ball if the velocity is too low. This is used
-    to make it rest on top of the paddle.
-*/
-stop_ball:
-    jsr get_yv
-    clc
-    cmp #Gravity
-    bpl bounce
-    lda #$08    // (Gravity + Velocityloss) times two
-    jsr store_yv
-    jmp bounce
 
 /*
     Used to determine whether or not a character is hit by a ball

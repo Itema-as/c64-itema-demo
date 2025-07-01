@@ -30,6 +30,7 @@ SpriteMem:
           |    |    |    |    |    +- Y-acceleration (signed integer)
           |    |    |    |    |    |    +- Various flags
           |    |    |    |    |    |    |  0 - collision with paddle
+          |    |    |    |    |    |    |  1 - resting on top of paddle
           |    |    |    |    |    |    |    +- Animation frame
           |    |    |    |    |    |    |    |    
           xl   yl   xv   yv   xa   ya   f    frame

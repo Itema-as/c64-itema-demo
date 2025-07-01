@@ -442,6 +442,7 @@ irq_1:
         jmp next_sprite     // Move other sprites (balls)
 
     normal_motion:
+        jsr follow_paddle
         jsr move_vertically
         jsr move_horizontally
         jsr draw_sprite
