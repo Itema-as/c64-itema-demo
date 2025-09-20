@@ -18,9 +18,6 @@
     Written by:
     - Øystein Steimler, ofs@itema.no
     - Torkild U. Resheim, tur@itema.no
-    - Morten Moen, mmo@itema.no
-    - Arve Moen, amo@itema.no
-    - Bjørn Leithe Karlsen, bka@itema.no
 */
 
 #importonce
@@ -82,11 +79,17 @@ ScreenMemHighByte:
 .const Gravity          = 2
 .const VelocityLoss     = 2
 
-/* 
-    The y position of the ball for it to be exactly touching the top of the
-    paddle. The paddle itself is at x,227 so the top of it is x,226
+/*
+    Sprite geometry offsets used when determining paddle collisions. The values
+    specify the first and last rows of visible pixels within each sprite so
+    that we can calculate overlaps based on the actual graphics instead of
+    hardcoded screen positions.
 */
-.const TopOfPaddle      = 226
+.const TopOfPaddle          = 226
+.const PaddleTopOffset      = 18
+.const PaddleBottomOffset   = 20
+.const BallTopOffset        = 5
+.const BallBottomOffset     = 14
 
 fire:
     .byte $0
@@ -730,7 +733,6 @@ bounce_off_paddle:
         on top of the paddle so that it can be be launched.
         XXX: Needs s bunch of improvements
     */
-    /*
     jsr get_yv
     cmp #Gravity            // Compare with gravity, which is always present
     bpl bounce              // We still have movement
@@ -746,7 +748,6 @@ bounce_off_paddle:
     ora #%00000010
     jsr store_flags
     jmp bounce_end          // No bounce for you
-    */
 
     bounce:
         jsr get_yv          // Change the direction of the velocity

@@ -5,9 +5,6 @@
     Written by:
     - Øystein Steimler, ofs@itema.no
     - Torkild U. Resheim, tur@itema.no
-    - Morten Moen, mmo@itema.no
-    - Arve Moen, amo@itema.no
-    - Bjørn Leithe Karlsen, bka@itema.no
 */
 
 #importonce
