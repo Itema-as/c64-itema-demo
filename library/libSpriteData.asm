@@ -31,7 +31,7 @@ SpriteMem:
           |    |    |    |    |    |    +- Various flags
           |    |    |    |    |    |    |  0 - collision with paddle
           |    |    |    |    |    |    |  1 - resting on top of paddle
-          |    |    |    |    |    |    |    +- Animation frame
+          |    |    |    |    |    |    |    +- Animation frame number
           |    |    |    |    |    |    |    |    
           xl   yl   xv   yv   xa   ya   f    frame
 */
@@ -52,7 +52,7 @@ SpriteMem:
 .const  ya = 5              // Y-acceleration
 .const  f  = 6              // Flags
 .const  frame = 7           // Current animation frame
-.const spritelen = 8
+.const spritelen = 8        // The total number of bytes in the structure
 
 ldx #0
 stx SpriteIndex

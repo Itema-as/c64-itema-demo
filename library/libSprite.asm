@@ -181,8 +181,8 @@ draw_sprite:
     rotate_left:
         lda temp1
         eor #$ff            // step = abs(velocity)
-	    clc
-	    ror                     // Divide by two again -> velocity >> 5
+        clc
+        ror                 // Divide by two again -> velocity >> 5
         adc #$01
         jsr shift_right
         sta temp2
@@ -191,7 +191,7 @@ draw_sprite:
         sbc temp2
 
     continue_animation:
-    and #$07                // Wrap frame to [0,7]
+    and #$0b                // Wrap frame to [0,11]
     sta temp                // Store updated frame    jsr store_frame
     asl                     // Multiply by two to index word table
     tay
@@ -728,7 +728,9 @@ bounce_off_paddle:
     /*
         Stop the ball if the velocity is too low. This is used to make it rest
         on top of the paddle so that it can be be launched.
+        XXX: Needs s bunch of improvements
     */
+    /*
     jsr get_yv
     cmp #Gravity            // Compare with gravity, which is always present
     bpl bounce              // We still have movement
@@ -744,6 +746,7 @@ bounce_off_paddle:
     ora #%00000010
     jsr store_flags
     jmp bounce_end          // No bounce for you
+    */
 
     bounce:
         jsr get_yv          // Change the direction of the velocity
