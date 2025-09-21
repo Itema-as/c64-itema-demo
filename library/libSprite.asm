@@ -1,6 +1,6 @@
 /*
     Sprite handling library
-    Copyright (c) 2020-2022 Itema AS
+    Copyright (c) 2020-2025 Itema AS
 
     This will simply bounce sprites between the four walls of the screen. Load
     the current sprite number in to the A register and call the following
@@ -86,10 +86,6 @@ ScreenMemHighByte:
     hardcoded screen positions.
 */
 .const TopOfPaddle          = 226
-.const PaddleTopOffset      = 18
-.const PaddleBottomOffset   = 20
-.const BallTopOffset        = 5
-.const BallBottomOffset     = 14
 
 fire:
     .byte $0
@@ -111,10 +107,10 @@ row:
 
 /*
 	Used to determine whether or not to place the bat to the left or
-	to the right of the ball.
+	to the right of the ball when in input mode.
 */
 demoInputToggle:
-	.byte 1
+    .byte 1
 /*
     Keep track of these two variables while debugging
     Press CMD/CTRL+W to see the actual values in the C64 Debugger.

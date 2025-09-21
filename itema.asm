@@ -234,10 +234,10 @@ rts
 demo_input:
     // test if the fire button on paddle 2 is pressed,
     // if so start the game instead of doing demo mode input
-	lda $dc01
+    lda $dc01
     and #%00000100          // left stick mask
     beq start_game
-	
+
     // figure out which ball is lowest
     lda SpriteMem+8         // ball 1 - xl
     sta SpriteMem           // paddle - xl
@@ -257,7 +257,7 @@ demo_input:
     sta SpriteMem
     jmp end_ball_comparison
 
-	// determine whether ball 3 is lower than ball 2
+    // determine whether ball 3 is lower than ball 2
     ball_2_is_lower_than_ball_1:
       lda SpriteMem+17      // ball 2 - yl
       clc
@@ -276,7 +276,6 @@ demo_input:
       sta SpriteMem
       lda SpriteMem+25      // ball 3 - yl
       jmp end_ball_comparison
-
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_2:
