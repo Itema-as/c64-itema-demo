@@ -20,6 +20,9 @@
 .const MODE_GAME  = $00     // Actually play the game
 .const MODE_INTRO = $01     // Show intro screen and demo mode
 .const MODE_END   = $02     // Game has just ended
+ 
+ // When launching the ball from the paddle
+.const LAUNCH_VELOCITY = $F0
 
 get_ready_text:
     .text "get ready"
@@ -44,7 +47,7 @@ game_over_text:
 /*******************************************************************************
  GRAPHICS
 *******************************************************************************/
-* = * "Pointer table"
+* = * "Ball frame number pointer table"
 BallFramePtr:
 .for (var f = 0; f < 12; f++)
     .word ($2300 + f*64) / 64

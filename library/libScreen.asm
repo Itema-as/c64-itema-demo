@@ -19,6 +19,7 @@
 0---23px                                                           344---511px
 
 */
+
 #importonce
 #import "libDefines.asm"
 #import "libGame.asm"
@@ -43,8 +44,6 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
 .const HUDRow                       = 5
 .const HUDStartColumn               = 10
 .const HUDStartRow                  = 24
-
-
 
 .const MEMCP_SRCVECT = $f9
 .const MEMCP_DSTVECT = MEMCP_SRCVECT + 2
@@ -257,7 +256,6 @@ libScreenSetCharacter:
     sta (ZeroPage9),Y
     rts
 
-
 /*******************************************************************************
  TIMED TEXT DISPLAY
 *******************************************************************************/
@@ -284,8 +282,11 @@ getReadyBackupColors:       // The original colours under the temp text
         bpl color_loop
 }
 
-// Save the characters and the colours for the area under the temporarily displayed text. Only the actual game area is
-// covered, excluding the frame (23 characters)
+/*
+    Save the characters and the colours for the area under the temporarily 
+    displayed text. Only the actual game area is covered, excluding the frame
+    (23 characters).
+*/
 save_loop:
     lda SCREENRAM + (40*12) + 1,x
     sta getReadyBackupChars,x

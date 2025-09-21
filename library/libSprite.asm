@@ -464,6 +464,7 @@ reset_ball_position:
     jsr store_xa
     jsr store_yv
     jsr store_xv
+    jsr store_flags
 
     lda start_x_position
     jsr store_xl
@@ -474,7 +475,7 @@ reset_ball_position:
 rts
 
 /*
-    When the current sprite is motionless, place it on top of the paddle and
+    When the current ball is motionless, place it on top of the paddle and
     align the horizontal position with the paddle.
 */
 follow_paddle:
@@ -492,6 +493,7 @@ follow_paddle:
 
     follow_paddle_end:
 rts
+
 /*
     Start moving from left to right.
 */
@@ -717,17 +719,23 @@ rts
 
 bounce_off_paddle:
     FRAME_COLOR(0)
-    jsr get_flags           // reset the resting on paddle flag 
-    and #%11111101
-    jsr store_flags
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
     bcc end_check_paddle_collision
+
+    // Is the fire button pressed, do an extra text
+    lda ball_speed_up
+    cmp #%00000000
+    beq bounce_off_paddle_cont
+    // Launch the ball
+    jsr launch_ball
+    
+    bounce_off_paddle_cont:
+
     /*
         Stop the ball if the velocity is too low. This is used to make it rest
         on top of the paddle so that it can be be launched.
-        XXX: Needs s bunch of improvements
     */
     jsr get_yv
     cmp #Gravity            // Compare with gravity, which is always present
@@ -739,10 +747,11 @@ bounce_off_paddle:
     jsr store_ya
     jsr store_xa
     
-    FRAME_COLOR(2)
     jsr get_flags           // Set the resting on paddle flag
     ora #%00000010
     jsr store_flags
+    FRAME_COLOR(3)          // DEBUG: Indicate the code location/mode
+    
     jmp bounce_end          // No bounce for you
 
     bounce:
@@ -772,12 +781,35 @@ bounce_off_paddle:
         cmp #%00000000
         beq bounce_end
 
+        // Add some extra velocity to the ball
         jsr get_yv          // Change the direction of the velocity
         sbc #VelocityLoss+3
         jsr store_yv
 
-    bounce_end:    
+    bounce_end:
+
 rts
+
+launch_ball:
+    clc
+    jsr get_flags           // Se if the resting on paddle bit is set
+    and #%00000010
+    beq end_launch_ball
+
+    FRAME_COLOR(2)          // DEBUG: Indicate the code location/mode
+    lda #$0
+    jsr store_flags
+    
+    lda #$00
+    sec
+    sbc #$20
+    jsr store_yv
+    
+    //lda #200
+    //jsr store_yl
+    
+    end_launch_ball:
+    rts
 
 /*
     Used to determine whether or not a character is hit by a ball
