@@ -729,6 +729,11 @@ check_paddle_collision:
     order for the paddle to launch the ball. 
 */
 demo_input_should_fire:
+    // We only care about this in demo mode
+    lda mode
+    cmp MODE_INTRO
+    bne demo_input_should_fire_end
+
     // We only care about the balls
     lda SpriteIndex
     beq demo_input_should_fire_end
@@ -747,7 +752,7 @@ bounce_off_paddle:
     // See if the fire-button should be virtually pressed
     jsr demo_input_should_fire
 
-    //FRAME_COLOR(0)
+
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
@@ -779,10 +784,11 @@ bounce_off_paddle:
     jsr get_flags           // Set the resting on paddle flag
     ora #%00000010
     jsr store_flags
-    
+    FRAME_COLOR(3)          // Use the pretty color to indicate the state
     jmp bounce_end          // No bounce for you
 
     bounce:
+        FRAME_COLOR(0)      // Normal bounce
         jsr get_yv          // Change the direction of the velocity
         clc
         eor #$ff            // Flip the sign
