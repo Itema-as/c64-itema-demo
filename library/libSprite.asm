@@ -796,17 +796,12 @@ launch_ball:
     and #%00000010
     beq end_launch_ball
 
-    FRAME_COLOR(2)          // DEBUG: Indicate the code location/mode
     lda #$0
     jsr store_flags
     
-    lda #$00
-    sec
-    sbc #$20
-    jsr store_yv
-    
-    //lda #200
-    //jsr store_yl
+    lda #LAUNCH_VELOCITY    // Give the ball a decent downwward velovity, note
+    jsr store_yv            // that this will immediately switch to upward
+                            // movement in the code labeled "bounce".
     
     end_launch_ball:
     rts

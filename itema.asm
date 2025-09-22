@@ -22,7 +22,7 @@
 .const MODE_END   = $02     // Game has just ended
  
  // When launching the ball from the paddle
-.const LAUNCH_VELOCITY = $F0
+.const LAUNCH_VELOCITY = $60
 
 get_ready_text:
     .text "get ready"
