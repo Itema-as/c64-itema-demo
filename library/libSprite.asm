@@ -782,7 +782,7 @@ bounce_off_paddle:
 
         // Add some extra velocity to the ball
         jsr get_yv          // Change the direction of the velocity
-        sbc #VelocityLoss+3
+        sbc #VelocityLoss+8
         jsr store_yv
 
     bounce_end:
@@ -800,7 +800,8 @@ launch_ball:
     
     lda #LAUNCH_VELOCITY    // Give the ball a decent downwward velovity, note
     jsr store_yv            // that this will immediately switch to upward
-                            // movement in the code labeled "bounce".
+                            // movement in the code labeled "bounce". Which is
+                            // why this value is positive instead of negative.
     
     end_launch_ball:
     rts
