@@ -488,7 +488,6 @@ follow_paddle:
 
     lda SpriteMem           // Paddle X position
     clc
-    adc #$01                // Offset for centering the ball
     jsr store_xl
 
     follow_paddle_end:
