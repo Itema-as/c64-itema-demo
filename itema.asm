@@ -32,6 +32,11 @@ game_over_text:
     .text "game over"
     .byte $ff
 
+homerun_text:
+    .text "not allowed"
+    .byte $ff
+
+.var BALLS = 1
 /*******************************************************************************
  IMPORTS
 *******************************************************************************/
@@ -41,7 +46,7 @@ game_over_text:
 #import "library/font.asm"
 
 // .watch wHudScore,,"store" 
-// .watch ball_speed_up,,"store" 
+// .watch bFireButtonPressed,,"store" 
 
 
 /*******************************************************************************
@@ -57,7 +62,8 @@ BasicUpstart2(initialize)
 /*******************************************************************************
  GAMEPLAY VARIABLES
 *******************************************************************************/
-.var BALLS = 1              // It gets slow at 4
+//BALLS:
+    //.byte $03               // It gets really slow at 4
 mode:
     .byte $00    
 start_velocity:
@@ -68,7 +74,7 @@ start_x_position:
     .byte $74
 start_y_position:
     .byte $60
-ball_speed_up:
+bFireButtonPressed:
     .byte %00000000
 
 /*******************************************************************************
@@ -193,10 +199,8 @@ loop:
 jmp loop
 
 start_game:
-    // Quit demo mode
-    lda MODE_GAME
+    lda MODE_GAME           // Quit demo mode
     sta mode
-    lda #0
 
     // Silence the SID
     ldx #$18
@@ -287,11 +291,9 @@ demo_input:
       lda SpriteMem+25      // ball 3 - yl
 
     end_ball_comparison:
-
-    // Alternate between moving the ball to the left and to the right
-    demo_input_toggle:
-      lda demoInputToggle
-      beq demo_input_right
+	    // Alternate between moving the ball to the left and to the right
+	    lda demoInputToggle
+	    beq demo_input_right
 
     demo_input_left:
         clc
@@ -309,21 +311,20 @@ demo_input:
         rts
 
 decide_on_input:
+    // Reset the fire button flag
+    lda #%00000000
+    sta bFireButtonPressed
+
     lda mode
     cmp MODE_INTRO
     beq demo_input          // If we are in demo mode we do the demo input
     jmp paddle_input        // Otherwise do paddle input
+rts
 
 /*******************************************************************************
  PLAYER/PADDLE INPUT
 *******************************************************************************/
 paddle_input:
-    lda #$01                // Set sprite #0 - the paddle individual color
-    sta $d027
-
-    lda #%00000000
-    sta ball_speed_up
-
     lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
     and #%01111111          // Set bit 0 to input for pot x (paddle 1)
     sta $dc00               // Store the result back to Data Port A
@@ -332,11 +333,8 @@ paddle_input:
     and #%00000100
     bne paddle_input_cont   // If not we'll just continue
 
-    lda #$03                // Otherwise we'll indicate the the bat will hit harder
-    sta $d027               // Set sprite #0 - the paddle individual color
-    
     lda #%00000001
-    sta ball_speed_up
+    sta bFireButtonPressed
 
     paddle_input_cont:
 
@@ -399,7 +397,8 @@ irq_1:
 
     music_done:
 
-    jsr decide_on_input
+    jsr decide_on_input     // Decide whether or not to do the paddle or demo
+                            // input.
 
     lda textTimer
     beq start_loop          // Jump if there is not a timer running (textTimer == 0)
@@ -450,6 +449,17 @@ irq_1:
         jsr draw_sprite
         jsr check_brick_collision
         jsr check_paddle_collision
+
+        // Indicate that the fire button is pressed. We do this by giving the
+        // paddle a nice color.
+	    lda #$01                // Set sprite #0 - the paddle individual color
+	    sta $d027
+        clc
+        lda bFireButtonPressed
+        cmp #%00000000
+        beq next_sprite
+        lda #$03                // Cyan is a pretty color
+        sta $d027               // Set sprite #0 - the paddle individual color
 
     next_sprite:
         inc SpriteIndex

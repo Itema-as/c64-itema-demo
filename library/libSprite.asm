@@ -441,9 +441,9 @@ reset_game:
     ldy #>music.init
     jsr music.init
 
-    // Change to end of game mode
+    
     lda MODE_END
-    sta mode
+    sta mode                // Change to end of game mode
 
     // Show the end game text
     LIBSCREEN_TIMED_TEXT(game_over_text)
@@ -704,27 +704,47 @@ check_paddle_collision:
     rts
 
     left_of_paddle:
-        //FRAME_COLOR(1) // white
         rts
     right_of_paddle:
-        //FRAME_COLOR(2) // right
         rts
     end_check_paddle_collision:
         // store collision flag
         jsr get_flags
         ora #%00000001
         jsr store_flags
-rts
+    rts
+
+/*
+    Determine whether or not the fire button should be virtually pressed in
+    order for the paddle to launch the ball. 
+*/
+demo_input_should_fire:
+    // We only care about the balls
+    lda SpriteIndex
+    beq demo_input_should_fire_end
+
+    clc
+    jsr get_flags           // Se if the resting on paddle bit is set
+    and #%00000010
+    beq demo_input_should_fire_end
+    lda #$01
+    sta bFireButtonPressed
+    
+    demo_input_should_fire_end:
+    rts
 
 bounce_off_paddle:
-    FRAME_COLOR(0)
+    // See if the fire-button should be virtually pressed
+    jsr demo_input_should_fire
+
+    //FRAME_COLOR(0)
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
     bcc end_check_paddle_collision
 
-    // Is the fire button pressed, do an extra text
-    lda ball_speed_up
+    // Is the fire button pressed?
+    lda bFireButtonPressed
     cmp #%00000000
     beq bounce_off_paddle_cont
     // Launch the ball
@@ -749,7 +769,6 @@ bounce_off_paddle:
     jsr get_flags           // Set the resting on paddle flag
     ora #%00000010
     jsr store_flags
-    FRAME_COLOR(3)          // DEBUG: Indicate the code location/mode
     
     jmp bounce_end          // No bounce for you
 
@@ -776,7 +795,7 @@ bounce_off_paddle:
         // The paddle button is pressed, so we're going to negate the effect
         // of the velocity loss when the ball hits the bat
         clc
-        lda ball_speed_up
+        lda bFireButtonPressed
         cmp #%00000000
         beq bounce_end
 
@@ -802,7 +821,7 @@ launch_ball:
     jsr store_yv            // that this will immediately switch to upward
                             // movement in the code labeled "bounce". Which is
                             // why this value is positive instead of negative.
-    
+
     end_launch_ball:
     rts
 
