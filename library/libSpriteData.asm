@@ -1,6 +1,6 @@
 /*
     Sprite data library
-    Copyright (c) 2020 Itema AS
+    Copyright (c) 2020-2025 Itema AS
 
     Written by:
     - Øystein Steimler, ofs@itema.no
@@ -15,7 +15,7 @@ SpriteIndex:
 Static:
     .byte $00
 
-SpriteMem:
+.macro EmitSpriteTable() {
 /*
           +------------------------------------ X-location least significant bits
           |    
@@ -32,15 +32,22 @@ SpriteMem:
           |    |    |    |    |    |    |    |    
           xl   yl   xv   yv   xa   ya   f    frame
 */
-    .byte $73, $e0, $00, $00, $00, $00, $00, $00    // Paddle (the player)
-    .byte $74, $60, $00, $00, $00, $00, $00, $00    // Ball 1
-    .byte $48, $35, $00, $00, $00, $00, $00, $00    // Ball 2
-    .byte $60, $3a, $00, $00, $00, $00, $00, $00    // Ball 3
-    .byte $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00
+    .byte $73, $e0, $00, $00, $00, $00, $00, $00 // The player
+    .byte $74, $60, $00, $00, $00, $00, $00, $00 // Ball 1
+    .byte $48, $35, $00, $00, $00, $00, $00, $00 // Ball 2
+    .byte $60, $3a, $00, $00, $00, $00, $00, $00 // Ball 3
+    .fill 8*4, 0
+}
 
+
+SpriteMem:
+    EmitSpriteTable()
+// Make a copy of SpriteMem which we will use to restor all positions when
+// restarting the game or going into demo mode.
+BackupMem:
+    EmitSpriteTable()
+
+.const SpriteDataSize = 64  // Data structure size
 .const  xl = 0              // Y-location LSB
 .const  yl = 1              // Y-location LSB
 .const  xv = 2              // X-velocity

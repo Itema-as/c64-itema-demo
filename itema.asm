@@ -65,15 +65,8 @@ BasicUpstart2(initialize)
 //BALLS:
     //.byte $03               // It gets really slow at 4
 mode:
-    .byte $00    
-start_velocity:
     .byte $00
-start_accelleration:
-    .byte $00
-start_x_position:
-    .byte $74
-start_y_position:
-    .byte $60
+
 bFireButtonPressed:
     .byte %00000000
 
@@ -209,8 +202,7 @@ start_game:
     dex
     bpl clear_sid
 
-    // Reset ball position
-    jsr reset_ball_position
+    jsr reset_all_positions
 
     // Load the first level
     lda #$4d
@@ -228,6 +220,7 @@ start_game:
     jsr gameUpdateLives
 
     LIBSCREEN_TIMED_TEXT(get_ready_text)
+
 rts
 
 /*******************************************************************************

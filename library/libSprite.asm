@@ -419,6 +419,15 @@ move_down:
     move_down_end:
 rts
 
+reset_all_positions:
+    ldx #0
+@lp: lda BackupMem,x
+     sta SpriteMem,x
+     inx
+     cpx #SpriteDataSize
+     bne @lp
+rts
+
 /*
     Simply stops the ball and drops it again. This should be replaced with a
     more elaborate you are dead effect. Note that the paddle position is not
@@ -426,7 +435,7 @@ rts
     controller is used.
 */
 reset_game:
-    jsr reset_ball_position
+    jsr reset_all_positions
     jsr gameDecreaseLives
     jsr gameUpdateLives
     
@@ -451,27 +460,6 @@ reset_game:
     // update the high score (if requred)
     jsr gameUpdateHighScore
     reset_game_not_finished:
-rts
-
-reset_ball_position:
-    ldx #$01
-    stx SpriteIndex
-
-    clc
-    
-    lda #$00
-    jsr store_ya
-    jsr store_xa
-    jsr store_yv
-    jsr store_xv
-    jsr store_flags
-
-    lda start_x_position
-    jsr store_xl
-    
-    lda start_y_position
-    jsr store_yl
-    
 rts
 
 /*
