@@ -418,14 +418,36 @@ move_down:
       bcs reset_game
     move_down_end:
 rts
-
-reset_all_positions:
+/*
+    Initialize sprite data – positions, velocity and accelleration.
+    Balls that are not to be shown are placed at 0,0 to keep them out of
+    the way.
+*/
+reset_sprite_data:
+    sei
     ldx #0
-@lp: lda BackupMem,x
-     sta SpriteMem,x
-     inx
-     cpx #SpriteDataSize
-     bne @lp
+@lp: 
+    lda BackupMem,x
+    sta SpriteMem,x
+    inx
+    cpx #SpriteDataSize
+    bne @lp
+    lda BallCount
+    clc
+    adc #$01
+    tay
+    tya
+    asl
+    asl
+    asl
+    tax
+    lda #$00
+@zero:
+    sta SpriteMem,x
+    inx
+    cpx #SpriteDataSize
+    bne @zero
+    cli
 rts
 
 /*
@@ -435,7 +457,6 @@ rts
     controller is used.
 */
 reset_game:
-    jsr reset_all_positions
     jsr gameDecreaseLives
     jsr gameUpdateLives
     
@@ -460,6 +481,7 @@ reset_game:
     // update the high score (if requred)
     jsr gameUpdateHighScore
     reset_game_not_finished:
+    jsr reset_sprite_data
 rts
 
 /*

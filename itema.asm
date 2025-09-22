@@ -36,7 +36,8 @@ homerun_text:
     .text "not allowed"
     .byte $ff
 
-.var BALLS = 1
+BallCount:
+    .byte $03
 /*******************************************************************************
  IMPORTS
 *******************************************************************************/
@@ -191,9 +192,21 @@ initialize:
 loop:
 jmp loop
 
+/*
+    Initialie the variables so that they are correct for starting a new game
+*/
+initialize_game_variables:
+    lda #$01
+    sta BallCount
+    lda #%11000011          // Disable the balls we are not using
+    sta $d015
+    jsr reset_sprite_data
+rts
+
 start_game:
     lda MODE_GAME           // Quit demo mode
     sta mode
+    jsr initialize_game_variables
 
     // Silence the SID
     ldx #$18
@@ -202,7 +215,6 @@ start_game:
     dex
     bpl clear_sid
 
-    jsr reset_all_positions
 
     // Load the first level
     lda #$4d
@@ -418,6 +430,12 @@ irq_1:
     jsr load_screen
     lda MODE_INTRO
     sta mode
+    lda #$03
+    sta BallCount
+    jsr reset_sprite_data
+    lda #%11001111          // Enable all the three balls
+    sta $d015
+
     // Update the high score as it will have been overwritten
     jsr gameUpdateHighScore
 
@@ -455,10 +473,10 @@ irq_1:
         sta $d027               // Set sprite #0 - the paddle individual color
 
     next_sprite:
-        inc SpriteIndex
         lda SpriteIndex
-        cmp #BALLS+1
+        cmp BallCount
         beq done
+        inc SpriteIndex
         jmp animation_loop
 
     done:
