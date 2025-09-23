@@ -58,6 +58,9 @@ BackupMem:
 .const  frame = 7           // Current animation frame
 .const spritelen = 8        // The total number of bytes in the structure
 
+.const MaxHorizontalVelocity = $71
+.const MaxVerticalVelocity   = $71
+
 ldx #0
 stx SpriteIndex
 
@@ -176,6 +179,12 @@ store_ya:
 store_xv:
     php
     pha
+    jsr should_clamp
+    beq store_xv_skip_clamp
+    pla
+    jsr clamp_horizontal_velocity
+    pha
+store_xv_skip_clamp:
     jsr getspritebase       // Get spritebase in .A
     clc
     adc #xv                 // Add index to get fieldaddr
@@ -184,6 +193,12 @@ store_xv:
 store_yv:
     php
     pha
+    jsr should_clamp
+    beq store_yv_skip_clamp
+    pla
+    jsr clamp_vertical_velocity
+    pha
+store_yv_skip_clamp:
     jsr getspritebase       // Get spritebase in .A
     clc
     adc #yv                 // Add index to get fieldaddr
@@ -194,6 +209,74 @@ store_val:
     pla
     plp
     sta SpriteMem,x         // load fieldaddr -> .A
+    rts
+
+clamp_horizontal_velocity:
+    bmi clamp_h_neg
+    cmp #MaxHorizontalVelocity+1
+    bcc clamp_h_done
+    lda #MaxHorizontalVelocity
+    rts
+
+clamp_h_neg:
+    pha
+    eor #$ff
+    clc
+    adc #$01
+    cmp #MaxHorizontalVelocity+1
+    bcc clamp_h_keep
+    pla
+    lda #MaxHorizontalVelocity
+    eor #$ff
+    clc
+    adc #$01
+    rts
+
+clamp_h_keep:
+    pla
+clamp_h_done:
+    rts
+
+clamp_vertical_velocity:
+    bmi clamp_v_neg
+    cmp #MaxVerticalVelocity+1
+    bcc clamp_v_done
+    lda #MaxVerticalVelocity
+    rts
+
+clamp_v_neg:
+    pha
+    eor #$ff
+    clc
+    adc #$01
+    cmp #MaxVerticalVelocity+1
+    bcc clamp_v_keep
+    pla
+    lda #MaxVerticalVelocity
+    eor #$ff
+    clc
+    adc #$01
+    //FRAME_COLOR(5)
+    rts
+
+clamp_v_keep:
+    pla
+clamp_v_done:
+    rts
+
+should_clamp:
+    ldx SpriteIndex
+    cpx #$01
+    beq should_clamp_yes
+    cpx #$02
+    beq should_clamp_yes
+    cpx #$03
+    beq should_clamp_yes
+    lda #$00
+    rts
+
+should_clamp_yes:
+    lda #$01
     rts
 
 // getspritebase -> .A  -- uses .X
@@ -211,4 +294,3 @@ getspritebase:
 
     gotspritebase:
         rts
-
