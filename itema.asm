@@ -25,19 +25,13 @@
 .const LAUNCH_VELOCITY = $60
 
 get_ready_text:
-    .text "get ready"
+    .text "get ready!"
     .byte $ff
 
 game_over_text:
-    .text "game over"
+    .text "game over!"
     .byte $ff
 
-homerun_text:
-    .text "not allowed"
-    .byte $ff
-
-BallCount:
-    .byte $03
 /*******************************************************************************
  IMPORTS
 *******************************************************************************/
@@ -45,10 +39,6 @@ BallCount:
 #import "library/libInput.asm"
 #import "library/libScreen.asm"
 #import "library/font.asm"
-
-// .watch wHudScore,,"store" 
-// .watch bFireButtonPressed,,"store" 
-
 
 /*******************************************************************************
  GRAPHICS
@@ -71,6 +61,20 @@ mode:
 bFireButtonPressed:
     .byte %00000000
 
+BallCount:
+    .byte 3
+
+BrickCount:                 // The number of bricks left at this level
+    .byte 0
+    
+CurrentLevel:
+    .byte 0
+
+StartingXPosition:
+    .byte 0
+
+StartingYPosition:
+    .byte 0
 /*******************************************************************************
  INITIALIZE THE THINGS
 *******************************************************************************/
@@ -170,18 +174,7 @@ initialize:
 	and #%11101111         // by clearing bit #4 of $D016
 	sta $d016
 	
-	/*
-	    Load the initial screen
-	    $4500 - intro screen
-	    $4d00 - level 1
-	*/
-	
-	lda #$45
-	sta $ff
-	lda #$00
-	sta $fe
-	jsr load_screen
-
+	LOAD_SCREEN(0)         // Load the introduction screen
 
     jsr init_irq           // Initialize the IRQ
     jmp loop               // Go go the endless main loop
@@ -217,21 +210,15 @@ start_game:
 
 
     // Load the first level
-    lda #$4d
-    sta $ff
-    lda #$00
-    sta $fe
-    jsr load_screen
+    lda #$01
+    sta CurrentLevel
     lda #$00
     sta wHudScore
     sta wHudScore+1
     lda #$03
     sta wHudLives
-    jsr gameUpdateScore
-    jsr gameUpdateHighScore
-    jsr gameUpdateLives
-
-    LIBSCREEN_TIMED_TEXT(get_ready_text)
+    
+    jsr load_level
 
 rts
 
@@ -248,7 +235,10 @@ demo_input:
     // if so start the game instead of doing demo mode input
     lda $dc01
     and #%00000100          // left stick mask
-    beq start_game
+    bne demo_input_continue
+    jmp start_game
+
+demo_input_continue:
 
     // figure out which ball is lowest
     lda SpriteMem+8         // ball 1 - xl
@@ -423,11 +413,7 @@ irq_1:
     jsr music.init
 
     // Load intro screen and enable demo mode
-    lda #$45
-    sta $ff
-    lda #$00
-    sta $fe
-    jsr load_screen
+    LOAD_SCREEN(0)
     lda MODE_INTRO
     sta mode
     lda #$03
@@ -480,21 +466,44 @@ irq_1:
         jmp animation_loop
 
     done:
+        jsr check_ball_collisions
         asl $d019           // Clear interrupt flag
         jmp $ea81           // set flag and end
 
 /*******************************************************************************
  LOAD DATA
 *******************************************************************************/
-// Intro screen
-.var intro_background = LoadBinary("petscii/intro.bin")
-*=$4500 "Intro"
-.fill intro_background.getSize(), intro_background.get(i)
-// Level 1
-.var lvl1_background = LoadBinary("petscii/level_1.bin")
-*=$4d00 "Level 1"
-.fill lvl1_background.getSize(), lvl1_background.get(i)
+*=$4500
+.var l0 = LoadBinary("petscii/intro.bin")
+level0_chars:  .fill l0.getSize(), l0.get(i)
 
+.var l1 = LoadBinary("petscii/level_0.bin")
+level1_chars:  .fill l1.getSize(), l1.get(i)
+
+.var l2 = LoadBinary("petscii/level_1.bin")
+level2_chars:  .fill l2.getSize(), l2.get(i)
+
+.var l3 = LoadBinary("petscii/level_2.bin")
+level3_chars:  .fill l3.getSize(), l3.get(i)
+
+.var l4 = LoadBinary("petscii/level_3.bin")
+level4_chars:  .fill l4.getSize(), l4.get(i)
+
+.var l5 = LoadBinary("petscii/level_4.bin")
+level5_chars:  .fill l5.getSize(), l5.get(i)
+
+// Use <> (low byte) and > (high byte) to extract addresses
+level_chars_lo:  .byte <level0_chars, <level1_chars, <level2_chars, <level3_chars, <level4_chars, <level5_chars
+level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_chars, >level4_chars, >level5_chars
+
+.macro LOAD_SCREEN(index) {
+    ldx #index
+    lda level_chars_lo,x
+    sta $fe
+    lda level_chars_hi,x
+    sta $ff
+    jsr load_screen
+}
 // -- Sprite Data --------------------------------------------------------------
 
 * = $2180 "Paddle Sprite Data"
@@ -846,4 +855,3 @@ itemaLogoBall:
 .byte $00, $00, $00
 .byte $00, $00, $00
 .byte $00, $00, $00
-

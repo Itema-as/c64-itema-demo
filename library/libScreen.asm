@@ -45,7 +45,7 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
 .const HUDStartColumn               = 10
 .const HUDStartRow                  = 24
 
-.const MEMCP_SRCVECT = $f9
+.const MEMCP_SRCVECT = $f7
 .const MEMCP_DSTVECT = MEMCP_SRCVECT + 2
 .const MEMCP_CNTVECT = MEMCP_DSTVECT + 2
 .macro MEMCOPY(src, dst)
@@ -86,15 +86,15 @@ memcp_out:
     $ff - highest byte
  */
 load_screen:
-
+    sei                     // Deactive the interrupt of become confused
     // Start with the characters
     lda #$00
     sta MEMCP_DSTVECT
-    lda $fe                 // zeropage 
+    lda $fe 
     sta MEMCP_SRCVECT
     lda #$04
     sta MEMCP_DSTVECT+1
-    lda $ff                 // zeropage 
+    lda $ff 
     sta MEMCP_SRCVECT+1
     lda #$00
     sta MEMCP_CNTVECT       // Initialize low byte of counter
@@ -105,7 +105,7 @@ load_screen:
     // Now do the colours
     lda $fe                 // Load the low byte of the pointer
     clc                     // Clear carry flag before addition
-    adc #$e5                // Add the LSB for modification
+    adc #$e8                // Add the LSB for modification
     sta MEMCP_SRCVECT
 
     lda $ff                 // Load the high byte of the pointer
@@ -154,8 +154,19 @@ continue_loop:
     jmp copy_loop           // Jump back to the start of the loop
 
     end_loop:
-
-    rts
+    iny
+    lda (MEMCP_SRCVECT),y   // The last byte is the number of bricks in the level
+    sta BrickCount
+    iny
+    lda (MEMCP_SRCVECT),y
+    sta StartingXPosition
+    iny
+    lda (MEMCP_SRCVECT),y
+    sta StartingYPosition
+    // XXX: FOR ADVANCING TO THE NEXT LEVEL WITH ONLY FIVE HITS
+    //lda #$05
+    //sta BrickCount
+rts
 
 gameUpdateScore:
     // -------- 1st digit --------
@@ -273,11 +284,11 @@ getReadyBackupColors:       // The original colours under the temp text
     sta textTimer
     ldx #$17
     jsr save_loop
-    MEMCOPY(text, SCREENRAM + (40*12) + 7)
+    MEMCOPY(text, SCREENRAM + (40*12) + 8)
     ldx #$08
     color_loop:
         lda #$01
-        sta COLORRAM + (40*12) + 7,x
+        sta COLORRAM + (40*12) + 8,x
         dex
         bpl color_loop
 }

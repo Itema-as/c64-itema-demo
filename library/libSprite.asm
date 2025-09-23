@@ -78,6 +78,8 @@ ScreenMemHighByte:
 .const ScreenLeftEdge   = 20
 .const Gravity          = 2
 .const VelocityLoss     = 2
+.const BallCollisionThresholdX = $0a  // Max horizontal distance for collision
+.const BallCollisionThresholdY = $0a  // Max vertical distance for collision
 
 /*
     Sprite geometry offsets used when determining paddle collisions. The values
@@ -111,6 +113,33 @@ row:
 */
 demoInputToggle:
     .byte 1
+
+ballCollisionIndex:
+    .byte $00
+ballCollisionOtherIndex:
+    .byte $00
+ballCollisionX:
+    .byte $00
+ballCollisionY:
+    .byte $00
+ballCollisionXV:
+    .byte $00
+ballCollisionYV:
+    .byte $00
+ballCollisionOtherX:
+    .byte $00
+ballCollisionOtherY:
+    .byte $00
+ballCollisionOtherXV:
+    .byte $00
+ballCollisionOtherYV:
+    .byte $00
+ballCollisionOffset:
+    .byte $00
+ballCollisionOtherOffset:
+    .byte $00
+ballCollisionSavedIndex:
+    .byte $00
 /*
     Keep track of these two variables while debugging
     Press CMD/CTRL+W to see the actual values in the C64 Debugger.
@@ -353,7 +382,13 @@ up:
     sbc temp                // Move up by the amount of velocity
     jsr store_yl
     cmp #ScreenTopEdge      // Is top of screen hit?
-    bcc change_to_move_down // Jump if less than $31
+    bcs up_done
+    lda #ScreenTopEdge
+    jsr store_yl
+    jsr change_to_move_down
+    rts
+
+up_done:
 rts
 
 
@@ -620,10 +655,7 @@ check_brick_collision:
         sta ($f7),y         // Store in both left..
         iny                 // ..and right half of block
         sta ($f7),y
-
-        jsr gameIncreaseScore
-        jsr gameUpdateScore
-        jsr gameUpdateHighScore
+        jsr brick_updates
 
     bounce_on_brick:
         jsr get_yv
@@ -724,6 +756,131 @@ check_paddle_collision:
         jsr store_flags
     rts
 
+check_ball_collisions:
+    lda BallCount
+    cmp #$02
+    bcs cbc_start
+    rts
+
+cbc_start:
+    lda SpriteIndex
+    sta ballCollisionSavedIndex
+    lda #$01
+    sta ballCollisionIndex
+
+cbc_outer_loop:
+    lda ballCollisionIndex
+    cmp BallCount
+    bcc cbc_outer_prepare
+    jmp cbc_restore
+
+cbc_outer_prepare:
+
+    asl                     // index * 2
+    asl                     // index * 4
+    asl                     // index * 8
+    sta ballCollisionOffset
+    tax
+    lda SpriteMem,x
+    sta ballCollisionX
+    lda SpriteMem+1,x
+    sta ballCollisionY
+    lda SpriteMem+2,x
+    sta ballCollisionXV
+    lda SpriteMem+3,x
+    sta ballCollisionYV
+
+    lda ballCollisionIndex
+    clc
+    adc #$01
+    sta ballCollisionOtherIndex
+
+cbc_inner_loop:
+    lda ballCollisionOtherIndex
+    cmp BallCount
+    bcc cbc_process_pair
+    beq cbc_process_pair
+    jmp cbc_next_outer
+
+cbc_process_pair:
+    lda ballCollisionOtherIndex
+    cmp ballCollisionIndex
+    beq cbc_inner_advance
+
+    asl
+    asl
+    asl
+    sta ballCollisionOtherOffset
+    tax
+    lda SpriteMem,x
+    sta ballCollisionOtherX
+    lda SpriteMem+1,x
+    sta ballCollisionOtherY
+
+    lda ballCollisionX
+    sec
+    sbc ballCollisionOtherX
+    bpl cbc_dx_positive
+    eor #$ff
+    clc
+    adc #$01
+cbc_dx_positive:
+    cmp #BallCollisionThresholdX
+    bcs cbc_inner_advance
+
+    lda ballCollisionY
+    sec
+    sbc ballCollisionOtherY
+    bpl cbc_dy_positive
+    eor #$ff
+    clc
+    adc #$01
+cbc_dy_positive:
+    cmp #BallCollisionThresholdY
+    bcs cbc_inner_advance
+
+    ldx ballCollisionOtherOffset
+    lda SpriteMem+2,x
+    sta ballCollisionOtherXV
+    lda SpriteMem+3,x
+    sta ballCollisionOtherYV
+
+    ldx ballCollisionOffset
+    lda ballCollisionOtherXV
+    sta SpriteMem+2,x
+    lda ballCollisionOtherYV
+    sta SpriteMem+3,x
+
+    ldx ballCollisionOtherOffset
+    lda ballCollisionXV
+    sta SpriteMem+2,x
+    lda ballCollisionYV
+    sta SpriteMem+3,x
+
+    lda ballCollisionOtherXV
+    sta ballCollisionXV
+    lda ballCollisionOtherYV
+    sta ballCollisionYV
+
+cbc_inner_advance:
+    lda ballCollisionOtherIndex
+    clc
+    adc #$01
+    sta ballCollisionOtherIndex
+    jmp cbc_inner_loop
+
+cbc_next_outer:
+    lda ballCollisionIndex
+    clc
+    adc #$01
+    sta ballCollisionIndex
+    jmp cbc_outer_loop
+
+cbc_restore:
+    lda ballCollisionSavedIndex
+    sta SpriteIndex
+    rts
+
 /*
     Determine whether or not the fire button should be virtually pressed in
     order for the paddle to launch the ball. 
@@ -756,9 +913,12 @@ bounce_off_paddle:
     // Check if the ball is above the paddle. If so we can just return
     jsr get_yl
     cmp #TopOfPaddle
-    bcc end_check_paddle_collision
+    bcs bounce_off_paddle_check_fire
+    jsr end_check_paddle_collision
+    rts
 
     // Is the fire button pressed?
+bounce_off_paddle_check_fire:
     lda bFireButtonPressed
     cmp #%00000000
     beq bounce_off_paddle_cont
@@ -840,6 +1000,48 @@ launch_ball:
 
     end_launch_ball:
     rts
+
+brick_updates:
+    jsr gameIncreaseScore
+    jsr gameUpdateScore
+    jsr gameUpdateHighScore
+    dec BrickCount
+    lda BrickCount
+    bne end_brick_updates
+    /* Move forward to next level */
+    inc CurrentLevel
+    lda CurrentLevel
+    cmp #$05
+    bne load_level
+        // Start with Level #1 again
+        lda #$01
+        sta CurrentLevel
+        // Add extra ball in order to make it harder
+//        inc BallCount
+//	    lda #%11001111
+//	    sta $d015
+load_level:
+    ldx CurrentLevel
+    lda level_chars_lo,x
+    sta $fe
+    lda level_chars_hi,x
+    sta $ff
+    jsr load_screen
+    jsr gameUpdateScore
+    jsr gameUpdateHighScore
+    jsr gameUpdateLives
+    // Put the sprites in the correct position
+    jsr reset_sprite_data
+    // But override the ball #1 position as this has been setby the level
+    // designer.
+    lda StartingXPosition
+    sta SpriteMem+8
+    lda StartingYPosition
+    sta SpriteMem+9
+    
+    LIBSCREEN_TIMED_TEXT(get_ready_text)
+    end_brick_updates:
+rts
 
 /*
     Used to determine whether or not a character is hit by a ball
