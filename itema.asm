@@ -1,14 +1,11 @@
 /*
     Bouncing ball demo
 
-    Copyright (c) 2020-2023 Itema AS
+    Copyright (c) 2020-2025 Itema AS
 
     Written by:
     - Øystein Steimler, ofs@itema.no
     - Torkild U. Resheim, tur@itema.no
-    - Morten Moen, mmo@itema.no
-    - Arve Moen, amo@itema.no
-    - Bjørn Leithe Karlsen, bka@itema.no
 */
 
 .var music = LoadSid("./music/Calypso_Bar.sid")
@@ -20,9 +17,12 @@
 /*******************************************************************************
  GAMEPLAY CONSTANTS
 *******************************************************************************/
-.const MODE_GAME = $00      // Actually play the game
+.const MODE_GAME  = $00     // Actually play the game
 .const MODE_INTRO = $01     // Show intro screen and demo mode
-.const MODE_END = $02
+.const MODE_END   = $02     // Game has just ended
+ 
+ // When launching the ball from the paddle
+.const LAUNCH_VELOCITY = $60
 
 get_ready_text:
     .text "get ready"
@@ -32,6 +32,12 @@ game_over_text:
     .text "game over"
     .byte $ff
 
+homerun_text:
+    .text "not allowed"
+    .byte $ff
+
+BallCount:
+    .byte $03
 /*******************************************************************************
  IMPORTS
 *******************************************************************************/
@@ -41,25 +47,28 @@ game_over_text:
 #import "library/font.asm"
 
 // .watch wHudScore,,"store" 
-// .watch ball_speed_up,,"store" 
+// .watch bFireButtonPressed,,"store" 
+
+
+/*******************************************************************************
+ GRAPHICS
+*******************************************************************************/
+* = * "Ball frame number pointer table"
+BallFramePtr:
+.for (var f = 0; f < 12; f++)
+    .word ($2300 + f*64) / 64
 
 BasicUpstart2(initialize)
 
 /*******************************************************************************
  GAMEPLAY VARIABLES
 *******************************************************************************/
-.var BALLS = 1              // It gets slow at 4
+//BALLS:
+    //.byte $03               // It gets really slow at 4
 mode:
-    .byte $00    
-start_velocity:
     .byte $00
-start_accelleration:
-    .byte $00
-start_x_position:
-    .byte $74
-start_y_position:
-    .byte $60
-ball_speed_up:
+
+bFireButtonPressed:
     .byte %00000000
 
 /*******************************************************************************
@@ -112,7 +121,11 @@ initialize:
 
     lda #paddleSpriteData/64
     sta $07f8               // Sprite #0 – the paddle
-    lda #ballSpriteData/64
+    
+    lda #$03
+    asl
+    tay
+    lda BallFramePtr,y
     sta $07f9               // Sprite #1 - ball #1
     sta $07fa               // Sprite #2 - ball #2
     sta $07fb               // Sprite #3 - ball #3
@@ -179,11 +192,21 @@ initialize:
 loop:
 jmp loop
 
+/*
+    Initialie the variables so that they are correct for starting a new game
+*/
+initialize_game_variables:
+    lda #$01
+    sta BallCount
+    lda #%11000011          // Disable the balls we are not using
+    sta $d015
+    jsr reset_sprite_data
+rts
+
 start_game:
-    // Quit demo mode
-    lda MODE_GAME
+    lda MODE_GAME           // Quit demo mode
     sta mode
-    lda #0
+    jsr initialize_game_variables
 
     // Silence the SID
     ldx #$18
@@ -192,14 +215,12 @@ start_game:
     dex
     bpl clear_sid
 
-    // Reset ball position
-    jsr reset_ball_position
 
     // Load the first level
     lda #$4d
     sta $ff
     lda #$00
-    sta $fe    
+    sta $fe
     jsr load_screen
     lda #$00
     sta wHudScore
@@ -211,6 +232,7 @@ start_game:
     jsr gameUpdateLives
 
     LIBSCREEN_TIMED_TEXT(get_ready_text)
+
 rts
 
 /*******************************************************************************
@@ -224,62 +246,59 @@ rts
 demo_input:
     // test if the fire button on paddle 2 is pressed,
     // if so start the game instead of doing demo mode input
-	lda $dc01
+    lda $dc01
     and #%00000100          // left stick mask
     beq start_game
-	
-    // figure out which ball is lowest
-    lda SpriteMem+9         // ball 1 - xl
-    sta SpriteMem
 
-    lda SpriteMem+11        // ball 1 - yl
+    // figure out which ball is lowest
+    lda SpriteMem+8         // ball 1 - xl
+    sta SpriteMem           // paddle - xl
+
+    lda SpriteMem+9         // ball 1 - yl
     clc
-    sbc SpriteMem+20        // ball 2 - yl
+    sbc SpriteMem+17        // ball 2 - yl
     bcc ball_2_is_lower_than_ball_1
 
-    lda SpriteMem+11        // ball 1 - yl
+    lda SpriteMem+9         // ball 1 - yl
     clc
-    sbc SpriteMem+29        // ball 3 - yl
+    sbc SpriteMem+25        // ball 3 - yl
     bcc ball_3_is_lower_than_ball_1
 
     // if we reach here, ball 1 is lowest
-    lda SpriteMem+9         // ball 1 - xl
+    lda SpriteMem+8         // ball 1 - xl
     sta SpriteMem
     jmp end_ball_comparison
 
-	// determine whether ball 3 is lower than ball 2
+    // determine whether ball 3 is lower than ball 2
     ball_2_is_lower_than_ball_1:
-      lda SpriteMem+20      // ball 2 - yl
+      lda SpriteMem+17      // ball 2 - yl
       clc
-      sbc SpriteMem+29      // ball 3 - yl
+      sbc SpriteMem+25      // ball 3 - yl
       bcc ball_3_is_lower_than_ball_2
 
       // if we reach here, ball 2 is lowest
-      lda SpriteMem+18      // ball 2 - xl
+      lda SpriteMem+16      // ball 2 - xl
       sta SpriteMem
-      lda SpriteMem+20      // ball 2 - yl
+      lda SpriteMem+17      // ball 2 - yl
       jmp end_ball_comparison
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_1:
-      lda SpriteMem+27      // ball 3 - xl
+      lda SpriteMem+24      // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29      // ball 3 - yl
+      lda SpriteMem+25      // ball 3 - yl
       jmp end_ball_comparison
-
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_2:
-      lda SpriteMem+27      // ball 3 - xl
+      lda SpriteMem+24      // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+29      // ball 3 - yl
+      lda SpriteMem+25      // ball 3 - yl
 
     end_ball_comparison:
-
-    // Alternate between moving the ball to the left and to the right
-    demo_input_toggle:
-      lda demoInputToggle
-      beq demo_input_right
+	    // Alternate between moving the ball to the left and to the right
+	    lda demoInputToggle
+	    beq demo_input_right
 
     demo_input_left:
         clc
@@ -296,21 +315,21 @@ demo_input:
         jsr handle_paddle_bounds // XXX: Move to separate (without store_xl)
         rts
 
-/*******************************************************************************
- PLAYER/PADDLE INPUT
-*******************************************************************************/
-paddle_input:
+decide_on_input:
+    // Reset the fire button flag
+    lda #%00000000
+    sta bFireButtonPressed
 
     lda mode
     cmp MODE_INTRO
     beq demo_input          // If we are in demo mode we do the demo input
+    jmp paddle_input        // Otherwise do paddle input
+rts
 
-    lda #$01                // Set sprite #0 - the paddle individual color
-    sta $d027
-
-    lda #%00000000
-    sta ball_speed_up
-                
+/*******************************************************************************
+ PLAYER/PADDLE INPUT
+*******************************************************************************/
+paddle_input:
     lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
     and #%01111111          // Set bit 0 to input for pot x (paddle 1)
     sta $dc00               // Store the result back to Data Port A
@@ -319,11 +338,8 @@ paddle_input:
     and #%00000100
     bne paddle_input_cont   // If not we'll just continue
 
-    lda #$03                // Otherwise we'll indicate the the bat will hit harder
-    sta $d027               // Set sprite #0 - the paddle individual color
-    
     lda #%00000001
-    sta ball_speed_up
+    sta bFireButtonPressed
 
     paddle_input_cont:
 
@@ -343,9 +359,8 @@ paddle_input:
     bcc piNotGreater        // If carry is clear (number < maxValue), branch to piNotGreater
     lda #$ce                // If carry is set (number >= maxValue), load the maximum value into the accumulator
     piNotGreater:
-    jsr store_xl            // Store the paddle x-position
-    
-    rts
+    sta SpriteMem           // Store the paddle x-position
+rts
 
 /*******************************************************************************
  INITIALIZE INTERRUPTS
@@ -386,10 +401,9 @@ irq_1:
     jsr music.play
 
     music_done:
-    
-    lda #$00
-    sta SpriteIndex
-    jsr paddle_input
+
+    jsr decide_on_input     // Decide whether or not to do the paddle or demo
+                            // input.
 
     lda textTimer
     beq start_loop          // Jump if there is not a timer running (textTimer == 0)
@@ -416,8 +430,19 @@ irq_1:
     jsr load_screen
     lda MODE_INTRO
     sta mode
+    lda #$03
+    sta BallCount
+    jsr reset_sprite_data
+    lda #%11001111          // Enable all the three balls
+    sta $d015
+
+    // Update the high score as it will have been overwritten
+    jsr gameUpdateHighScore
 
     start_loop:
+
+    lda #$00
+    sta SpriteIndex
 
     // Allow the paddle to move while showing the text, but do not do normal ball movement
     animation_loop:
@@ -429,17 +454,29 @@ irq_1:
         jmp next_sprite     // Move other sprites (balls)
 
     normal_motion:
+        jsr follow_paddle   // in case the ball has been captured
         jsr move_vertically
         jsr move_horizontally
         jsr draw_sprite
         jsr check_brick_collision
         jsr check_paddle_collision
 
+        // Indicate that the fire button is pressed. We do this by giving the
+        // paddle a nice color.
+	    lda #$01                // Set sprite #0 - the paddle individual color
+	    sta $d027
+        clc
+        lda bFireButtonPressed
+        cmp #%00000000
+        beq next_sprite
+        lda #$03                // Cyan is a pretty color
+        sta $d027               // Set sprite #0 - the paddle individual color
+
     next_sprite:
-        inc SpriteIndex
         lda SpriteIndex
-        cmp #BALLS+1
+        cmp BallCount
         beq done
+        inc SpriteIndex
         jmp animation_loop
 
     done:
@@ -459,30 +496,6 @@ irq_1:
 .fill lvl1_background.getSize(), lvl1_background.get(i)
 
 // -- Sprite Data --------------------------------------------------------------
-// Created using https://www.spritemate.com
-* = $2140 "Ball Sprite Data"
-ballSpriteData:
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00101000, %00000000
-.byte %00000000, %10011010, %00000000
-.byte %00000010, %01101010, %11000000
-.byte %00000010, %10101010, %11000000
-.byte %00000010, %10101010, %11000000
-.byte %00000010, %10101010, %11000000
-.byte %00000010, %10101011, %11000000
-.byte %00000010, %10101011, %11000000
-.byte %00000000, %10101111, %00000000
-.byte %00000000, %00111100, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
-.byte %00000000, %00000000, %00000000
 
 * = $2180 "Paddle Sprite Data"
 paddleSpriteData:
@@ -555,3 +568,282 @@ itemaLogoBall:
 .byte $00, $00, $00
 .byte $00, $00, $00
 .byte $00, $00, $00
+
+// For animations we need $40 bytes between sprites
+
+* = $2300 "ball 1"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $9A, $00
+.byte $02, $6A, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AB, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $2340 "ball 2"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $96, $00
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AB, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $2380 "ball 3"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $A6, $00
+.byte $02, $A9, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AB, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $23C0 "ball 4"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $A9, $C0
+.byte $02, $A9, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AB, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $2400 "ball 5"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $A9, $C0
+.byte $02, $A9, $C0
+.byte $02, $AB, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $2440 "ball 6"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $A9, $C0
+.byte $02, $A9, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $2480 "ball 7"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AB, $C0
+.byte $02, $A9, $C0
+.byte $00, $A7, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $24C0 "ball 8"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AB, $C0
+.byte $02, $AB, $C0
+.byte $00, $97, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $2500 "ball 9"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AB, $C0
+.byte $02, $6B, $C0
+.byte $00, $9F, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $2540 "ball 10"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $6A, $C0
+.byte $02, $6B, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $2580 "ball 11"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $6A, $C0
+.byte $02, $6A, $C0
+.byte $02, $AB, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+
+* = $25c0 "ball 12"
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $28, $00
+.byte $00, $AA, $00
+.byte $02, $6A, $C0
+.byte $02, $6A, $C0
+.byte $02, $AA, $C0
+.byte $02, $AA, $C0
+.byte $02, $AB, $C0
+.byte $02, $AB, $C0
+.byte $00, $AF, $00
+.byte $00, $3C, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+.byte $00, $00, $00
+

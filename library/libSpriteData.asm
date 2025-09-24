@@ -1,13 +1,10 @@
 /*
     Sprite data library
-    Copyright (c) 2020 Itema AS
+    Copyright (c) 2020-2025 Itema AS
 
     Written by:
     - Øystein Steimler, ofs@itema.no
     - Torkild U. Resheim, tur@itema.no
-    - Morten Moen, mmo@itema.no
-    - Arve Moen, amo@itema.no
-    - Bjørn Leithe Karlsen, bka@itema.no
 */
 
 #importonce
@@ -18,44 +15,54 @@ SpriteIndex:
 Static:
     .byte $00
 
-SpriteMem:
+.macro EmitSpriteTable() {
 /*
           +------------------------------------ X-location least significant bits
-          |    +------------------------------- X-location most significant bits
-          |    |    +-------------------------- Y-location least significant bits
-          |    |    |    +--------------------- Y-location most significant bits
-          |    |    |    |    +---------------- X-velocity (signed integer)
-          |    |    |    |    |    +----------- Y-velocity (signed integer)
-          |    |    |    |    |    |    +------ X-acceleration (signed integer)
-          |    |    |    |    |    |    |    +- Y-acceleration (signed integer)
-          |    |    |    |    |    |    |    |    +- Various flags
-          xl   xm   yl   ym   xv   yv   xa   ya   f
+          |    
+          |    +-------------------------- Y-location least significant bits
+          |    |    
+          |    |    +---------------- X-velocity (signed integer)
+          |    |    |    +----------- Y-velocity (signed integer)
+          |    |    |    |    +------ X-acceleration (signed integer)
+          |    |    |    |    |    +- Y-acceleration (signed integer)
+          |    |    |    |    |    |    +- Various flags
+          |    |    |    |    |    |    |  0 - collision with paddle
+          |    |    |    |    |    |    |  1 - resting on top of paddle
+          |    |    |    |    |    |    |    +- Animation frame number
+          |    |    |    |    |    |    |    |    
+          xl   yl   xv   yv   xa   ya   f    frame
 */
-    .byte $73, $00, $e0, $00, $00, $00, $00, $00, $00    // Paddle (the player)
-    .byte $30, $00, $30, $00, $00, $00, $00, $00, $00    // Ball 1
-    .byte $48, $00, $35, $00, $00, $00, $00, $00, $00    // Ball 2
-    .byte $60, $00, $3a, $00, $00, $00, $00, $00, $00    // Ball 3
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte $73, $e0, $00, $00, $00, $00, $00, $00 // The player
+    .byte $74, $60, $00, $00, $00, $00, $00, $00 // Ball 1
+    .byte $48, $35, $00, $00, $00, $00, $00, $00 // Ball 2
+    .byte $60, $3a, $00, $00, $00, $00, $00, $00 // Ball 3
+    .fill 8*4, 0
+}
 
-.const xl = 0                 // Y-location LSB
-.const xm = 1                 // X-location MSB
-.const yl = 2                 // Y-location LSB
-.const ym = 3                 // X-location MSB
-.const xv = 4                 // X-velocity
-.const yv = 5                 // Y-velocity
-.const xa = 6                 // X-acceleration
-.const ya = 7                 // Y-acceleration
-.const f  = 8                 // Flags
-.const spritelen = 9
 
-.var motionless = %00000000 // whether or not the sprite is allowed to move
+SpriteMem:
+    EmitSpriteTable()
+// Make a copy of SpriteMem which we will use to restor all positions when
+// restarting the game or going into demo mode.
+BackupMem:
+    EmitSpriteTable()
+
+.const SpriteDataSize = 64  // Data structure size
+.const  xl = 0              // Y-location LSB
+.const  yl = 1              // Y-location LSB
+.const  xv = 2              // X-velocity
+.const  yv = 3              // Y-velocity
+.const  xa = 4              // X-acceleration
+.const  ya = 5              // Y-acceleration
+.const  f  = 6              // Flags
+.const  frame = 7           // Current animation frame
+.const spritelen = 8        // The total number of bytes in the structure
+
+.const MaxHorizontalVelocity = $71
+.const MaxVerticalVelocity   = $71
 
 ldx #0
 stx SpriteIndex
-jsr get_xm                  // xm for 0 in a
 
 get_flags:
     php
@@ -65,11 +72,11 @@ get_flags:
     jmp get_val
 
 
-get_xm:
+get_frame:
     php
     jsr getspritebase       // Get spritebase in .A
     clc                     // Clear the carry flag
-    adc #xm                 // Add index to get fieldaddr
+    adc #frame              // Add index to get fieldaddr
     jmp get_val
 
 get_xl:
@@ -77,13 +84,6 @@ get_xl:
     jsr getspritebase       // Get spritebase in .A
     clc                     // Clear the carry flag
     adc #xl                 // Add index to get fieldaddr
-    jmp get_val
-
-get_ym:
-    php
-    jsr getspritebase       // Get spritebase in .A
-    clc                     // Clear the carry flag
-    adc #ym                 // Add index to get fieldaddr
     jmp get_val
 
 get_yl:
@@ -136,12 +136,12 @@ store_flags:
     adc #f                  // Add index to get fieldaddr
     jmp store_val
 
-store_xm:
+store_frame:
     php
     pha
     jsr getspritebase       // Get spritebase in .A
     clc                     // Clear the carry flag
-    adc #xm                 // Add index to get fieldaddr
+    adc #frame              // Add index to get fieldaddr
     jmp store_val
 
 store_xl:
@@ -150,14 +150,6 @@ store_xl:
     jsr getspritebase       // Get spritebase in .A
     clc
     adc #xl                 // Add index to get fieldaddr
-    jmp store_val
-
-store_ym:
-    php
-    pha
-    jsr getspritebase       // Get spritebase in .A
-    clc
-    adc #ym                 // Add index to get fieldaddr
     jmp store_val
 
 store_yl:
@@ -187,6 +179,12 @@ store_ya:
 store_xv:
     php
     pha
+    jsr should_clamp
+    beq store_xv_skip_clamp
+    pla
+    jsr clamp_horizontal_velocity
+    pha
+store_xv_skip_clamp:
     jsr getspritebase       // Get spritebase in .A
     clc
     adc #xv                 // Add index to get fieldaddr
@@ -195,6 +193,12 @@ store_xv:
 store_yv:
     php
     pha
+    jsr should_clamp
+    beq store_yv_skip_clamp
+    pla
+    jsr clamp_vertical_velocity
+    pha
+store_yv_skip_clamp:
     jsr getspritebase       // Get spritebase in .A
     clc
     adc #yv                 // Add index to get fieldaddr
@@ -205,6 +209,74 @@ store_val:
     pla
     plp
     sta SpriteMem,x         // load fieldaddr -> .A
+    rts
+
+clamp_horizontal_velocity:
+    bmi clamp_h_neg
+    cmp #MaxHorizontalVelocity+1
+    bcc clamp_h_done
+    lda #MaxHorizontalVelocity
+    rts
+
+clamp_h_neg:
+    pha
+    eor #$ff
+    clc
+    adc #$01
+    cmp #MaxHorizontalVelocity+1
+    bcc clamp_h_keep
+    pla
+    lda #MaxHorizontalVelocity
+    eor #$ff
+    clc
+    adc #$01
+    rts
+
+clamp_h_keep:
+    pla
+clamp_h_done:
+    rts
+
+clamp_vertical_velocity:
+    bmi clamp_v_neg
+    cmp #MaxVerticalVelocity+1
+    bcc clamp_v_done
+    lda #MaxVerticalVelocity
+    rts
+
+clamp_v_neg:
+    pha
+    eor #$ff
+    clc
+    adc #$01
+    cmp #MaxVerticalVelocity+1
+    bcc clamp_v_keep
+    pla
+    lda #MaxVerticalVelocity
+    eor #$ff
+    clc
+    adc #$01
+    //FRAME_COLOR(5)
+    rts
+
+clamp_v_keep:
+    pla
+clamp_v_done:
+    rts
+
+should_clamp:
+    ldx SpriteIndex
+    cpx #$01
+    beq should_clamp_yes
+    cpx #$02
+    beq should_clamp_yes
+    cpx #$03
+    beq should_clamp_yes
+    lda #$00
+    rts
+
+should_clamp_yes:
+    lda #$01
     rts
 
 // getspritebase -> .A  -- uses .X
@@ -222,4 +294,3 @@ getspritebase:
 
     gotspritebase:
         rts
-
