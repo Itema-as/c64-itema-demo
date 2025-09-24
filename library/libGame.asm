@@ -2,9 +2,9 @@
 
 #import "libMath.asm"
 
-wHudScore: .word 0
-wHudHiScore: .word 0
-wHudLives: .word 3
+wHudScore:      .word 0
+wHudHiScore:    .word 0
+wHudLives:      .word 0
 
 .const HUDScoreIncrease = 1
 

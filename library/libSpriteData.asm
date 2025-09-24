@@ -58,8 +58,8 @@ BackupMem:
 .const  frame = 7           // Current animation frame
 .const spritelen = 8        // The total number of bytes in the structure
 
-.const MaxHorizontalVelocity = $71
-.const MaxVerticalVelocity   = $71
+.const MaxHorizontalVelocity = $70
+.const MaxVerticalVelocity   = $70
 
 ldx #0
 stx SpriteIndex

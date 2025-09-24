@@ -1,6 +1,8 @@
 # Designing levels and sprites
 
-Use      to design levels and sprites. Save as *.pe file
+Use https://petscii.krissz.hu/ to design levels and sprites. Load the itemaball.pe file as the starting point. 
+
+Save as *.pe file
 in order to be able to load and the entire project. 
 
 
