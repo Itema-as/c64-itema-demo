@@ -78,8 +78,12 @@ ScreenMemHighByte:
 .const ScreenLeftEdge   = 20
 .const Gravity          = 2
 .const VelocityLoss     = 2
-.const BallCollisionThresholdX = $0a  // Max horizontal distance for collision
-.const BallCollisionThresholdY = $0a  // Max vertical distance for collision
+/*
+    Adjust these values for the sensitivity when detecting whether or not the
+    balls have collided. Smaller value means balls will practically overlap.
+*/
+.const BallCollisionThresholdX = $0c  // Max horizontal distance for collision
+.const BallCollisionThresholdY = $0c  // Max vertical distance for collision
 
 /*
     Sprite geometry offsets used when determining paddle collisions. The values
@@ -762,6 +766,11 @@ check_paddle_collision:
         jsr store_flags
     rts
 
+/*
+    Test if any balls have been colliding and if so do the proper changes in
+    direction. Velocity is not changed. Let's pretend the balls are made out
+    of really hard steel.
+*/
 check_ball_collisions:
     lda BallCount
     cmp #$02
@@ -830,6 +839,7 @@ cbc_process_pair:
     eor #$ff
     clc
     adc #$01
+
 cbc_dx_positive:
     cmp #BallCollisionThresholdX
     bcs cbc_inner_advance
@@ -841,6 +851,7 @@ cbc_dx_positive:
     eor #$ff
     clc
     adc #$01
+
 cbc_dy_positive:
     cmp #BallCollisionThresholdY
     bcs cbc_inner_advance

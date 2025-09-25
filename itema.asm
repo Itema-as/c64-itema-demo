@@ -466,6 +466,8 @@ irq_1:
         jmp animation_loop 
 
     done:
+        // Check whether or not any balls are colliding _after_ all the 
+        // calculations and movements have been done for this frame. 
         jsr check_ball_collisions
         asl $d019           // Clear interrupt flag
         jmp $ea81           // set flag and end
