@@ -32,10 +32,18 @@ Static:
           |    |    |    |    |    |    |    |    
           xl   yl   xv   yv   xa   ya   f    frame
 */
+/*
+    XXX: There is a bug when dealing with the ball position after loading a level
+    it will initially start at the position here, then moved to the level specific
+    starting position. The problem is that when the level specific position is
+    at the same position, the score is counted and the brick is removed – as it
+    should be. In order to deal with this we move default position to above the
+    bricks.
+*/
     .byte $73, $e0, $00, $00, $00, $00, $00, $00 // The player
-    .byte $74, $60, $00, $00, $00, $00, $00, $00 // Ball 1
+    .byte $74, $35, $00, $00, $00, $00, $00, $00 // Ball 1
     .byte $48, $35, $00, $00, $00, $00, $00, $00 // Ball 2
-    .byte $60, $3a, $00, $00, $00, $00, $00, $00 // Ball 3
+    .byte $60, $35, $00, $00, $00, $00, $00, $00 // Ball 3
     .fill 8*4, 0
 }
 
