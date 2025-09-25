@@ -1,19 +1,7 @@
 /*
     Sprite handling library
+    
     Copyright (c) 2020-2025 Itema AS
-
-    This will simply bounce sprites between the four walls of the screen. Load
-    the current sprite number in to the A register and call the following
-    functions:
-
-    horizontal
-        to move horizontally
-
-    vertical
-        to move vertically
-
-    draw_sprite
-        to draw the sprite on it's new location
 
     Written by:
     - Øystein Steimler, ofs@itema.no
@@ -452,7 +440,6 @@ move_down:
       /*
           We don't want a normal bouncing effect, but rather loose a life and
           start again with a new ball.
-          bcs change_to_move_up
       */
       bcs ball_lost
     move_down_end:
