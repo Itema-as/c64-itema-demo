@@ -10,7 +10,8 @@ function convert() {
   dd bs=2 skip=1 if=screen.bin of=screen_trimmed.bin
   dd bs=2 skip=1 if=color.bin of=color_trimmed.bin
 
-  SCREEN_NAME="$1" COORD_PATH="$1.coords.bin" python3 - <<'PY'
+  python_output=$(
+    SCREEN_NAME="$1" COORD_PATH="$1.coords.bin" python3 - <<'PY'
 import os
 from pathlib import Path
 
@@ -21,7 +22,8 @@ height = 25
 needle = 60
 replacement = 32
 
-data = bytearray(Path("screen_trimmed.bin").read_bytes())
+data_path = Path("screen_trimmed.bin")
+data = bytearray(data_path.read_bytes())
 coords = bytearray()
 found = False
 
@@ -37,19 +39,45 @@ for index, value in enumerate(data[: width * height]):
 if not found:
   print(f"{name}: value {needle} not found")
 else:
-  Path("screen_trimmed.bin").write_bytes(data)
+  data_path.write_bytes(data)
   coord_path.write_bytes(coords)
-PY
 
-  cat screen_trimmed.bin color_trimmed.bin > $1.bin
+brick_count = sum(1 for value in data[: width * height] if 128 <= value <= 233)
+print(f"BRICK_COUNT={brick_count}")
+PY
+  )
+
+  printf '%s\n' "$python_output"
+
   # Calculate the number of bricks in the level, so that we can figure out
   # when all the bricks has been taken out and the level is completed. 
-  count=$(head -c 1000 screen_trimmed.bin | od -An -t u1 | \
-  awk '{for(i=1;i<=NF;i++) if($i>=128 && $i<=223) c++} END{print c}')
-  val=$((count / 2))
-  echo $val
-  printf "%c" $val >> "$1.bin"
-  
+  brick_count=$(printf '%s\n' "$python_output" | awk -F= '/^BRICK_COUNT=/{print $2}' | tail -n 1)
+  if [ -z "$brick_count" ]; then
+    echo "Could not determine brick count for $1; defaulting to 0"
+    brick_count=0
+  fi
+
+  bricks=$((brick_count / 2))
+  if [ "$bricks" -lt 0 ] || [ "$bricks" -gt 255 ]; then
+    echo "Brick count $bricks out of byte range for $1" >&2
+    bricks=0
+  fi
+
+  echo "Number of bricks in the level $bricks"
+
+  cat screen_trimmed.bin color_trimmed.bin > "$1.bin"
+
+  python3 - "$1.bin" "$bricks" <<'PY'
+import sys
+from pathlib import Path
+
+result_path = Path(sys.argv[1])
+value = int(sys.argv[2])
+
+with result_path.open("ab") as handle:
+    handle.write(bytes((value,)))
+PY
+
   # Add X and Y coordinates for the ball drop if found 
   if [ -f "$1.coords.bin" ]; then
     cat "$1.coords.bin" >> "$1.bin"
