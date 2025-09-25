@@ -700,7 +700,7 @@ check_brick_collision:
         jmp end_char
 
     end_char:
-        rts
+rts
 
 check_paddle_collision:
 
@@ -760,7 +760,7 @@ check_ball_collisions:
     lda BallCount
     cmp #$02
     bcs cbc_start
-    rts
+rts
 
 cbc_start:
     lda SpriteIndex
@@ -879,7 +879,7 @@ cbc_next_outer:
 cbc_restore:
     lda ballCollisionSavedIndex
     sta SpriteIndex
-    rts
+rts
 
 /*
     Determine whether or not the fire button should be virtually pressed in
@@ -903,7 +903,7 @@ demo_input_should_fire:
     sta bFireButtonPressed
     
     demo_input_should_fire_end:
-    rts
+rts
 
 bounce_off_paddle:
     // See if the fire-button should be virtually pressed
@@ -915,7 +915,7 @@ bounce_off_paddle:
     cmp #TopOfPaddle
     bcs bounce_off_paddle_check_fire
     jsr end_check_paddle_collision
-    rts
+rts
 
     // Is the fire button pressed?
 bounce_off_paddle_check_fire:
@@ -981,7 +981,6 @@ bounce_off_paddle_check_fire:
         jsr store_yv
 
     bounce_end:
-
 rts
 
 launch_ball:
@@ -999,15 +998,9 @@ launch_ball:
                             // why this value is positive instead of negative.
 
     end_launch_ball:
-    rts
+rts
 
-brick_updates:
-    jsr gameIncreaseScore
-    jsr gameUpdateScore
-    jsr gameUpdateHighScore
-    dec BrickCount
-    lda BrickCount
-    bne end_brick_updates
+advance_level:
     /* Move forward to next level */
     inc CurrentLevel
     lda CurrentLevel
@@ -1016,10 +1009,9 @@ brick_updates:
         // Start with Level #1 again
         lda #$01
         sta CurrentLevel
-        // Add extra ball in order to make it harder
-//        inc BallCount
-//	    lda #%11001111
-//	    sta $d015
+        // Get an extra life for finishing
+        jsr gameIncreaseLives
+        // XXX: Play a nice tune
 load_level:
     ldx CurrentLevel
     lda level_chars_lo,x
@@ -1040,6 +1032,20 @@ load_level:
     sta SpriteMem+9
     
     LIBSCREEN_TIMED_TEXT(get_ready_text)
+    // XXX: Play a different nice tune
+rts
+
+brick_updates:
+    // We have scored one more point
+    jsr gameIncreaseScore
+    jsr gameUpdateScore
+    jsr gameUpdateHighScore
+    // Decrease the number of bricks
+    dec BrickCount
+    lda BrickCount
+    sta $0400
+    bne end_brick_updates
+    jsr advance_level
     end_brick_updates:
 rts
 

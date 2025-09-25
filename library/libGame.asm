@@ -5,6 +5,7 @@
 wHudScore:      .word 0
 wHudHiScore:    .word 0
 wHudLives:      .word 0
+wHudDebugValue: .word 0
 
 .const HUDScoreIncrease = 1
 
@@ -33,5 +34,11 @@ gHCNotHi:
 gameDecreaseLives:
     sed // Set decimal mode
     LIBMATH_SUB16BIT_AVA(wHudLives, 1, wHudLives)
+    cld // Clear decimal mode
+    rts
+
+gameIncreaseLives:
+    sed // Set decimal mode
+    LIBMATH_ADD16BIT_AVA(wHudLives, 1, wHudLives)
     cld // Clear decimal mode
     rts
