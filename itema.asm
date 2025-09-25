@@ -463,7 +463,7 @@ irq_1:
         cmp BallCount
         beq done
         inc SpriteIndex
-        jmp animation_loop
+        jmp animation_loop 
 
     done:
         jsr check_ball_collisions
@@ -473,7 +473,7 @@ irq_1:
 /*******************************************************************************
  LOAD DATA
 *******************************************************************************/
-*=$4500
+*=$4500 "Screens";
 .var l0 = LoadBinary("petscii/intro.bin")
 level0_chars:  .fill l0.getSize(), l0.get(i)
 
