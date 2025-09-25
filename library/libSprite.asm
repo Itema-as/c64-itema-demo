@@ -450,7 +450,7 @@ move_down:
           start again with a new ball.
           bcs change_to_move_up
       */
-      bcs reset_game
+      bcs ball_lost
     move_down_end:
 rts
 /*
@@ -491,7 +491,7 @@ rts
     changed, as this would be confusing to the player since an actual paddle
     controller is used.
 */
-reset_game:
+ball_lost:
     jsr gameDecreaseLives
     jsr gameUpdateLives
     
@@ -517,6 +517,12 @@ reset_game:
     jsr gameUpdateHighScore
     reset_game_not_finished:
     jsr reset_sprite_data
+    // But override the ball #1 position as this has been set by the level
+    // designer.
+    lda StartingXPosition
+    sta SpriteMem+8
+    lda StartingYPosition
+    sta SpriteMem+9
 rts
 
 /*
@@ -1024,13 +1030,12 @@ load_level:
     jsr gameUpdateLives
     // Put the sprites in the correct position
     jsr reset_sprite_data
-    // But override the ball #1 position as this has been setby the level
+    // But override the ball #1 position as this has been set by the level
     // designer.
     lda StartingXPosition
     sta SpriteMem+8
     lda StartingYPosition
     sta SpriteMem+9
-    
     LIBSCREEN_TIMED_TEXT(get_ready_text)
     // XXX: Play a different nice tune
 rts
@@ -1043,7 +1048,6 @@ brick_updates:
     // Decrease the number of bricks
     dec BrickCount
     lda BrickCount
-    sta $0400
     bne end_brick_updates
     jsr advance_level
     end_brick_updates:
