@@ -8,11 +8,24 @@
     - Torkild U. Resheim, tur@itema.no
 */
 
+.file [name="itema.prg", segments="Code,Variables,Assets,Levels"]
+
+
+.segmentdef Code [start=$0900]
+.segmentdef Variables [start=$c000];
+.segmentdef Assets []
+.segmentdef Levels [start=$4d00];
+
+.segment Code "Load SID Music"
+
 .var music = LoadSid("./music/Calypso_Bar.sid")
+
+// TODO: Pack music and write memcpy to move it to Music Memory
 *=music.location "Music"
 .fill music.size, music.getData(i)
 
-* = $c000 "Main Program"
+//* = $c000 "Main Program"
+.segment Code "Main program"
 
 /*******************************************************************************
  GAMEPLAY CONSTANTS
@@ -46,7 +59,7 @@ game_over_text:
 * = * "Ball frame number pointer table"
 BallFramePtr:
 .for (var f = 0; f < 12; f++)
-    .word ($2300 + f*64) / 64
+    .word (ballSpriteStart + f*64) / 64
 
 BasicUpstart2(initialize)
 
@@ -508,6 +521,7 @@ level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_char
 }
 // -- Sprite Data --------------------------------------------------------------
 
+.segment Assets "Sprite bitmaps"
 * = $2180 "Paddle Sprite Data"
 paddleSpriteData:
 .byte %00000000,%00000000,%00000000
@@ -583,6 +597,7 @@ itemaLogoBall:
 // For animations we need $40 bytes between sprites
 
 * = $2300 "ball 1"
+ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
