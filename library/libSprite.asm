@@ -331,7 +331,7 @@ rts
 move_vertically:
     jsr get_flags           // Se if the "resting on paddle bit" is set
     and #%00000010
-    bne dont_move_vertically
+    bne resting_on_paddle
 
     jsr v_acceleration      // Apply vertical acceleration
     jsr get_yv
@@ -339,7 +339,11 @@ move_vertically:
     cmp #$00                // Compare with signed integer
     bmi up                  // Move up if value is negative
     bpl move_down           // Move down if value is positive
-    dont_move_vertically:
+
+resting_on_paddle:
+    lda #TopOfPaddle       // Keep resting balls aligned with the paddle surface
+    jsr store_yl
+dont_move_vertically:
 rts
 
 /*
