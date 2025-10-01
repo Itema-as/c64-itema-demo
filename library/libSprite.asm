@@ -1015,7 +1015,7 @@ advance_level:
         sta CurrentLevel
         // Get an extra life for finishing
         jsr gameIncreaseLives
-        // XXX: Play a nice tune
+        // XXX: Play a nice tune when rounding the game
 load_level:
     ldx CurrentLevel
     lda level_chars_lo,x
@@ -1039,6 +1039,10 @@ load_level:
 rts
 
 brick_updates:
+    // Only keep score when in game mode
+    lda mode
+    cmp MODE_GAME
+    bne end_brick_updates
     // We have scored one more point
     jsr gameIncreaseScore
     jsr gameUpdateScore
@@ -1046,6 +1050,7 @@ brick_updates:
     // Decrease the number of bricks
     dec BrickCount
     lda BrickCount
+    // Advance level if we have hit all the bricks
     bne end_brick_updates
     jsr advance_level
     end_brick_updates:
