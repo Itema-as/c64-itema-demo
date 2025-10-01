@@ -1039,8 +1039,7 @@ load_level:
 rts
 
 brick_updates:
-    // Deal with bug that causes the demo-mode to load next level when the
-    // number of brick reaches 0
+    // Only keep score when in game mode
     lda mode
     cmp MODE_GAME
     bne end_brick_updates
