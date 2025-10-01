@@ -927,6 +927,9 @@ rts
 
     // Is the fire button pressed?
 bounce_off_paddle_check_fire:
+    lda #TopOfPaddle       // Clamp captured balls to the paddle top before handling input
+    jsr store_yl
+
     lda bFireButtonPressed
     cmp #%00000000
     beq bounce_off_paddle_cont
