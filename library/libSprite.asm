@@ -80,6 +80,8 @@ ScreenMemHighByte:
     hardcoded screen positions.
 */
 .const TopOfPaddle          = 226
+.const BrickCollisionAxisVertical   = %00000001
+.const BrickCollisionAxisHorizontal = %00000010
 
 fire:
     .byte $0
@@ -97,6 +99,11 @@ temp2:
 column:
     .byte %00000000
 row:
+    .byte %00000000
+/*
+    Indicates which axis the latest brick collision touched.
+*/
+brickCollisionAxis:
     .byte %00000000
 
 /*
@@ -331,7 +338,7 @@ rts
 move_vertically:
     jsr get_flags           // Se if the "resting on paddle bit" is set
     and #%00000010
-    bne dont_move_vertically
+    bne resting_on_paddle
 
     jsr v_acceleration      // Apply vertical acceleration
     jsr get_yv
@@ -339,7 +346,11 @@ move_vertically:
     cmp #$00                // Compare with signed integer
     bmi up                  // Move up if value is negative
     bpl move_down           // Move down if value is positive
-    dont_move_vertically:
+
+resting_on_paddle:
+    lda #TopOfPaddle       // Keep resting balls aligned with the paddle surface
+    jsr store_yl
+dont_move_vertically:
 rts
 
 /*
@@ -557,6 +568,22 @@ change_to_move_left:
     jsr store_xv
 rts
 
+reverse_vertical_velocity:
+    jsr get_yv
+    eor #$ff
+    clc
+    adc #$01
+    jsr store_yv
+rts
+
+reverse_horizontal_velocity:
+    jsr get_xv
+    eor #$ff
+    clc
+    adc #$01
+    jsr store_xv
+rts
+
 /*
     Determine whether or not the current sprite is at the right edge of the
     screen.
@@ -595,30 +622,40 @@ rts
     Determine whether or not the ball has hit a game block
 */
 check_brick_collision:
+    lda #$00
+    sta brickCollisionAxis  // Reset the collision indicator
 
 /*
     See docs/ball.png
 
-    Pt = (6+6, 5)
-    Pb = (6+6, 5+10)
-    Pl = (6, 5+5)
-    Pr = (6+12, 5+5)
+    Pt = (6+6, 5)       TOP
+    Pb = (6+6, 5+10)    BOTTOM
+    Pl = (6, 5+5)       LEFT
+    Pr = (6+12, 5+5)    RIGHT
 */
 
     lda SpriteIndex
-    cmp #$00                    // Do not bother for the paddle, it will never
-                                // hit one of the bricks.
+    cmp #$00                // Do not bother for the paddle, it will never
+                            // hit one of the bricks.
     bne continue_check
     rts
 
     continue_check:
-        // Test Pt
+        lda #BrickCollisionAxisVertical
+        sta brickCollisionAxis
+        // Test Pt – TOP
         LIBSPRITE_COLLISION(12, 6)
-        // Test Pb
+        lda #BrickCollisionAxisVertical
+        sta brickCollisionAxis
+        // Test Pb – BOTTOM
         LIBSPRITE_COLLISION(12, 14)
-        // Test Pl
+        lda #BrickCollisionAxisHorizontal
+        sta brickCollisionAxis
+        // Test Pl - LEFT
         LIBSPRITE_COLLISION(6, 10)
-        // Test Pr
+        lda #BrickCollisionAxisHorizontal
+        sta brickCollisionAxis
+        // Test Pr - RIGHT
         LIBSPRITE_COLLISION(18, 10)
     rts
 
@@ -655,17 +692,33 @@ check_brick_collision:
         jsr brick_updates
 
     bounce_on_brick:
-        jsr get_yv
-        eor #$ff            // Flip the sign so that we get a positive number
-        clc
-        adc #$01            // fix after flip
-        jsr store_yv
+        lda brickCollisionAxis
+        bne bounce_on_brick_axis_ready
+        lda #(BrickCollisionAxisVertical | BrickCollisionAxisHorizontal)
+        sta brickCollisionAxis
 
+    bounce_on_brick_axis_ready:
+        lda brickCollisionAxis
+        and #BrickCollisionAxisVertical
+        beq bounce_on_brick_check_horizontal
+        jsr reverse_vertical_velocity
+
+    bounce_on_brick_check_horizontal:
+        lda brickCollisionAxis
+        and #BrickCollisionAxisHorizontal
+        beq bounce_on_brick_end
         jsr get_xv
-        eor #$ff            // Flip the sign so that we get a positive number
-        clc
-        adc #$01            // fix after flip
-        jsr store_xv
+        bne bounce_on_brick_apply_horizontal
+        lda brickCollisionAxis
+        and #BrickCollisionAxisVertical
+        bne bounce_on_brick_end
+        jsr reverse_vertical_velocity
+        jmp bounce_on_brick_end
+
+    bounce_on_brick_apply_horizontal:
+        jsr reverse_horizontal_velocity
+
+    bounce_on_brick_end:
         jmp end_char
 
     // Accelerates the ball leftwards
@@ -697,6 +750,8 @@ check_brick_collision:
         jmp end_char
 
     end_char:
+        lda #$00
+        sta brickCollisionAxis
 rts
 
 check_paddle_collision:
@@ -923,6 +978,9 @@ rts
 
     // Is the fire button pressed?
 bounce_off_paddle_check_fire:
+    lda #TopOfPaddle       // Clamp captured balls to the paddle top before handling input
+    jsr store_yl
+
     lda bFireButtonPressed
     cmp #%00000000
     beq bounce_off_paddle_cont
