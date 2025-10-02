@@ -29,7 +29,7 @@ found = False
 
 for index, value in enumerate(data[: width * height]):
   if value == needle:
-    x = (index % width) * 8 - 7 + 20
+    x = (index % width) * 8 +12
     y = (index // width) * 8 + 47
     print(f"{name}: value {needle} at x={x} y={y}")
     coords.extend((x, y))
