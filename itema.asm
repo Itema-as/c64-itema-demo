@@ -8,12 +8,49 @@
     - Torkild U. Resheim, tur@itema.no
 */
 
+// Include .prg file assembly segments
+.file [name="itema.prg", segments="Basic,Music,Code,Variables,Charset,Sprites,Levels,AnimationTable"]
+
+
+.segmentdef Basic [start=$0801];
+.segmentdef AnimationTable [startAfter="Basic"]
+.segmentdef Music [start=$1000];
+.segmentdef Sprites [start=$2000];
+.segmentdef Code [startAfter="Sprites"];
+.segmentdef Variables [startAfter="Code"];
+.segmentdef Charset [startAfter="Code", align=$800];
+.segmentdef Levels [startAfter="Charset"];
+
+
+/*******************************************************************************
+ BASIC UPSTART CODE
+*******************************************************************************/
+.segment Basic "Basic Upstart"
+BasicUpstart2(initialize)
+
+//.segment Code "Load SID Music"
+
+/*******************************************************************************
+ MUSIC
+*******************************************************************************/
 .var music = LoadSid("./music/Calypso_Bar.sid")
-*=music.location "Music"
+
+// TODO: Pack music and write memcpy to move it to music.location
+.segment Music "Music"
 .fill music.size, music.getData(i)
 
-* = $c000 "Main Program"
+#import "library/font.asm"
 
+/*******************************************************************************
+ GRAPHICS
+*******************************************************************************/
+.segment AnimationTable "Ball frame number pointer table"
+BallFramePtr:
+.for (var f = 0; f < 12; f++)
+    .word (ballSpriteStart + f*64) / 64
+
+
+.segment Code "Main program"
 /*******************************************************************************
  GAMEPLAY CONSTANTS
 *******************************************************************************/
@@ -38,18 +75,8 @@ game_over_text:
 #import "library/libSprite.asm"
 #import "library/libInput.asm"
 #import "library/libScreen.asm"
-#import "library/font.asm"
 
-/*******************************************************************************
- GRAPHICS
-*******************************************************************************/
-* = * "Ball frame number pointer table"
-BallFramePtr:
-.for (var f = 0; f < 12; f++)
-    .word (ballSpriteStart + f*64) / 64
-
-BasicUpstart2(initialize)
-
+.segment Code "Contd."
 /*******************************************************************************
  GAMEPLAY VARIABLES
 *******************************************************************************/
@@ -487,22 +514,28 @@ irq_1:
 /*******************************************************************************
  LOAD DATA
 *******************************************************************************/
-*=$4500 "Screens";
+
+.segment Levels "Level Data - Intro"
 .var l0 = LoadBinary("petscii/intro.bin")
 level0_chars:  .fill l0.getSize(), l0.get(i)
 
+.segment Levels "Level Data - Level 0"
 .var l1 = LoadBinary("petscii/level_0.bin")
 level1_chars:  .fill l1.getSize(), l1.get(i)
 
+.segment Levels "Level Data - Level 1"
 .var l2 = LoadBinary("petscii/level_1.bin")
 level2_chars:  .fill l2.getSize(), l2.get(i)
 
+.segment Levels "Level Data - Level 2"
 .var l3 = LoadBinary("petscii/level_2.bin")
 level3_chars:  .fill l3.getSize(), l3.get(i)
 
+.segment Levels "Level Data - Level 3"
 .var l4 = LoadBinary("petscii/level_3.bin")
 level4_chars:  .fill l4.getSize(), l4.get(i)
 
+.segment Levels "Level Data - Level 4"
 .var l5 = LoadBinary("petscii/level_4.bin")
 level5_chars:  .fill l5.getSize(), l5.get(i)
 
@@ -520,7 +553,8 @@ level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_char
 }
 // -- Sprite Data --------------------------------------------------------------
 
-* = $2180 "Paddle Sprite Data"
+.align $40
+.segment Sprites "Sprite - Paddle"
 paddleSpriteData:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -544,7 +578,8 @@ paddleSpriteData:
 .byte %11111111, %11111111, %11111111
 .byte %11111111, %11111111, %11111111
 
-* = $2200 "itemaLogoSwoosh"
+.align $40
+.segment Sprites "Itema Logo Swoosh" 
 itemaLogoSwoosh:
 .byte %00000000, %00000000, %00000000
 .byte %00000001, %11000001, %11000000
@@ -568,7 +603,8 @@ itemaLogoSwoosh:
 .byte %00000111, %11000010, %00000000
 .byte %00000000, %11111100, %00000000
 
-* = $2240 "itemaLogoBall"
+.align $40
+.segment Sprites "Itema Logo Ball" 
 itemaLogoBall:
 .byte %00000000, %00011100, %00000000
 .byte %00000000, %00111110, %00000000
@@ -594,7 +630,8 @@ itemaLogoBall:
 
 // For animations we need $40 bytes between sprites
 
-* = $2300 "ball 1"
+.align $40
+.segment Sprites "Ball Sprites"
 ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -617,7 +654,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
-* = $2340 "ball 2"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -640,7 +677,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 
-* = $2380 "ball 3"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -662,7 +699,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
-* = $23C0 "ball 4"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -685,7 +722,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 
-* = $2400 "ball 5"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -708,7 +745,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 
-* = $2440 "ball 6"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -731,7 +768,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 
-* = $2480 "ball 7"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -753,7 +790,8 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
-* = $24C0 "ball 8"
+
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -776,7 +814,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 
-* = $2500 "ball 9"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -799,7 +837,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 
-* = $2540 "ball 10"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -822,7 +860,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 
-* = $2580 "ball 11"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
@@ -845,7 +883,7 @@ ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 
-* = $25c0 "ball 12"
+.align $40
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
