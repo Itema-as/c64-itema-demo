@@ -1,5 +1,6 @@
 *=$3800 "Custom character set";
 
+charset:
   .byte %00011000
   .byte %00011000
   .byte %00011000

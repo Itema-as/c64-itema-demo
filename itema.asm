@@ -164,10 +164,22 @@ initialize:
 	/*
 	    Set character set pointer to our custom set, turn off
 	    multicolor for characters
+
+        The character set pointer is three bits (1-3) in $d018, indicating which $0800 (2048)
+        block is used.
+
+        $d018:  %----XXX-
+
+        To calculate: character set vector / $800 rotated/shifted left one bit
+
+        $d018 needs the bits masked, some of them are set at startup (default $1000 -> block 2 -> %----010-)
+
 	*/
+    .var charSlotBits = charset / $0800 << 1
 	
 	lda $d018
-	ora #%00001110         // Set chars location to $3800 for displaying the custom font
+    and #%11110001         // Mask the three charset location bits (1-3)
+    ora #charSlotBits      // Set chars location to 5 * $0800 = $2800 for displaying the custom font
 	sta $d018              // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
 	                       // $400 + $200*$0E = $3800
 	lda $d016              // Turn off multicolor for characters
