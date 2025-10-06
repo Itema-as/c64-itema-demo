@@ -46,7 +46,7 @@ game_over_text:
 * = * "Ball frame number pointer table"
 BallFramePtr:
 .for (var f = 0; f < 12; f++)
-    .word ($2300 + f*64) / 64
+    .word (ballSpriteStart + f*64) / 64
 
 BasicUpstart2(initialize)
 
@@ -583,6 +583,7 @@ itemaLogoBall:
 // For animations we need $40 bytes between sprites
 
 * = $2300 "ball 1"
+ballSpriteStart:
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
 .byte %00000000, %00000000, %00000000
