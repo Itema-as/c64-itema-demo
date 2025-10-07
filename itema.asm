@@ -8,12 +8,50 @@
     - Torkild U. Resheim, tur@itema.no
 */
 
+// Include .prg file assembly segments
+.file [name="itema.prg", segments="Basic,Music,Code,Variables,Charset,Sprites,Levels,AnimationTable"]
+
+
+.segmentdef Basic [start=$0801];
+.segmentdef AnimationTable [startAfter="Basic"]
+.segmentdef Music [start=$1000];
+.segmentdef Sprites [start=$2000];
+.segmentdef Code [startAfter="Sprites"];
+.segmentdef Variables [startAfter="Code"];
+.segmentdef Charset [startAfter="Code", align=$800];
+.segmentdef Levels [startAfter="Charset"];
+
+
+/*******************************************************************************
+ BASIC UPSTART CODE
+*******************************************************************************/
+.segment Basic "Basic Upstart"
+BasicUpstart2(initialize)
+
+//.segment Code "Load SID Music"
+
+/*******************************************************************************
+ MUSIC
+*******************************************************************************/
 .var music = LoadSid("./music/Calypso_Bar.sid")
-*=music.location "Music"
+
+// TODO: Pack music and write memcpy to move it to music.location
+.segment Music "Music"
 .fill music.size, music.getData(i)
 
-* = $c000 "Main Program"
+#import "library/font.asm"
+#import "library/sprites.asm"
 
+/*******************************************************************************
+ GRAPHICS
+*******************************************************************************/
+.segment AnimationTable "Ball frame number pointer table"
+BallFramePtr:
+.for (var f = 0; f < 12; f++)
+    .word (ballSpriteStart + f*64) / 64
+
+
+.segment Code "Main program"
 /*******************************************************************************
  GAMEPLAY CONSTANTS
 *******************************************************************************/
@@ -38,18 +76,8 @@ game_over_text:
 #import "library/libSprite.asm"
 #import "library/libInput.asm"
 #import "library/libScreen.asm"
-#import "library/font.asm"
 
-/*******************************************************************************
- GRAPHICS
-*******************************************************************************/
-* = * "Ball frame number pointer table"
-BallFramePtr:
-.for (var f = 0; f < 12; f++)
-    .word ($2300 + f*64) / 64
-
-BasicUpstart2(initialize)
-
+.segment Code "Contd."
 /*******************************************************************************
  GAMEPLAY VARIABLES
 *******************************************************************************/
@@ -164,10 +192,22 @@ initialize:
 	/*
 	    Set character set pointer to our custom set, turn off
 	    multicolor for characters
+
+        The character set pointer is three bits (1-3) in $d018, indicating which $0800 (2048)
+        block is used.
+
+        $d018:  %----XXX-
+
+        To calculate: character set vector / $800 rotated/shifted left one bit
+
+        $d018 needs the bits masked, some of them are set at startup (default $1000 -> block 2 -> %----010-)
+
 	*/
+    .var charSlotBits = charset / $0800 << 1
 	
 	lda $d018
-	ora #%00001110         // Set chars location to $3800 for displaying the custom font
+    and #%11110001         // Mask the three charset location bits (1-3)
+    ora #charSlotBits      // Set chars location to 5 * $0800 = $2800 for displaying the custom font
 	sta $d018              // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
 	                       // $400 + $200*$0E = $3800
 	lda $d016              // Turn off multicolor for characters
@@ -475,22 +515,28 @@ irq_1:
 /*******************************************************************************
  LOAD DATA
 *******************************************************************************/
-*=$4500 "Screens";
+
+.segment Levels "Level Data - Intro"
 .var l0 = LoadBinary("petscii/intro.bin")
 level0_chars:  .fill l0.getSize(), l0.get(i)
 
+.segment Levels "Level Data - Level 0"
 .var l1 = LoadBinary("petscii/level_0.bin")
 level1_chars:  .fill l1.getSize(), l1.get(i)
 
+.segment Levels "Level Data - Level 1"
 .var l2 = LoadBinary("petscii/level_1.bin")
 level2_chars:  .fill l2.getSize(), l2.get(i)
 
+.segment Levels "Level Data - Level 2"
 .var l3 = LoadBinary("petscii/level_2.bin")
 level3_chars:  .fill l3.getSize(), l3.get(i)
 
+.segment Levels "Level Data - Level 3"
 .var l4 = LoadBinary("petscii/level_3.bin")
 level4_chars:  .fill l4.getSize(), l4.get(i)
 
+.segment Levels "Level Data - Level 4"
 .var l5 = LoadBinary("petscii/level_4.bin")
 level5_chars:  .fill l5.getSize(), l5.get(i)
 
@@ -506,354 +552,3 @@ level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_char
     sta $ff
     jsr load_screen
 }
-// -- Sprite Data --------------------------------------------------------------
-
-* = $2180 "Paddle Sprite Data"
-paddleSpriteData:
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %11111111,%11111111,%11111111
-.byte %11111111,%11111111,%11111111
-.byte %11111111,%11111111,%11111111
-
-* = $2200 "itemaLogoSwoosh"
-itemaLogoSwoosh:
-.byte $00, $00, $00
-.byte $01, $C1, $C0
-.byte $07, $80, $70
-.byte $0E, $00, $38
-.byte $1C, $00, $1C
-.byte $38, $7C, $0C
-.byte $38, $7C, $0E
-.byte $70, $1C, $0E
-.byte $70, $1C, $0E
-.byte $70, $1C, $0E
-.byte $F0, $1C, $0E
-.byte $F0, $1C, $0E
-.byte $70, $1C, $1C
-.byte $70, $1C, $3C
-.byte $78, $1C, $78
-.byte $78, $1F, $E0
-.byte $3C, $1F, $C0
-.byte $1E, $1E, $00
-.byte $0F, $00, $00
-.byte $07, $C2, $00
-.byte $00, $FC, $00
-
-* = $2240 "itemaLogoSwoosh"
-itemaLogoBall:
-.byte $00, $1C, $00
-.byte $00, $3E, $00
-.byte $00, $3E, $00
-.byte $00, $1C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-// For animations we need $40 bytes between sprites
-
-* = $2300 "ball 1"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $9A, $00
-.byte $02, $6A, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AB, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $2340 "ball 2"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $96, $00
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AB, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $2380 "ball 3"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $A6, $00
-.byte $02, $A9, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AB, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $23C0 "ball 4"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $A9, $C0
-.byte $02, $A9, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AB, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $2400 "ball 5"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $A9, $C0
-.byte $02, $A9, $C0
-.byte $02, $AB, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $2440 "ball 6"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $A9, $C0
-.byte $02, $A9, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $2480 "ball 7"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AB, $C0
-.byte $02, $A9, $C0
-.byte $00, $A7, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $24C0 "ball 8"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AB, $C0
-.byte $02, $AB, $C0
-.byte $00, $97, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $2500 "ball 9"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AB, $C0
-.byte $02, $6B, $C0
-.byte $00, $9F, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $2540 "ball 10"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $6A, $C0
-.byte $02, $6B, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $2580 "ball 11"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $6A, $C0
-.byte $02, $6A, $C0
-.byte $02, $AB, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-
-* = $25c0 "ball 12"
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $28, $00
-.byte $00, $AA, $00
-.byte $02, $6A, $C0
-.byte $02, $6A, $C0
-.byte $02, $AA, $C0
-.byte $02, $AA, $C0
-.byte $02, $AB, $C0
-.byte $02, $AB, $C0
-.byte $00, $AF, $00
-.byte $00, $3C, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
-.byte $00, $00, $00
