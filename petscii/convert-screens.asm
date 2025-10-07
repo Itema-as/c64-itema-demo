@@ -59,7 +59,7 @@
   
 }
 
-#import "../library/font.asm"
+#import "font.asm"
 .var screen = LoadBinary("intro.seq")
 * = $4000 "Screen"; .fill screen.getSize(), screen.uget(i)
 * = $c000 "Program"
