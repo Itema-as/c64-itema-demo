@@ -16,6 +16,8 @@
 .label ZeroPage13 = $0E
 .label ZeroPage14 = $0F
 .label ZeroPage15 = $10
+.label ZP_PTR_LO  = $FE
+.label ZP_PTR_HI  = $FF
 
 // Character memory slots
 .label CharacterSlot0000 = $00 // $0000 hex,     0 decimal
@@ -47,9 +49,13 @@
 .label RASTER       = $D012
 .label SPENA        = $D015
 .label SCROLX       = $D016
+.label SPRYEXP      = $D017
 .label VMCSB        = $D018
+.label SPBGPR       = $D01B
 .label SPMC         = $D01C
+.label SPRXEXP      = $D01D
 .label SPSPCL       = $D01E
+.label SPBGCL       = $D01F
 .label EXTCOL       = $D020
 .label BGCOL0       = $D021
 .label BGCOL1       = $D022
@@ -58,6 +64,10 @@
 .label SPMC0        = $D025
 .label SPMC1        = $D026
 .label SP0COL       = $D027
+
+// SID Registers
+.label SIDBASE      = $D400
+.label SIDPOTX      = $D419
 
 // IRQ Registers
 .label VICIRQ       = $D019
@@ -85,6 +95,10 @@
 
 // Interrupt Routines
 .label IRQROMROUTINE = $EA31
+.label IRQROMEXIT    = $EA81
+
+// Kernal Routines
+.label KERNAL_CLRSCR = $E544
 
 .label VIS_SCREEN_LEFT = 24;
 .label VIS_SCREEN_TOP = 50;

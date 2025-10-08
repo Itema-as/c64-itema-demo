@@ -39,6 +39,7 @@ BasicUpstart2(initialize)
 .segment Music "Music"
 .fill music.size, music.getData(i)
 
+#import "library/libDefines.asm"
 #import "library/font.asm"
 #import "library/sprites.asm"
 
@@ -111,83 +112,83 @@ initialize:
     lda MODE_INTRO          // Start in the intro mode
     sta mode
 
-    jsr $e544               // Clear screen
+    jsr KERNAL_CLRSCR       // Clear screen
 
     lda #$00                // Set the background color for the game area
-    sta $d021
+    sta BGCOL0
     lda #$00                // Set the background color for the border
-    sta $d020
+    sta EXTCOL
 
     lda #%11001111          // Enable sprites
-    sta $d015
+    sta SPENA
 
     lda #%00111110          // Specify multicolor for the ball sprites
-    sta $d01c
+    sta SPMC
     lda #$01                // Color light gray
-    sta $d025               // Set shared multicolor #1
+    sta SPMC0               // Set shared multicolor #1
     lda #$0b                // Color dark gray
-    sta $d026               // Set shared multicolor #2
+    sta SPMC1               // Set shared multicolor #2
 
     lda #$00                // Disable xpand-y
-    sta $d017
+    sta SPRYEXP
 
     lda #$00                // Disable xpand-x
-    sta $d01d
+    sta SPRXEXP
 
     lda #$00                // Set sprite/background priority
-    sta $d01b
+    sta SPBGPR
 
     lda #$00
-    sta $d01e               // Init sprite collision
-    sta $d01f               // Init sprite collision
+    sta SPSPCL              // Init sprite collision
+    sta SPBGCL              // Init sprite collision
 
 
     lda #$01                // Set sprite #0 - the paddle individual color
-    sta $d027
+    sta SP0COL
     lda #$0c                // Set sprite #1 - ball individual color (medium gray)
-    sta $d028
+    sta SP0COL+1
     lda #$05                // Set sprite #2 - ball individual color
-    sta $d029
+    sta SP0COL+2
     lda #$06                // Set sprite #3 -ball individual color
-    sta $d02a
+    sta SP0COL+3
 
     lda #paddleSpriteData/64
-    sta $07f8               // Sprite #0 – the paddle
+    sta SPRITE0PTR          // Sprite #0 – the paddle
     
     lda #$03
     asl
     tay
     lda BallFramePtr,y
-    sta $07f9               // Sprite #1 - ball #1
-    sta $07fa               // Sprite #2 - ball #2
-    sta $07fb               // Sprite #3 - ball #3
+    sta SPRITE0PTR+1        // Sprite #1 - ball #1
+    sta SPRITE0PTR+2        // Sprite #2 - ball #2
+    sta SPRITE0PTR+3        // Sprite #3 - ball #3
 
 /*
     Itema Logo Sprites
 */
     lda #itemaLogoSwoosh/64
-    sta $07fe               // Sprite #6
+    sta SPRITE0PTR+6        // Sprite #6
     lda #itemaLogoBall/64
-    sta $07ff               // Sprite #7
+    sta SPRITE0PTR+7        // Sprite #7
 
     // Set MSB for sprite 6 and 7
-    lda $d010
+    lda MSIGX
     ora #%11000000
-    sta $d010
+    sta MSIGX
 
     // Position both sprites overlapping
     lda #$02
-    sta $d00c
-    sta $d00e
+    sta SP0X+$0C
+    sta SP0X+$0E
     lda #$d7
-    sta $d00d
-    sta $d00f
+    sta SP0Y+$0C
+    sta SP0Y+$0E
 
     // Set colors for the sprites in the Itema logo
     lda #$0f
-    sta $d02d
+    sta SP0COL+6
     lda #$0a
-    sta $d02e
+    sta SP0COL+7
 
 	/*
 	    Set character set pointer to our custom set, turn off
@@ -205,14 +206,14 @@ initialize:
 	*/
     .var charSlotBits = charset / $0800 << 1
 	
-	lda $d018
+	lda VMCSB
     and #%11110001         // Mask the three charset location bits (1-3)
     ora #charSlotBits      // Set chars location to 5 * $0800 = $2800 for displaying the custom font
-	sta $d018              // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
+	sta VMCSB              // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
 	                       // $400 + $200*$0E = $3800
-	lda $d016              // Turn off multicolor for characters
+	lda SCROLX             // Turn off multicolor for characters
 	and #%11101111         // by clearing bit #4 of $D016
-	sta $d016
+	sta SCROLX
 	
 	LOAD_SCREEN(0)         // Load the introduction screen
 
@@ -232,7 +233,7 @@ initialize_game_variables:
     lda #$01
     sta BallCount
     lda #%11000011          // Disable the balls we are not using
-    sta $d015
+    sta SPENA
     jsr reset_sprite_data
 rts
 
@@ -244,7 +245,7 @@ start_game:
     // Silence the SID
     ldx #$18
     clear_sid:
-    sta $d400,x             // Clear each SID register from $D400-$D418
+    sta SIDBASE,x           // Clear each SID register from $D400-$D418
     dex
     bpl clear_sid
 
@@ -273,7 +274,7 @@ rts
 demo_input:
     // test if the fire button on paddle 2 is pressed,
     // if so start the game instead of doing demo mode input
-    lda $dc01
+    lda CIAPRB
     and #%00000100          // left stick mask
     bne demo_input_continue
     jmp start_game
@@ -360,11 +361,11 @@ rts
  PLAYER/PADDLE INPUT
 *******************************************************************************/
 paddle_input:
-    lda $dc00               // Load value from CIA#1 Data Port A (pot lines are input)
+    lda CIAPRA              // Load value from CIA#1 Data Port A (pot lines are input)
     and #%01111111          // Set bit 0 to input for pot x (paddle 1)
-    sta $dc00               // Store the result back to Data Port A
+    sta CIAPRA              // Store the result back to Data Port A
 
-    lda $dc01               // Check whether the fire button is held
+    lda CIAPRB               // Check whether the fire button is held
     and #%00000100
     bne paddle_input_cont   // If not we'll just continue
 
@@ -373,7 +374,7 @@ paddle_input:
 
     paddle_input_cont:
 
-    lda $d419               // Load value from Paddle X pot
+    lda SIDPOTX             // Load value from Paddle X pot
     eor #$ff                // XOR with 255 to reverse the range
 
     // Update paddle position unless it will end up outside the playing area
@@ -399,23 +400,23 @@ init_irq:
     sei
     lda #<irq_1
     ldx #>irq_1
-    sta $0314
-    stx $0315               // Set interrupt addr
+    sta IRQRAMVECTOR
+    stx IRQRAMVECTOR+1      // Set interrupt addr
     lda #$7f
-    sta $dc0d               // Timer A off on cia1/kb
-    sta $dd0d               // Timer A off on cia2
+    sta CIAICR              // Timer A off on cia1/kb
+    sta CI2ICR              // Timer A off on cia2
     lda #$81
-    sta $d01a               // Raster interrupts on
+    sta IRQMSK              // Raster interrupts on
     /*
     lda #$1b                // Screen ctrl: default
-    sta $d011
+    sta SCROLY
     */
     lda #$01
-    sta $d012               // Interrupt at line 0
+    sta RASTER              // Interrupt at line 0
 
-    lda $dc0d               // Clrflg (cia1)
-    lda $dd0d               // Clrflg (cia2)
-    asl $d019               // Clr interrupt flag (just in case)
+    lda CIAICR              // Clrflg (cia1)
+    lda CI2ICR              // Clrflg (cia2)
+    asl VICIRQ              // Clr interrupt flag (just in case)
     cli
     rts
 
@@ -460,7 +461,7 @@ irq_1:
     sta BallCount
     jsr reset_sprite_data
     lda #%11001111          // Enable all the three balls
-    sta $d015
+    sta SPENA
 
     // Update the high score as it will have been overwritten
     jsr gameUpdateHighScore
@@ -490,13 +491,13 @@ irq_1:
         // Indicate that the fire button is pressed. We do this by giving the
         // paddle a nice color.
 	    lda #$01                // Set sprite #0 - the paddle individual color
-	    sta $d027
+	    sta SP0COL
         clc
         lda bFireButtonPressed
         cmp #%00000000
         beq next_sprite
         lda #$03                // Cyan is a pretty color
-        sta $d027               // Set sprite #0 - the paddle individual color
+        sta SP0COL              // Set sprite #0 - the paddle individual color
 
     next_sprite:
         lda SpriteIndex
@@ -509,8 +510,8 @@ irq_1:
         // Check whether or not any balls are colliding _after_ all the 
         // calculations and movements have been done for this frame. 
         jsr check_ball_collisions
-        asl $d019           // Clear interrupt flag
-        jmp $ea81           // set flag and end
+        asl VICIRQ          // Clear interrupt flag
+        jmp IRQROMEXIT      // set flag and end
 
 /*******************************************************************************
  LOAD DATA
@@ -547,8 +548,8 @@ level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_char
 .macro LOAD_SCREEN(index) {
     ldx #index
     lda level_chars_lo,x
-    sta $fe
+    sta ZP_PTR_LO
     lda level_chars_hi,x
-    sta $ff
+    sta ZP_PTR_HI
     jsr load_screen
 }
