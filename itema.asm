@@ -42,6 +42,7 @@ BasicUpstart2(initialize)
 #import "library/libDefines.asm"
 #import "library/font.asm"
 #import "library/sprites.asm"
+#import "library/sfx.asm"
 
 /*******************************************************************************
  GRAPHICS
@@ -249,6 +250,8 @@ start_game:
     dex
     bpl clear_sid
 
+    jsr sfx_init           // Reset the effect channel after silencing SID
+    jsr sfx_enable
 
     // Load the first level
     lda #$01
@@ -428,10 +431,14 @@ irq_1:
     // only play music when we are not in the game
     lda mode
     cmp MODE_GAME
-    beq music_done
+    bne irq_play_music
+    jsr sfx_update
+    jmp irq_audio_done
+
+irq_play_music:
     jsr music.play
 
-    music_done:
+irq_audio_done:
 
     jsr decide_on_input     // Decide whether or not to do the paddle or demo
                             // input.
@@ -457,6 +464,7 @@ irq_1:
     LOAD_SCREEN(0)
     lda MODE_INTRO
     sta mode
+    jsr sfx_disable
     lda #$03
     sta BallCount
     jsr reset_sprite_data

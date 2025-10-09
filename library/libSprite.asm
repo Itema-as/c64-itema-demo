@@ -494,6 +494,7 @@ rts
     controller is used.
 */
 ball_lost:
+    jsr sfx_play_ball_lost
     jsr gameDecreaseLives
     jsr gameUpdateLives
     
@@ -511,6 +512,7 @@ ball_lost:
     
     lda MODE_END
     sta mode                // Change to end of game mode
+    jsr sfx_disable
 
     // Show the end game text
     LIBSCREEN_TIMED_TEXT(game_over_text)
@@ -1004,6 +1006,12 @@ bounce_off_paddle_check_fire:
     jsr store_xa
     
     jsr get_flags           // Set the resting on paddle flag
+    sta temp
+    and #%00000010
+    bne bounce_flag_already_set
+    jsr sfx_play_paddle_hit
+bounce_flag_already_set:
+    lda temp
     ora #%00000010
     jsr store_flags
     FRAME_COLOR(3)          // Use the pretty color to indicate the state
@@ -1032,15 +1040,19 @@ bounce_off_paddle_check_fire:
 
         // The paddle button is pressed, so we're going to negate the effect
         // of the velocity loss when the ball hits the bat
-        clc
         lda bFireButtonPressed
         cmp #%00000000
-        beq bounce_end
+        beq bounce_play_normal
 
         // Add some extra velocity to the ball
         jsr get_yv          // Change the direction of the velocity
         sbc #VelocityLoss+8
         jsr store_yv
+        jsr sfx_play_paddle_power
+        jmp bounce_end
+
+    bounce_play_normal:
+        jsr sfx_play_paddle_hit
 
     bounce_end:
 rts
@@ -1058,6 +1070,8 @@ launch_ball:
     jsr store_yv            // that this will immediately switch to upward
                             // movement in the code labeled "bounce". Which is
                             // why this value is positive instead of negative.
+
+    jsr sfx_play_launch
 
     end_launch_ball:
 rts
@@ -1105,6 +1119,7 @@ brick_updates:
     jsr gameIncreaseScore
     jsr gameUpdateScore
     jsr gameUpdateHighScore
+    jsr sfx_play_brick_score
     // Decrease the number of bricks
     dec BrickCount
     lda BrickCount
