@@ -8,19 +8,24 @@
     - Torkild U. Resheim, tur@itema.no
 */
 
-// Include .prg file assembly segments
-.file [name="itema.prg", segments="Basic,Music,Code,Variables,Charset,Sprites,Levels,AnimationTable"]
+// Include .prg file assembly segments (ordered by runtime address)
+.file [name="itema.prg", segments="Basic,AnimationTable,Music,Sprites,Code,Variables,Charset,Levels"]
+
+.var music = LoadSid("./music/Calypso_Bar.sid")
 
 
 .segmentdef Basic [start=$0801];
 .segmentdef AnimationTable [startAfter="Basic"]
-.segmentdef Music [start=$1000];
-.segmentdef Sprites [start=$2000];
+.segmentdef Music [start=music.location];
+.segmentdef Sprites [start=$2000, align=$40];
 .segmentdef Code [startAfter="Sprites"];
 .segmentdef Variables [startAfter="Code"];
-.segmentdef Charset [startAfter="Code", align=$800];
+.segmentdef Charset [startAfter="Variables", align=$800];
 .segmentdef Levels [startAfter="Charset"];
 
+// TODO: Pack music and write memcpy to move it to music.location
+.segment Music "Music"
+.fill music.size, music.getData(i)
 
 /*******************************************************************************
  BASIC UPSTART CODE
@@ -33,11 +38,6 @@ BasicUpstart2(initialize)
 /*******************************************************************************
  MUSIC
 *******************************************************************************/
-.var music = LoadSid("./music/Calypso_Bar.sid")
-
-// TODO: Pack music and write memcpy to move it to music.location
-.segment Music "Music"
-.fill music.size, music.getData(i)
 
 #import "library/libDefines.asm"
 #import "library/font.asm"
