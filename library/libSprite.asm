@@ -1107,7 +1107,7 @@ load_level:
     lda StartingYPosition
     sta SpriteMem+9
     LIBSCREEN_TIMED_TEXT(get_ready_text)
-    // XXX: Play a different nice tune
+    jsr sfx_play_level_start
 rts
 
 brick_updates:

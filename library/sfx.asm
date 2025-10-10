@@ -11,7 +11,8 @@
 .const SFX_ID_PADDLE_HIT       = 2
 .const SFX_ID_PADDLE_POWER     = 3
 .const SFX_ID_BALL_LOST        = 4
-.const SFX_ID_COUNT            = 5
+.const SFX_ID_LEVEL_START      = 5
+.const SFX_ID_COUNT            = 6
 
 // Voice 3 register aliases
 .label SFX_FREQ_LO             = SIDBASE + $0E
@@ -93,6 +94,11 @@ sfx_play_paddle_power:
 
 sfx_play_ball_lost:
     lda #SFX_ID_BALL_LOST
+    bne sfx_trigger
+
+sfx_play_level_start:
+    lda #SFX_ID_LEVEL_START
+    bne sfx_trigger
 
 sfx_trigger:
     pha
@@ -211,6 +217,7 @@ sfxDescriptorTableLo:
     .byte <sfxPaddleDescriptor
     .byte <sfxPaddlePowerDescriptor
     .byte <sfxBallLostDescriptor
+    .byte <sfxLevelStartDescriptor
 
 sfxDescriptorTableHi:
     .byte >sfxLaunchDescriptor
@@ -218,6 +225,7 @@ sfxDescriptorTableHi:
     .byte >sfxPaddleDescriptor
     .byte >sfxPaddlePowerDescriptor
     .byte >sfxBallLostDescriptor
+    .byte >sfxLevelStartDescriptor
 
 sfxLaunchDescriptor:
     .byte $26               // Attack/decay: A=$2, D=$6 for moderate bite
@@ -253,6 +261,13 @@ sfxBallLostDescriptor:
     .byte $00               // Pulse width lo (triangle waveform)
     .byte $00               // Pulse width hi placeholder
     .word sfxBallLostSteps
+
+sfxLevelStartDescriptor:
+    .byte $14               // Quick attack with moderate decay for melodic stab
+    .byte $42               // Medium sustain, short release to separate notes
+    .byte $00               // Pulse width lo (triangle waveform)
+    .byte $00               // Pulse width hi unused
+    .word sfxLevelStartSteps
 
 // Sound effect step tables ----------------------------------------------------
 
@@ -294,4 +309,15 @@ sfxBallLostSteps:
     SFX_STEP(6, $1000, $11)
     SFX_STEP(6, $0C00, $11)
     SFX_STEP(6, $0800, $10)
+    .byte 0
+
+// New level melody (bright arpeggio)
+sfxLevelStartSteps:
+    SFX_STEP(5, $1167, $11)
+    SFX_STEP(1, $1167, $10)
+    SFX_STEP(5, $15ED, $11)
+    SFX_STEP(1, $15ED, $10)
+    SFX_STEP(5, $1A13, $11)
+    SFX_STEP(7, $22CE, $11)
+    SFX_STEP(4, $22CE, $10)
     .byte 0
