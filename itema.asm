@@ -64,11 +64,14 @@ BallFramePtr:
  // When launching the ball from the paddle
 .const LAUNCH_VELOCITY = $60
  
-// 
-.const PaddleWidth = 24         // Paddle width
-.const PaddleCenter = 12        // The centre of the paddle
-.const PaddleAngle  = 17        // Centre + adjustment for a nice angle
-.const PaddleAngleDemo  = 8     // The angle to use when alternating in intro
+// Paddle width
+.const PaddleWidth = 32
+// The centre of the paddle
+.const PaddleCenter = 16
+// Center of the paddle + 1/2 the width of the ball
+.const PaddleReach= PaddleCenter+6
+// The angle to use when alternating in intro
+.const PaddleAngleDemo  = 8
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
@@ -121,51 +124,51 @@ StartingYPosition:
 *******************************************************************************/
 initialize:
 
-    lda MODE_INTRO          // Start in the intro mode
+    lda MODE_INTRO              // Start in the intro mode
     sta mode
 
-    jsr KERNAL_CLRSCR       // Clear screen
+    jsr KERNAL_CLRSCR           // Clear screen
 
-    lda #$00                // Set the background color for the game area
+    lda #$00                    // Set the background color for the game area
     sta BGCOL0
-    lda #$00                // Set the background color for the border
+    lda #$00                    // Set the background color for the border
     sta EXTCOL
 
-    lda #%11001111          // Enable sprites
+    lda #%11001111              // Enable sprites
     sta SPENA
 
-    lda #%00111110          // Specify multicolor for the ball sprites
+    lda #%00111110              // Specify multicolor for the ball sprites
     sta SPMC
-    lda #$01                // Color light gray
-    sta SPMC0               // Set shared multicolor #1
-    lda #$0b                // Color dark gray
-    sta SPMC1               // Set shared multicolor #2
+    lda #$01                    // Color light gray
+    sta SPMC0                   // Set shared multicolor #1
+    lda #$0b                    // Color dark gray
+    sta SPMC1                   // Set shared multicolor #2
 
-    lda #$00                // Disable xpand-y
+    lda #$00                    // Disable xpand-y
     sta SPRYEXP
 
-    lda #$00                // Disable xpand-x
+    lda #%00000001              // Expand horizontally for wider paddle
     sta SPRXEXP
 
-    lda #$00                // Set sprite/background priority
+    lda #$00                    // Set sprite/background priority
     sta SPBGPR
 
     lda #$00
-    sta SPSPCL              // Init sprite collision
-    sta SPBGCL              // Init sprite collision
+    sta SPSPCL                  // Init sprite collision
+    sta SPBGCL                  // Init sprite collision
 
 
-    lda #$01                // Set sprite #0 - the paddle individual color
+    lda #$01                    // Set sprite #0 - the paddle individual color
     sta SP0COL
-    lda #$0c                // Set sprite #1 - ball individual color (medium gray)
+    lda #$0c                    // Set sprite #1 - ball individual color (medium gray)
     sta SP0COL+1
-    lda #$05                // Set sprite #2 - ball individual color
+    lda #$05                    // Set sprite #2 - ball individual color
     sta SP0COL+2
-    lda #$06                // Set sprite #3 -ball individual color
+    lda #$06                    // Set sprite #3 -ball individual color
     sta SP0COL+3
 
     lda #paddleSpriteData/64
-    sta SPRITE0PTR          // Sprite #0 – the paddle
+    sta SPRITE0PTR              // Sprite #0 – the paddle
     
     lda #$03
     asl

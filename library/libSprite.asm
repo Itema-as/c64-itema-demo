@@ -778,14 +778,14 @@ check_paddle_collision:
 
     sec
     lda reslo
-    sbc #PaddleAngle
+    sbc #PaddleReach
     sta reslo
 
     bpl right_of_paddle     // The ball is on the right side of the padde
 
     clc
     lda balllo
-    adc #PaddleAngle
+    adc #PaddleReach
     sta balllo
 
     sec
