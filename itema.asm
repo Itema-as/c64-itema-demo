@@ -8,19 +8,24 @@
     - Torkild U. Resheim, tur@itema.no
 */
 
-// Include .prg file assembly segments
-.file [name="itema.prg", segments="Basic,Music,Code,Variables,Charset,Sprites,Levels,AnimationTable"]
+// Include .prg file assembly segments (ordered by runtime address)
+.file [name="itema.prg", segments="Basic,AnimationTable,Music,Sprites,Code,Variables,Charset,Levels"]
+
+.var music = LoadSid("./music/Calypso_Bar.sid")
 
 
 .segmentdef Basic [start=$0801];
 .segmentdef AnimationTable [startAfter="Basic"]
-.segmentdef Music [start=$1000];
-.segmentdef Sprites [start=$2000];
+.segmentdef Music [start=music.location];
+.segmentdef Sprites [start=$2000, align=$40];
 .segmentdef Code [startAfter="Sprites"];
 .segmentdef Variables [startAfter="Code"];
-.segmentdef Charset [startAfter="Code", align=$800];
+.segmentdef Charset [startAfter="Variables", align=$800];
 .segmentdef Levels [startAfter="Charset"];
 
+// TODO: Pack music and write memcpy to move it to music.location
+.segment Music "Music"
+.fill music.size, music.getData(i)
 
 /*******************************************************************************
  BASIC UPSTART CODE
@@ -33,15 +38,11 @@ BasicUpstart2(initialize)
 /*******************************************************************************
  MUSIC
 *******************************************************************************/
-.var music = LoadSid("./music/Calypso_Bar.sid")
-
-// TODO: Pack music and write memcpy to move it to music.location
-.segment Music "Music"
-.fill music.size, music.getData(i)
 
 #import "library/libDefines.asm"
 #import "library/font.asm"
 #import "library/sprites.asm"
+#import "library/sfx.asm"
 
 /*******************************************************************************
  GRAPHICS
@@ -249,6 +250,8 @@ start_game:
     dex
     bpl clear_sid
 
+    jsr sfx_init           // Reset the effect channel after silencing SID
+    jsr sfx_enable
 
     // Load the first level
     lda #$01
@@ -428,10 +431,14 @@ irq_1:
     // only play music when we are not in the game
     lda mode
     cmp MODE_GAME
-    beq music_done
+    bne irq_play_music
+    jsr sfx_update
+    jmp irq_audio_done
+
+irq_play_music:
     jsr music.play
 
-    music_done:
+irq_audio_done:
 
     jsr decide_on_input     // Decide whether or not to do the paddle or demo
                             // input.
@@ -457,6 +464,7 @@ irq_1:
     LOAD_SCREEN(0)
     lda MODE_INTRO
     sta mode
+    jsr sfx_disable
     lda #$03
     sta BallCount
     jsr reset_sprite_data
