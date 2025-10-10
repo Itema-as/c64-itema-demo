@@ -234,10 +234,10 @@ sfxBrickDescriptor:
     .word sfxBrickSteps
 
 sfxPaddleDescriptor:
-    .byte $34               // Softer attack/decay to hint a damped bounce
-    .byte $26               // Sustain/release tuned for gentle tail
-    .byte $00               // Pulse width lo unused (saw waveform)
-    .byte $00               // Pulse width hi unused
+    .byte $12               // Quick attack/decay to emphasize a sharp impact
+    .byte $25               // Low sustain with a brief release for thudding tail
+    .byte $00               // Pulse width lo for follow-up pulse body
+    .byte $08               // Pulse width hi (roughly 50% duty cycle)
     .word sfxPaddleSteps
 
 sfxPaddlePowerDescriptor:
@@ -271,11 +271,13 @@ sfxBrickSteps:
     SFX_STEP(2, $0000, $80)
     .byte 0
 
-// Soft paddle contact
+// Soft paddle contact with percussive "whack"
 sfxPaddleSteps:
-    SFX_STEP(2, $0B00, $21)
-    SFX_STEP(2, $0900, $21)
-    SFX_STEP(2, $0700, $20)
+    SFX_STEP(1, $4800, $81)
+    SFX_STEP(1, $4800, $80)
+    SFX_STEP(1, $1C00, $41)
+    SFX_STEP(2, $1400, $41)
+    SFX_STEP(2, $0C00, $40)
     .byte 0
 
 // Powered paddle smash
