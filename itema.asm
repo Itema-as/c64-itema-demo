@@ -33,12 +33,6 @@
 .segment Basic "Basic Upstart"
 BasicUpstart2(initialize)
 
-//.segment Code "Load SID Music"
-
-/*******************************************************************************
- MUSIC
-*******************************************************************************/
-
 #import "library/libDefines.asm"
 #import "library/font.asm"
 #import "library/sprites.asm"
