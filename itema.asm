@@ -60,9 +60,20 @@ BallFramePtr:
 .const MODE_GAME  = $00     // Actually play the game
 .const MODE_INTRO = $01     // Show intro screen and demo mode
 .const MODE_END   = $02     // Game has just ended
- 
+
  // When launching the ball from the paddle
 .const LAUNCH_VELOCITY = $60
+ 
+// 
+.const PaddleWidth = 24         // Paddle width
+.const PaddleCenter = 12        // The centre of the paddle
+.const PaddleAngle  = 17        // Centre + adjustment for a nice angle
+.const PaddleAngleDemo  = 8     // The angle to use when alternating in intro
+ 
+// Minumum and maximum x-values for the paddle to stay within the game arena
+.const PaddleLeftBounds = 26
+.const PaddleRightBounds = 230 - PaddleWidth
+ 
 
 get_ready_text:
     .text "get ready!"
@@ -337,16 +348,16 @@ demo_input_continue:
     demo_input_left:
         clc
         lda SpriteMem
-        sbc #$08
+        sbc #PaddleAngleDemo
         sta SpriteMem
         jsr handle_paddle_bounds
         rts
 
     demo_input_right:
         lda SpriteMem
-        adc #$08
+        adc #PaddleAngleDemo
         sta SpriteMem
-        jsr handle_paddle_bounds // XXX: Move to separate (without store_xl)
+        jsr handle_paddle_bounds
         rts
 
 decide_on_input:
@@ -383,17 +394,17 @@ paddle_input:
     // Update paddle position unless it will end up outside the playing area
     handle_paddle_bounds:
     clc
-    cmp #$1a                // Compare with the minimum value
+    cmp #PaddleLeftBounds   // Compare with the minimum value
     bcs piNotLess           // If carry is set (number >= minValue), branch to piNotLess
-    lda #$1a                // If carry is clear (number < minValue), load the minimum value into the accumulator
+    lda #PaddleLeftBounds   // If carry is clear (number < minValue), load the minimum value into the accumulator
     piNotLess:
     clc
     // Now check if the number is greater than the maximum value
-    cmp #$ce                // Compare with the maximum value
-    bcc piNotGreater        // If carry is clear (number < maxValue), branch to piNotGreater
-    lda #$ce                // If carry is set (number >= maxValue), load the maximum value into the accumulator
+    cmp #PaddleRightBounds      // Compare with the maximum value
+    bcc piNotGreater            // If carry is clear (number < maxValue), branch to piNotGreater
+    lda #PaddleRightBounds      // If carry is set (number >= maxValue), load the maximum value into the accumulator
     piNotGreater:
-    sta SpriteMem           // Store the paddle x-position
+    sta SpriteMem               // Store the paddle x-position
 rts
 
 /*******************************************************************************
