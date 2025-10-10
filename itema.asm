@@ -64,12 +64,16 @@ BallFramePtr:
  // When launching the ball from the paddle
 .const LAUNCH_VELOCITY = $60
  
-// Paddle width
+// Offset from the left edge of the sprite to the left edge of the ball
+.const BallOffset = 6
+// The width of the ball
+.const BallWidth = 12
+// The width of the Paddle
 .const PaddleWidth = 32
 // The centre of the paddle
 .const PaddleCenter = 16
 // Center of the paddle + 1/2 the width of the ball
-.const PaddleReach= PaddleCenter+6
+.const PaddleReach= PaddleCenter + ( BallWidth / 2 )
 // The angle to use when alternating in intro
 .const PaddleAngleDemo  = 8
  
