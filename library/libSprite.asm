@@ -1028,7 +1028,21 @@ bounce_flag_already_set:
 
         // Add effect of a slightly tilted paddle in order to control exit angle
         jsr get_xl
-        sbc SpriteMem
+        clc
+        adc #BallOffset
+        sta temp1
+        lda #BallWidth
+        lsr                     // use half the ball width to find the centre
+        clc
+        adc temp1
+        sta temp1
+        lda SpriteMem
+        clc
+        adc #PaddleCenter
+        sta temp2
+        lda temp1
+        sec
+        sbc temp2
         rol
         rol
         jsr store_xv
