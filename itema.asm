@@ -95,8 +95,6 @@ game_over_text:
 /*******************************************************************************
  GAMEPLAY VARIABLES
 *******************************************************************************/
-//BALLS:
-    //.byte $03               // It gets really slow at 4
 mode:
     .byte $00
 
@@ -244,25 +242,25 @@ jmp loop
 */
 initialize_game_variables:
     lda #$01
-    sta BallCount
-    lda #%11000011          // Disable the balls we are not using
+    sta BallCount               // We start with only one ball
+    lda #%11000011              // Disable the balls we are not using
     sta SPENA
     jsr reset_sprite_data
 rts
 
 start_game:
-    lda MODE_GAME           // Quit demo mode
+    lda MODE_GAME               // Quit demo mode
     sta mode
     jsr initialize_game_variables
 
     // Silence the SID
     ldx #$18
     clear_sid:
-    sta SIDBASE,x           // Clear each SID register from $D400-$D418
+    sta SIDBASE,x               // Clear each SID register from $D400-$D418
     dex
     bpl clear_sid
 
-    jsr sfx_init           // Reset the effect channel after silencing SID
+    jsr sfx_init                // Reset the effect channel after silencing SID
     jsr sfx_enable
 
     // Load the first level
@@ -290,54 +288,54 @@ demo_input:
     // test if the fire button on paddle 2 is pressed,
     // if so start the game instead of doing demo mode input
     lda CIAPRB
-    and #%00000100          // left stick mask
+    and #%00000100              // left stick mask
     bne demo_input_continue
     jmp start_game
 
 demo_input_continue:
 
     // figure out which ball is lowest
-    lda SpriteMem+8         // ball 1 - xl
-    sta SpriteMem           // paddle - xl
+    lda SpriteMem+8             // ball 1 - xl
+    sta SpriteMem               // paddle - xl
 
-    lda SpriteMem+9         // ball 1 - yl
+    lda SpriteMem+9             // ball 1 - yl
     clc
-    sbc SpriteMem+17        // ball 2 - yl
+    sbc SpriteMem+17            // ball 2 - yl
     bcc ball_2_is_lower_than_ball_1
 
-    lda SpriteMem+9         // ball 1 - yl
+    lda SpriteMem+9             // ball 1 - yl
     clc
-    sbc SpriteMem+25        // ball 3 - yl
+    sbc SpriteMem+25            // ball 3 - yl
     bcc ball_3_is_lower_than_ball_1
 
     // if we reach here, ball 1 is lowest
-    lda SpriteMem+8         // ball 1 - xl
+    lda SpriteMem+8             // ball 1 - xl
     sta SpriteMem
     jmp end_ball_comparison
 
     // determine whether ball 3 is lower than ball 2
     ball_2_is_lower_than_ball_1:
-      lda SpriteMem+17      // ball 2 - yl
+      lda SpriteMem+17          // ball 2 - yl
       clc
-      sbc SpriteMem+25      // ball 3 - yl
+      sbc SpriteMem+25          // ball 3 - yl
       bcc ball_3_is_lower_than_ball_2
 
       // if we reach here, ball 2 is lowest
-      lda SpriteMem+16      // ball 2 - xl
+      lda SpriteMem+16          // ball 2 - xl
       sta SpriteMem
-      lda SpriteMem+17      // ball 2 - yl
+      lda SpriteMem+17          // ball 2 - yl
       jmp end_ball_comparison
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_1:
-      lda SpriteMem+24      // ball 3 - xl
+      lda SpriteMem+24          // ball 3 - xl
       sta SpriteMem
-      lda SpriteMem+25      // ball 3 - yl
+      lda SpriteMem+25          // ball 3 - yl
       jmp end_ball_comparison
 
     // ball 3 is lowest
     ball_3_is_lower_than_ball_2:
-      lda SpriteMem+24      // ball 3 - xl
+      lda SpriteMem+24          // ball 3 - xl
       sta SpriteMem
       lda SpriteMem+25      // ball 3 - yl
 
@@ -368,36 +366,36 @@ decide_on_input:
 
     lda mode
     cmp MODE_INTRO
-    beq demo_input          // If we are in demo mode we do the demo input
-    jmp paddle_input        // Otherwise do paddle input
+    beq demo_input              // If we are in demo mode we do the demo input
+    jmp paddle_input            // Otherwise do paddle input
 rts
 
 /*******************************************************************************
  PLAYER/PADDLE INPUT
 *******************************************************************************/
 paddle_input:
-    lda CIAPRA              // Load value from CIA#1 Data Port A (pot lines are input)
-    and #%01111111          // Set bit 0 to input for pot x (paddle 1)
-    sta CIAPRA              // Store the result back to Data Port A
+    lda CIAPRA                  // Load value from CIA#1 Data Port A (pot lines are input)
+    and #%01111111              // Set bit 0 to input for pot x (paddle 1)
+    sta CIAPRA                  // Store the result back to Data Port A
 
-    lda CIAPRB               // Check whether the fire button is held
+    lda CIAPRB                  // Check whether the fire button is held
     and #%00000100
-    bne paddle_input_cont   // If not we'll just continue
+    bne paddle_input_cont       // If not we'll just continue
 
     lda #%00000001
     sta bFireButtonPressed
 
     paddle_input_cont:
 
-    lda SIDPOTX             // Load value from Paddle X pot
-    eor #$ff                // XOR with 255 to reverse the range
+    lda SIDPOTX                 // Load value from Paddle X pot
+    eor #$ff                    // XOR with 255 to reverse the range
 
     // Update paddle position unless it will end up outside the playing area
     handle_paddle_bounds:
     clc
-    cmp #PaddleLeftBounds   // Compare with the minimum value
-    bcs piNotLess           // If carry is set (number >= minValue), branch to piNotLess
-    lda #PaddleLeftBounds   // If carry is clear (number < minValue), load the minimum value into the accumulator
+    cmp #PaddleLeftBounds       // Compare with the minimum value
+    bcs piNotLess               // If carry is set (number >= minValue), branch to piNotLess
+    lda #PaddleLeftBounds       // If carry is clear (number < minValue), load the minimum value into the accumulator
     piNotLess:
     clc
     // Now check if the number is greater than the maximum value
@@ -416,22 +414,22 @@ init_irq:
     lda #<irq_1
     ldx #>irq_1
     sta IRQRAMVECTOR
-    stx IRQRAMVECTOR+1      // Set interrupt addr
+    stx IRQRAMVECTOR+1          // Set interrupt addr
     lda #$7f
-    sta CIAICR              // Timer A off on cia1/kb
-    sta CI2ICR              // Timer A off on cia2
+    sta CIAICR                  // Timer A off on cia1/kb
+    sta CI2ICR                  // Timer A off on cia2
     lda #$81
-    sta IRQMSK              // Raster interrupts on
+    sta IRQMSK                  // Raster interrupts on
     /*
-    lda #$1b                // Screen ctrl: default
+    lda #$1b                    // Screen ctrl: default
     sta SCROLY
     */
     lda #$01
-    sta RASTER              // Interrupt at line 0
+    sta RASTER                  // Interrupt at line 0
 
-    lda CIAICR              // Clrflg (cia1)
-    lda CI2ICR              // Clrflg (cia2)
-    asl VICIRQ              // Clr interrupt flag (just in case)
+    lda CIAICR                  // Clrflg (cia1)
+    lda CI2ICR                  // Clrflg (cia2)
+    asl VICIRQ                  // Clr interrupt flag (just in case)
     cli
     rts
 
@@ -452,14 +450,13 @@ irq_play_music:
 
 irq_audio_done:
 
-    jsr decide_on_input     // Decide whether or not to do the paddle or demo
-                            // input.
+    jsr decide_on_input         // Decide whether or not to do the paddle or demo input
 
     lda textTimer
-    beq start_loop          // Jump if there is not a timer running (textTimer == 0)
-    dec textTimer           // Count down the display text timer
-    bne start_loop          // If not yet "0" run the timed text loop
-    jsr clear_timed_text    // Replace the text with the original background
+    beq start_loop              // Jump if there is not a timer running (textTimer == 0)
+    dec textTimer               // Count down the display text timer
+    bne start_loop              // If not yet "0" run the timed text loop
+    jsr clear_timed_text        // Replace the text with the original background
 
     // The end game mode will show a timed text, allow the paddle to be moved
     // but will not animate the balls
@@ -480,7 +477,7 @@ irq_audio_done:
     lda #$03
     sta BallCount
     jsr reset_sprite_data
-    lda #%11001111          // Enable all the three balls
+    lda #%11001111              // Enable all the three balls
     sta SPENA
 
     // Update the high score as it will have been overwritten
@@ -494,14 +491,14 @@ irq_audio_done:
     // Allow the paddle to move while showing the text, but do not do normal ball movement
     animation_loop:
         lda textTimer
-        beq normal_motion   // Jump if there is not a timer running (textTimer == 0)
-        lda SpriteIndex     // Load the current sprite
-        beq normal_motion   // If equals "0" (the paddle) we do normal motion
-        jsr draw_sprite     // Draw the paddle sprite
-        jmp next_sprite     // Move other sprites (balls)
+        beq normal_motion       // Jump if there is not a timer running (textTimer == 0)
+        lda SpriteIndex         // Load the current sprite
+        beq normal_motion       // If equals "0" (the paddle) we do normal motion
+        jsr draw_sprite         // Draw the paddle sprite
+        jmp next_sprite         // Move other sprites (balls)
 
     normal_motion:
-        jsr follow_paddle   // in case the ball has been captured
+        jsr follow_paddle       // in case the ball has been captured
         jsr move_vertically
         jsr move_horizontally
         jsr draw_sprite
@@ -530,8 +527,8 @@ irq_audio_done:
         // Check whether or not any balls are colliding _after_ all the 
         // calculations and movements have been done for this frame. 
         jsr check_ball_collisions
-        asl VICIRQ          // Clear interrupt flag
-        jmp IRQROMEXIT      // set flag and end
+        asl VICIRQ              // Clear interrupt flag
+        jmp IRQROMEXIT          // set flag and end
 
 /*******************************************************************************
  LOAD DATA
