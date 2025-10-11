@@ -535,14 +535,16 @@ rts
 */
 follow_paddle:
     lda SpriteIndex
-    beq follow_paddle_end   // Ignore the paddle
+    beq follow_paddle_end       // Ignore the paddle
 
-    jsr get_flags           // Se if the resting on paddle bit is set
+    jsr get_flags               // Se if the resting on paddle bit is set
     and #%00000010
-    beq follow_paddle_end   // If not we don't follow the paddle
+    beq follow_paddle_end       // If not we don't follow the paddle
 
-    lda SpriteMem           // Paddle X position
+    // Center the ball on the paddle
     clc
+    lda SpriteMem               // Paddle X position
+    adc #BallOffset-2
     jsr store_xl
 
     follow_paddle_end:
