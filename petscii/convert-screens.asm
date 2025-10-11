@@ -15,6 +15,7 @@
 .const SRC_PTR = $FB
 .const END_PTR = $FD
 
+
 .macro WAIT()
 {
     // wait one full frame
@@ -62,69 +63,7 @@
 #import "font.asm"
 .var screen = LoadBinary("intro.seq")
 * = $4000 "Screen"; .fill screen.getSize(), screen.uget(i)
-* = $c000 "Program"
 
-BasicUpstart2(initialize)
-
-initialize:
-
-    lda #%11000000          // Enable sprites
-    sta $d015
-
-    lda #itemaLogoSwoosh/64
-    sta $07fe               // Sprite #6
-    lda #itemaLogoBall/64
-    sta $07ff               // Sprite #7
-
-    // Set MSB for sprite 6 and 7
-    lda $d010
-    ora #%11000000
-    sta $d010
-
-    // Position both sprites overlapping
-    lda #$02
-    sta $d00c
-    sta $d00e
-    lda #$d7
-    sta $d00d
-    sta $d00f
-
-    // Set colors for the sprites in the Itema logo
-    lda #$0f
-    sta $d02d
-    lda #$0a
-    sta $d02e
-
-    lda #$00        // Set the background color for the game area
-    sta $d021
-    lda #$00        // Set the background color for the border
-    sta $d020
-
-    ldx #$00
-    lda #$00
-clear_screen_and_color:
-    sta $0400,x
-    sta $0500,x
-    sta $0600,x
-    sta $0700,x
-    sta $d800,x
-    sta $d900,x
-    sta $da00,x
-    sta $db00,x
-    inx
-    bne clear_screen_and_color
-
-    LOADSEQ($4000,screen.getSize()-2)
-
-    lda #$1e
-    sta $d018
-
-    WAIT()
-    WAIT()
-
-    loop:
-    jmp loop
-    
 * = $2200 "itemaLogoSwoosh"
 itemaLogoSwoosh:
 .byte $00, $00, $00
@@ -173,3 +112,66 @@ itemaLogoBall:
 .byte $00, $00, $00
 .byte $00, $00, $00
 
+* = $c000 "Program"
+
+
+BasicUpstart2(initialize)
+
+initialize:
+
+    lda #%11000000          // Enable sprites
+    sta $d015
+
+    // Set colors for the sprites in the Itema logo
+    lda #$0f
+    sta $d02d
+    lda #$0a
+    sta $d02e
+
+    lda #$00        // Set the background color for the game area
+    sta $d021
+    lda #$00        // Set the background color for the border
+    sta $d020
+
+    ldx #$00
+    lda #$00
+clear_screen_and_color:
+    sta $0400,x
+    sta $0500,x
+    sta $0600,x
+    sta $0700,x
+    sta $d800,x
+    sta $d900,x
+    sta $da00,x
+    sta $db00,x
+    inx
+    bne clear_screen_and_color
+
+    lda #itemaLogoSwoosh/64
+    sta $07fe               // Sprite #6
+    lda #itemaLogoBall/64
+    sta $07ff               // Sprite #7
+
+    // Set MSB for sprite 6 and 7
+    lda $d010
+    ora #%11000000
+    sta $d010
+
+    // Position both sprites overlapping
+    lda #$02
+    sta $d00c
+    sta $d00e
+    lda #$d7
+    sta $d00d
+    sta $d00f
+
+    LOADSEQ($4000,screen.getSize()-2)
+
+    lda #$1e
+    sta $d018
+
+    WAIT()
+    WAIT()
+
+    loop:
+    jmp loop
