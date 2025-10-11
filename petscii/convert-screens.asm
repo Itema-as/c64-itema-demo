@@ -100,6 +100,20 @@ initialize:
     lda #$00        // Set the background color for the border
     sta $d020
 
+    ldx #$00
+    lda #$00
+clear_screen_and_color:
+    sta $0400,x
+    sta $0500,x
+    sta $0600,x
+    sta $0700,x
+    sta $d800,x
+    sta $d900,x
+    sta $da00,x
+    sta $db00,x
+    inx
+    bne clear_screen_and_color
+
     LOADSEQ($4000,screen.getSize()-2)
 
     lda #$1e
@@ -158,4 +172,4 @@ itemaLogoBall:
 .byte $00, $00, $00
 .byte $00, $00, $00
 .byte $00, $00, $00
-    
+
