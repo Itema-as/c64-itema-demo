@@ -70,8 +70,8 @@ BallFramePtr:
 .const PaddleReach= PaddleCenter + ( BallWidth / 2 )
 // The angle to use when alternating in intro
 .const PaddleAngleDemo  = 8
-// The number of lives to start with
-.const NumberOfLives = 3
+// The number of lives to start with (BCD)
+.const NumberOfLives = 6
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26

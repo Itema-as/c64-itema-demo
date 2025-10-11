@@ -52,14 +52,14 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
 {
 // NB! The vector for index indirect addressing is little-endian
 
-    lda #<src          // Store src address to src vector in zero-page
+    lda #<src                   // Store src address to src vector in zero-page
     sta MEMCP_SRCVECT
     lda #>src
     sta MEMCP_SRCVECT + 1
 
-    lda #<dst          // Store dst address to dst vector in zero-page
-    sta MEMCP_DSTVECT  // The vector for index indirect addressing is
-    lda #>dst          // little-endian
+    lda #<dst                   // Store dst address to dst vector in zero-page
+    sta MEMCP_DSTVECT           // The vector for index indirect addressing is
+    lda #>dst                   // little-endian
     sta MEMCP_DSTVECT + 1
 
     ldx #$00
@@ -70,7 +70,7 @@ memcp_loop:
     beq memcp_out
     sta (MEMCP_DSTVECT),y
     iny
-    cpy #$00            // If Y has wrapped, go to next page
+    cpy #$00                    // If Y has wrapped, go to next page
     beq memcp_nextpage
     jmp memcp_loop
 memcp_nextpage:
@@ -86,7 +86,7 @@ memcp_out:
     $ff - highest byte
  */
 load_screen:
-    sei                     // Deactive the interrupt of become confused
+    sei                         // Deactive the interrupt of become confused
     // Start with the characters
     lda #$00
     sta MEMCP_DSTVECT
@@ -97,21 +97,21 @@ load_screen:
     lda $ff 
     sta MEMCP_SRCVECT+1
     lda #$00
-    sta MEMCP_CNTVECT       // Initialize low byte of counter
-    sta MEMCP_CNTVECT+1     // Initialize high byte of counter
+    sta MEMCP_CNTVECT           // Initialize low byte of counter
+    sta MEMCP_CNTVECT+1         // Initialize high byte of counter
 
     jsr copy_loop
 
     // Now do the colours
-    lda $fe                 // Load the low byte of the pointer
-    clc                     // Clear carry flag before addition
-    adc #$e8                // Add the LSB for modification
+    lda $fe                     // Load the low byte of the pointer
+    clc                         // Clear carry flag before addition
+    adc #$e8                    // Add the LSB for modification
     sta MEMCP_SRCVECT
 
-    lda $ff                 // Load the high byte of the pointer
-    adc #$03                // Add the MSB for modification
-    bcc noCarry             // Branch if no carry from the first addition
-    adc #$01                // Add the carry from the first addition
+    lda $ff                     // Load the high byte of the pointer
+    adc #$03                    // Add the MSB for modification
+    bcc noCarry                 // Branch if no carry from the first addition
+    adc #$01                    // Add the carry from the first addition
     
     noCarry:
         sta MEMCP_SRCVECT+1
@@ -122,40 +122,40 @@ load_screen:
     lda #$d8
     sta MEMCP_DSTVECT+1
     lda #$00
-    sta MEMCP_CNTVECT       // Initialize low byte of counter
-    sta MEMCP_CNTVECT+1     // Initialize high byte of counter
+    sta MEMCP_CNTVECT           // Initialize low byte of counter
+    sta MEMCP_CNTVECT+1         // Initialize high byte of counter
 
 copy_loop:
-    ldy MEMCP_CNTVECT       // Load low byte of counter into Y
+    ldy MEMCP_CNTVECT           // Load low byte of counter into Y
 
-    lda (MEMCP_SRCVECT),Y   // Load byte from source address + Y into A
-    sta (MEMCP_DSTVECT),Y   // Store byte from A at target address + Y
+    lda (MEMCP_SRCVECT),Y       // Load byte from source address + Y into A
+    sta (MEMCP_DSTVECT),Y       // Store byte from A at target address + Y
 
-    inc MEMCP_CNTVECT       // Increment low byte of counter
+    inc MEMCP_CNTVECT           // Increment low byte of counter
     bne check_counter
-    inc MEMCP_CNTVECT+1     // If low byte overflowed, increment high byte
+    inc MEMCP_CNTVECT+1         // If low byte overflowed, increment high byte
 
 check_counter:
     lda MEMCP_CNTVECT
-    cmp #$e8                // Check if low byte of counter has reached 0xe8
+    cmp #$e8                    // Check if low byte of counter has reached 0xe8
     bne continue_loop
 
     lda MEMCP_CNTVECT+1
-    cmp #$03                // Check if high byte of counter has reached 0x03
+    cmp #$03                    // Check if high byte of counter has reached 0x03
     bne continue_loop
 
-    jmp end_loop            // If we've copied 1000 bytes, end the loop
+    jmp end_loop                // If we've copied 1000 bytes, end the loop
 
 continue_loop:
     iny  // Increment Y
     bne copy_loop
-    inc MEMCP_SRCVECT+1     // If Y overflowed, increment high byte of source address
-    inc MEMCP_DSTVECT+1     // If Y overflowed, increment high byte of target address
-    jmp copy_loop           // Jump back to the start of the loop
+    inc MEMCP_SRCVECT+1         // If Y overflowed, increment high byte of source address
+    inc MEMCP_DSTVECT+1         // If Y overflowed, increment high byte of target address
+    jmp copy_loop               // Jump back to the start of the loop
 
     end_loop:
     iny
-    lda (MEMCP_SRCVECT),y   // The last byte is the number of bricks in the level
+    lda (MEMCP_SRCVECT),y       // The last byte is the number of bricks in the level (not always correct)
     sta BrickCount
     iny
     lda (MEMCP_SRCVECT),y
@@ -163,9 +163,44 @@ continue_loop:
     iny
     lda (MEMCP_SRCVECT),y
     sta StartingYPosition
-    // XXX: FOR ADVANCING TO THE NEXT LEVEL WITH ONLY FIVE HITS
-    //lda #$05
-    //sta BrickCount
+    jsr calculate_brick_count
+rts
+
+calculate_brick_count:
+    lda #$00
+    sta MEMCP_CNTVECT
+    sta MEMCP_CNTVECT+1
+    lda #<SCREENRAM
+    sta MEMCP_SRCVECT
+    lda #>SCREENRAM
+    sta MEMCP_SRCVECT+1
+    lda #$00
+    sta BrickCount
+
+calculate_brick_count_loop:
+    ldy MEMCP_CNTVECT
+    lda (MEMCP_SRCVECT),y
+    cmp #$80
+    bcc calculate_brick_count_skip
+    cmp #$e0
+    bcs calculate_brick_count_skip
+    and #%00000001
+    bne calculate_brick_count_skip
+    inc BrickCount
+
+calculate_brick_count_skip:
+    inc MEMCP_CNTVECT
+    bne calculate_brick_count_check_end
+    inc MEMCP_SRCVECT+1
+    inc MEMCP_CNTVECT+1
+
+calculate_brick_count_check_end:
+    lda MEMCP_CNTVECT
+    cmp #$e8
+    bne calculate_brick_count_loop
+    lda MEMCP_CNTVECT+1
+    cmp #$03
+    bne calculate_brick_count_loop
 rts
 
 gameUpdateScore:
@@ -318,4 +353,3 @@ restore_loop:
     dex
     bpl restore_loop
     rts
-
