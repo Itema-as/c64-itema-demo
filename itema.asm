@@ -172,17 +172,17 @@ initialize:
     asl
     tay
     lda BallFramePtr,y
-    sta SPRITE0PTR+1        // Sprite #1 - ball #1
-    sta SPRITE0PTR+2        // Sprite #2 - ball #2
-    sta SPRITE0PTR+3        // Sprite #3 - ball #3
+    sta SPRITE0PTR+1            // Sprite #1 - ball #1
+    sta SPRITE0PTR+2            // Sprite #2 - ball #2
+    sta SPRITE0PTR+3            // Sprite #3 - ball #3
 
 /*
     Itema Logo Sprites
 */
     lda #itemaLogoSwoosh/64
-    sta SPRITE0PTR+6        // Sprite #6
+    sta SPRITE0PTR+6            // Sprite #6
     lda #itemaLogoBall/64
-    sta SPRITE0PTR+7        // Sprite #7
+    sta SPRITE0PTR+7            // Sprite #7
 
     // Set MSB for sprite 6 and 7
     lda MSIGX
@@ -220,18 +220,18 @@ initialize:
     .var charSlotBits = charset / $0800 << 1
 	
 	lda VMCSB
-    and #%11110001         // Mask the three charset location bits (1-3)
-    ora #charSlotBits      // Set chars location to 5 * $0800 = $2800 for displaying the custom font
-	sta VMCSB              // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
-	                       // $400 + $200*$0E = $3800
-	lda SCROLX             // Turn off multicolor for characters
-	and #%11101111         // by clearing bit #4 of $D016
-	sta SCROLX
-	
-	LOAD_SCREEN(0)         // Load the introduction screen
+    and #%11110001              // Mask the three charset location bits (1-3)
+    ora #charSlotBits           // Set chars location to 5 * $0800 = $2800 for displaying the custom font
+    sta VMCSB                   // Bits 1-3 ($0400 + 512 .bytes * low nibble value) of $D018 sets char location
+                                // $400 + $200*$0E = $3800
+    lda SCROLX                  // Turn off multicolor for characters
+    and #%11101111              // by clearing bit #4 of $D016
+    sta SCROLX
 
-    jsr init_irq           // Initialize the IRQ
-    jmp loop               // Go go the endless main loop
+    LOAD_SCREEN(0)              // Load the introduction screen
+
+    jsr init_irq                // Initialize the IRQ
+    jmp loop                    // Go go the endless main loop
 
 /*******************************************************************************
  MAIN LOOP
