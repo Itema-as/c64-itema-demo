@@ -1397,12 +1397,12 @@ rts
 */
 .macro LIBSPRITE_COLLISION(xOffset, yOffset) {
     jsr get_xl
-    clc
+    sec
     sbc #VIS_SCREEN_LEFT
     adc #xOffset
     sta ZeroPage10
     jsr get_yl
-    clc
+    sec
     sbc #VIS_SCREEN_TOP
     adc #yOffset
     sta ZeroPage11
