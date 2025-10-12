@@ -859,8 +859,8 @@ check_brick_collision:
         sta ($f7),y
         iny
         sta ($f7),y
-        jsr spawn_extra_ball
         jsr brick_updates
+        jsr spawn_extra_ball
         jmp bounce_on_brick
 
     bounce_on_brick:
@@ -1358,15 +1358,18 @@ rts
     - Load next level if done with all the bricks
 */
 brick_updates:
-    // Only keep score when in game mode
-    lda mode
-    cmp MODE_GAME
-    bne end_brick_updates
-    // Decrease the number of bricks
-    dec BrickCount
+    // TODO: Fix score/brick count bug
+    //
+    // The brick count is sometimes off, the same with the game score value.
+    // So instead of relying on this to determine whether or not the level is
+    // completed, we count the actual remaining bricks which does look less
+    // stupid.
+    //dec BrickCount
+    jsr calculate_brick_count
     // We have scored one more point
     jsr gameIncreaseScore
     jsr gameUpdateScore
+    //jsr gameUpdateBricks        // XXX: For debugging
     jsr gameUpdateHighScore
     jsr gameCheckExtraLife
     bcc no_extra_life_award

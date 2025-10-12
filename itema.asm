@@ -76,7 +76,7 @@ BallFramePtr:
 // The number of lives to start with (BCD)
 .const NumberOfLives = 6
 // See at the bottom of the file for the actual levels loaded
-.const NumberOfLevels = 1       // Intro counts a level 0
+.const NumberOfLevels = 5       // Intro counts a level 0
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
@@ -121,10 +121,10 @@ BallCount:
 
 BrickCount:                 // The number of bricks left at this level
     .byte 0
-    
+
 LevelCompletePending:       // Indicates a level completion delay is active
     .byte 0
-    
+
 CurrentLevel:
     .byte 0
 
@@ -594,7 +594,7 @@ check_mode_end:
 level0_chars:  .fill l0.getSize(), l0.get(i)
 
 .segment Levels "Level Data - Level 1"
-.var l1 = LoadBinary("petscii/level_1.bin")
+.var l1 = LoadBinary("petscii/level_0.bin")
 level1_chars:  .fill l1.getSize(), l1.get(i)
 
 .segment Levels "Level Data - Level 2"

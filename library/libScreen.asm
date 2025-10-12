@@ -174,7 +174,7 @@ calculate_brick_count:
     sta MEMCP_CNTVECT+1
     lda #<SCREENRAM
     sta MEMCP_SRCVECT
-    lda #>SCREENRAM
+    lda #>SCREENRAM+160         // Ignore the first four rows
     sta MEMCP_SRCVECT+1
     lda #$00
     sta BrickCount
@@ -182,9 +182,9 @@ calculate_brick_count:
 calculate_brick_count_loop:
     ldy MEMCP_CNTVECT
     lda (MEMCP_SRCVECT),y
-    cmp #$80
+    cmp #$80                    // First normal game brick
     bcc calculate_brick_count_skip
-    cmp #$e0
+    cmp #$e0                    // Last normal game brick is at $df
     bcs calculate_brick_count_skip
     and #%00000001
     bne calculate_brick_count_skip
@@ -198,10 +198,10 @@ calculate_brick_count_skip:
 
 calculate_brick_count_check_end:
     lda MEMCP_CNTVECT
-    cmp #$e8
+    cmp #$80
     bne calculate_brick_count_loop
     lda MEMCP_CNTVECT+1
-    cmp #$03
+    cmp #$02                    // No need to do the last 6-rows
     bne calculate_brick_count_loop
 rts
 
@@ -278,6 +278,32 @@ gameUpdateLives:
     ora #$30 
     sta ZeroPage9
     LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn3, HUDRow+4, ZeroPage9)
+    rts
+
+gameUpdateBricks:
+    LIBMATH_8BITTOBCD_AA(BrickCount,wHudBricks)
+    // -------- 1st digit --------
+    lda wHudBricks+1
+    and #%00001111
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn1, 0, ZeroPage9)
+    // -------- 2nd digit --------
+    lda wHudBricks
+    and #%11110000
+    lsr
+    lsr
+    lsr
+    lsr
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn2, 0, ZeroPage9)
+    // -------- 3rd digit --------
+    lda wHudBricks
+    and #%00001111
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn3, 0, ZeroPage9)
     rts
 
 .macro LIBSCREEN_SETCHARACTER_S_VVA(bXPos, bYPos, bChar)

@@ -5,7 +5,8 @@
 wHudScore:      .word 0
 wHudHiScore:    .word 0
 wHudLives:      .word 0
-wHudDebugValue: .word 0
+wHudBricks:     .word 0
+wHudDebug:     .word 0
 wHudNextExtraLife: .word 0
 
 .const HUDScoreIncrease = 1
