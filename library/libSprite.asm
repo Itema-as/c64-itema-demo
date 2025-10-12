@@ -1363,7 +1363,7 @@ brick_updates:
     // The brick count is sometimes off, the same with the game score value.
     // So instead of relying on this to determine whether or not the level is
     // completed, we count the actual remaining bricks which does look less
-    // stupid.
+    // stupid, the result is that the score is sometimes off.
     //dec BrickCount
     jsr calculate_brick_count
     // We have scored one more point
