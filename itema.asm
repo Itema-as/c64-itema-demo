@@ -59,7 +59,7 @@ BallFramePtr:
 .const LAUNCH_VELOCITY = $60
 
 // The number of frames to show timed text. The IRQ updates at 50Hz
-.const TEXT_TIMER = 250
+.const TEXT_TIMER = 150
  
 // Offset from the left edge of the sprite to the left edge of the ball
 .const BallOffset = 6
@@ -82,15 +82,15 @@ BallFramePtr:
  
 
 get_ready_text:
-    .text "get ready!"
+    .text "get ready"
     .byte $ff
 
 game_over_text:
-    .text "game over!"
+    .text "game over"
     .byte $ff
 
 well_done_text:
-    .text "well done!"
+    .text "well done"
     .byte $ff
 
 .const LEVEL_PENDING_NONE          = $00
@@ -484,7 +484,12 @@ check_text_timer:
     lda textTimer
     beq start_loop              // Jump if there is not a timer running (textTimer == 0)
     dec textTimer               // Count down the display text timer
-    bne start_loop              // If not yet "0" run the timed text loop
+    lda textTimer
+    beq timed_text_expired
+    jsr timed_text_update_colors
+    jmp start_loop
+
+timed_text_expired:
     jsr clear_timed_text        // Replace the text with the original background
 
     lda LevelCompletePending

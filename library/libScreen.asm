@@ -44,6 +44,10 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
 .const HUDRow                       = 5
 .const HUDStartColumn               = 10
 .const HUDStartRow                  = 24
+.const TIMED_TEXT_START             = SCREENRAM + (40*12) + 8
+.const TIMED_TEXT_COLOR_START       = COLORRAM + (40*12) + 8
+.const TIMED_TEXT_WIDTH             = 9
+.const TIMED_TEXT_PATTERN_COUNT     = 16
 
 .const MEMCP_SRCVECT = $f7
 .const MEMCP_DSTVECT = MEMCP_SRCVECT + 2
@@ -308,6 +312,8 @@ libScreenSetCharacter:
 
 textTimer:                 // Countdown timer for the temp text
     .byte $00
+textColorPhase:            // Phase counter for the pulsing colour effect
+    .byte $00
 getReadyBackupChars:        // The original characters under the temp text
     .fill 25, $00
 getReadyBackupColors:       // The original colours under the temp text
@@ -316,15 +322,12 @@ getReadyBackupColors:       // The original colours under the temp text
 .macro LIBSCREEN_TIMED_TEXT(text){
     lda #TEXT_TIMER
     sta textTimer
+    lda #$00
+    sta textColorPhase
     ldx #$17
     jsr save_loop
     MEMCOPY(text, SCREENRAM + (40*12) + 8)
-    ldx #$08
-    color_loop:
-        lda #$01
-        sta COLORRAM + (40*12) + 8,x
-        dex
-        bpl color_loop
+    jsr timed_text_apply_color
 }
 
 /*
@@ -351,4 +354,67 @@ restore_loop:
     sta COLORRAM + (40*12) + 1,x
     dex
     bpl restore_loop
+    lda #$00
+    sta textColorPhase
     rts
+
+timed_text_update_colors:
+    lda textColorPhase
+    clc
+    adc #$01
+    cmp #TIMED_TEXT_PATTERN_COUNT
+    bcc timed_text_store_phase
+    lda #$00
+timed_text_store_phase:
+    sta textColorPhase
+timed_text_apply_color:
+    lda textColorPhase
+    tay
+    lda timedTextPhaseOffsets,y
+    tay
+    ldx #$00
+timed_text_color_loop:
+    lda timedTextColorPatterns,y
+    sta TIMED_TEXT_COLOR_START,x
+    iny
+    inx
+    cpx #TIMED_TEXT_WIDTH
+    bcc timed_text_color_loop
+    rts
+
+timedTextPhaseOffsets:
+    .byte $00,$09,$12,$1b,$24,$2d,$36,$3f,$48,$51,$5a,$63,$6c,$75,$7e,$87
+
+timedTextColorPatterns:
+    // phase 0
+    .byte $01,$0d,$0b,$0f,$0b,$0d,$01,$03,$0b
+    // phase 1
+    .byte $0d,$0b,$0f,$0b,$0d,$01,$03,$0b,$07
+    // phase 2
+    .byte $0b,$0f,$0b,$0d,$01,$03,$0b,$07,$0b
+    // phase 3
+    .byte $0f,$0b,$0d,$01,$03,$0b,$07,$0b,$03
+    // phase 4
+    .byte $0b,$0d,$01,$03,$0b,$07,$0b,$03,$01
+    // phase 5
+    .byte $0d,$01,$03,$0b,$07,$0b,$03,$01,$0d
+    // phase 6
+    .byte $01,$03,$0b,$07,$0b,$03,$01,$0d,$0b
+    // phase 7
+    .byte $03,$0b,$07,$0b,$03,$01,$0d,$0b,$0f
+    // phase 8
+    .byte $0b,$07,$0b,$03,$01,$0d,$0b,$0f,$01
+    // phase 9
+    .byte $07,$0b,$03,$01,$0d,$0b,$0f,$01,$0d
+    // phase 10
+    .byte $0b,$03,$01,$0d,$0b,$0f,$01,$0d,$0b
+    // phase 11
+    .byte $03,$01,$0d,$0b,$0f,$01,$0d,$0b,$0f
+    // phase 12
+    .byte $01,$0d,$0b,$0f,$01,$0d,$0b,$0f,$0b
+    // phase 13
+    .byte $0d,$0b,$0f,$01,$0d,$0b,$0f,$0b,$0d
+    // phase 14
+    .byte $0b,$0f,$01,$0d,$0b,$0f,$0b,$0d,$01
+    // phase 15
+    .byte $0f,$01,$0d,$0b,$0f,$0b,$0d,$01,$03
