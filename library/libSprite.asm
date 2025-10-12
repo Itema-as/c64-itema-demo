@@ -101,7 +101,18 @@ temp1:
     .byte %00000000
 temp2:
     .byte %00000000
-temp3:
+
+tempXp:
+    .byte %00000000
+tempYp:
+    .byte %00000000
+tempXv:
+    .byte %00000000
+tempYv:
+    .byte %00000000
+tempXa:
+    .byte %00000000
+tempYa:
     .byte %00000000
 
 column:
@@ -200,20 +211,20 @@ draw_sprite:
         Animate the sprite
     */
     lda SpriteIndex
-    beq draw_sprite_end     // Only animate the balls
+    beq draw_sprite_end         // Only animate the balls
     
-    jsr get_frame           // Load the current animation frame into A
-    sta temp                // Keep current frame in temp
+    jsr get_frame               // Load the current animation frame into A
+    sta temp                    // Keep current frame in temp
 
-    jsr get_xv              // Get horizontal velocity
-    sta temp1               // Preserve value for later
+    jsr get_xv                  // Get horizontal velocity
+    sta temp1                   // Preserve value for later
     cmp #$00
-    bmi rotate_left         // Negative velocity rotates left
+    bmi rotate_left             // Negative velocity rotates left
 
     // Velocity is zero or positive -- rotate right
-    jsr shift_right         // step = velocity >> 4
+    jsr shift_right             // step = velocity >> 4
     clc
-    ror                     // Divide by two again -> velocity >> 5
+    ror                         // Divide by two again -> velocity >> 5
     sta temp2
     lda temp
     clc
@@ -222,9 +233,9 @@ draw_sprite:
 
     rotate_left:
         lda temp1
-        eor #$ff            // step = abs(velocity)
+        eor #$ff                // step = abs(velocity)
         clc
-        ror                 // Divide by two again -> velocity >> 5
+        ror                     // Divide by two again -> velocity >> 5
         adc #$01
         jsr shift_right
         sta temp2
@@ -233,14 +244,14 @@ draw_sprite:
         sbc temp2
 
     continue_animation:
-    and #$0b                // Wrap frame to [0,11]
-    sta temp                // Store updated frame
+    and #$0b                    // Wrap frame to [0,11]
+    sta temp                    // Store updated frame
     jsr store_frame
-    asl                     // Multiply by two to index word table
+    asl                         // Multiply by two to index word table
     tay
     lda SpriteIndex
-    tax                     // Put the sprite number in X
-    lda BallFramePtr,y      // Load sprite pointer value
+    tax                         // Put the sprite number in X
+    lda BallFramePtr,y          // Load sprite pointer value
     sta $07f8,x
     lda temp
     jsr store_frame
@@ -268,26 +279,26 @@ rts
     Perform horizontal movement
 */
 move_horizontally:
-    jsr h_acceleration      // Apply horizontal acceleration
+    jsr h_acceleration          // Apply horizontal acceleration
     jsr get_xv
     clc
-    cmp #$00                // Compare with signed integer
-    bmi move_left           // Move left if value is negative
-    bpl move_right          // Move right if value is positive
+    cmp #$00                    // Compare with signed integer
+    bmi move_left               // Move left if value is negative
+    bpl move_right              // Move right if value is positive
 rts
 /*
     Move current sprite left
 */
 move_left:
-    jsr get_xv              // Get the X-velocity (which is negative)
-    eor #$ff                // Flip the sign so that we get a positive number
+    jsr get_xv                  // Get the X-velocity (which is negative)
+    eor #$ff                    // Flip the sign so that we get a positive number
     clc
-    adc #$01                // fix after flip
-    jsr shift_right         // Apply only the 5 MSB of velocity
-    sta temp                // Store the new value in a variable
+    adc #$01                    // fix after flip
+    jsr shift_right             // Apply only the 5 MSB of velocity
+    sta temp                    // Store the new value in a variable
     jsr get_xl
     sec
-    sbc temp                // Move left by the amount of velocity
+    sbc temp                    // Move left by the amount of velocity
     jsr store_xl
     jsr left_edge
 rts
@@ -296,12 +307,12 @@ rts
     Move current sprite right
 */
 move_right:
-    jsr get_xv              // Get the X-velocity (a positive number)
-    jsr shift_right         // Apply only the 5 MSB of velocity
-    sta temp                // Store the value in a temporary variable
+    jsr get_xv                  // Get the X-velocity (a positive number)
+    jsr shift_right             // Apply only the 5 MSB of velocity
+    sta temp                    // Store the value in a temporary variable
     jsr get_xl
     clc
-    adc temp                // Move right by the amount of velocity
+    adc temp                    // Move right by the amount of velocity
     jsr store_xl
     jsr right_edge
 rts
@@ -314,7 +325,7 @@ rts
 bounce_up:
     jsr get_yv
     clc
-    adc #Gravity            // Simulate gravity
+    adc #Gravity                // Simulate gravity
     jsr store_yv
     bounce_up_end:
 rts
@@ -326,8 +337,8 @@ rts
 fall_down:
     jsr get_yv
     clc
-    adc #Gravity            // Simulate gravity
-    cmp #$80                // Never go negative
+    adc #Gravity                // Simulate gravity
+    cmp #$80                    // Never go negative
     bpl fall_down_end
     jsr store_yv
     fall_down_end:
@@ -338,12 +349,12 @@ rts
 */
 h_acceleration:
     jsr get_xa
-    sta temp                // Store the new value in a variable
+    sta temp                    // Store the new value in a variable
     jsr get_xv
     clc
-    adc temp                // Add acceleration to velocity
-    clv                     // Clear the overflow flag
-    bvs h_acceleration_end  // Do not store the value if the sign was flipped
+    adc temp                    // Add acceleration to velocity
+    clv                         // Clear the overflow flag
+    bvs h_acceleration_end      // Do not store the value if the sign was flipped
     jsr store_xv
     h_acceleration_end:
 rts
@@ -352,19 +363,19 @@ rts
     Perform vertical movement
 */
 move_vertically:
-    jsr get_flags           // Se if the "resting on paddle bit" is set
+    jsr get_flags               // Se if the "resting on paddle bit" is set
     and #%00000010
     bne resting_on_paddle
 
-    jsr v_acceleration      // Apply vertical acceleration
+    jsr v_acceleration          // Apply vertical acceleration
     jsr get_yv
     clc
-    cmp #$00                // Compare with signed integer
-    bmi up                  // Move up if value is negative
-    bpl move_down           // Move down if value is positive
+    cmp #$00                    // Compare with signed integer
+    bmi up                      // Move up if value is negative
+    bpl move_down               // Move down if value is positive
 
 resting_on_paddle:
-    lda #TopOfPaddle       // Keep resting balls aligned with the paddle surface
+    lda #TopOfPaddle            // Keep resting balls aligned with the paddle surface
     jsr store_yl
 dont_move_vertically:
 rts
@@ -374,16 +385,16 @@ rts
 */
 v_acceleration:
     jsr get_ya
-    sta temp                // Store the new value in a variable
+    sta temp                    // Store the new value in a variable
     jsr get_yv
-    clv                     // Clear the overflow flag
-    adc temp                // Add Y to A
-    bvs v_acceleration_end  // Do not store the value if the sign was flipped
+    clv                         // Clear the overflow flag
+    adc temp                    // Add Y to A
+    bvs v_acceleration_end      // Do not store the value if the sign was flipped
     jsr store_yv
     // -- Apply gravity
-    cmp #$00                // Compare with signed integer
-    bpl fall_down           // Move down if value is positive
-    bmi bounce_up           // Move up if value is negative
+    cmp #$00                    // Compare with signed integer
+    bpl fall_down               // Move down if value is positive
+    bmi bounce_up               // Move up if value is negative
     v_acceleration_end:
 rts
 
@@ -391,16 +402,16 @@ rts
     Move current sprite upwards
 */
 up:
-    jsr get_yv              // Get the Y-velocity (a negative number)
-    eor #$ff                // Flip the sign so that we get a positive number
+    jsr get_yv                  // Get the Y-velocity (a negative number)
+    eor #$ff                    // Flip the sign so that we get a positive number
     clc
-    jsr shift_right         // Apply only the 5 MSB of velocity
-    sta temp                // Store the new value in a variable
+    jsr shift_right             // Apply only the 5 MSB of velocity
+    sta temp                    // Store the new value in a variable
     jsr get_yl
-    sec                     // Set the carry flag
-    sbc temp                // Move up by the amount of velocity
+    sec                         // Set the carry flag
+    sbc temp                    // Move up by the amount of velocity
     jsr store_yl
-    cmp #ScreenTopEdge      // Is top of screen hit?
+    cmp #ScreenTopEdge          // Is top of screen hit?
     bcs up_done
     lda #ScreenTopEdge
     jsr store_yl
@@ -415,18 +426,18 @@ rts
     Flip the sign on the vertical velocity and acceleration
 */
 change_to_move_up:
-    jsr get_yv              // Change the direction of the velocity
+    jsr get_yv                  // Change the direction of the velocity
     clc
-    sbc #VelocityLoss       // Reduce velocity
-    eor #$ff                // Flip the sign
+    sbc #VelocityLoss           // Reduce velocity
+    eor #$ff                    // Flip the sign
     jsr store_yv
 rts
 
 change_to_move_down:
-    jsr get_yv              // Change the direction of the velocity
+    jsr get_yv                  // Change the direction of the velocity
     clc
-    adc #VelocityLoss       // Reduce velocity
-    eor #$ff                // Flip the sign
+    adc #VelocityLoss           // Reduce velocity
+    eor #$ff                    // Flip the sign
     jsr store_yv
 rts
 
@@ -436,22 +447,22 @@ rts
 move_down:
     lda SpriteIndex
     cmp #$00
-    beq move_down_end       // Don' continue if we're working on the paddle
+    beq move_down_end           // Don' continue if we're working on the paddle
 
     // Make sure we don't move below the bottom of the screen, so do not
     // apply the velocity if the edge has already been hit.
     jsr get_yl
-    cmp #ScreenBottomEdge   // Is bottom of screen hit?
+    cmp #ScreenBottomEdge       // Is bottom of screen hit?
     bcs move_down_end
 
     // OK go on and move the sprite
-    jsr get_yv              // Get the Y-velocity (a positive number)
-    jsr shift_right         // Apply only the 5 MSB of velocity
-    sta temp                // Store the value in a temporary variable
+    jsr get_yv                  // Get the Y-velocity (a positive number)
+    jsr shift_right             // Apply only the 5 MSB of velocity
+    sta temp                    // Store the value in a temporary variable
 
     jsr get_yl
     clc
-    adc temp                // Move down by the amount of velocity
+    adc temp                    // Move down by the amount of velocity
     sta temp
 
     // Only actually move down if the ball has not already collided with the
@@ -463,7 +474,7 @@ move_down:
     store_position:
       lda temp
       jsr store_yl
-      cmp #ScreenBottomEdge   // Is bottom of screen hit?
+      cmp #ScreenBottomEdge     // Is bottom of screen hit?
       /*
           We don't want a normal bouncing effect, but rather loose a life and
           start again with a new ball.
@@ -503,12 +514,6 @@ reset_sprite_data:
     cli
 rts
 
-/*
-    Simply stops the ball and drops it again. This should be replaced with a
-    more elaborate you are dead effect. Note that the paddle position is not
-    changed, as this would be confusing to the player since an actual paddle
-    controller is used.
-*/
 ball_lost:
     jsr sfx_play_ball_lost
 
@@ -537,7 +542,7 @@ ball_lost_primary:
 
     
     lda MODE_END
-    sta mode                // Change to end of game mode
+    sta mode                    // Change to end of game mode
     jsr sfx_disable
 
     // Show the end game text
@@ -553,69 +558,6 @@ ball_lost_primary:
     sta SpriteMem+8
     lda StartingYPosition
     sta SpriteMem+9
-rts
-
-ball_lost_extra:
-    lda SpriteIndex
-    sta temp                // Keep the index that triggered the loss
-
-    lda BallCount
-    sta temp2               // Highest active ball index
-    cmp temp
-    beq ball_lost_extra_highest
-
-    // Move the highest ball into the vacant slot to keep indexes dense
-    lda temp
-    asl
-    asl
-    asl
-    sta temp1               // Destination offset
-
-    lda temp2
-    asl
-    asl
-    asl
-    sta temp3               // Source offset
-
-    lda #<SpriteMem
-    clc
-    adc temp1
-    sta ZeroPage10
-    lda #>SpriteMem
-    adc #$00
-    sta ZeroPage11
-
-    lda #<SpriteMem
-    clc
-    adc temp3
-    sta ZeroPage12
-    lda #>SpriteMem
-    adc #$00
-    sta ZeroPage13
-
-    ldy #$00
-ball_lost_extra_copy:
-    lda (ZeroPage12),y
-    sta (ZeroPage10),y
-    iny
-    cpy #spritelen
-    bne ball_lost_extra_copy
-
-    lda temp2
-    tax
-    lda SPENA
-    and ClearTable,x
-    sta SPENA
-
-    lda temp2
-    sta SpriteIndex
-    jsr clear_msb
-    jsr clear_sprite_slot
-
-    lda temp
-    sta SpriteIndex
-
-    dec BallCount
 rts
 
 ball_lost_extra_highest:
@@ -637,27 +579,104 @@ ball_lost_extra_highest:
     sta spriteRemoved
 rts
 
-clear_sprite_slot:
+ball_lost_extra:
     lda SpriteIndex
-    asl
-    asl
-    asl
-    sta temp3
+    sta temp                    // Keep the index that triggered the loss
 
-    lda #<SpriteMem
+    lda BallCount
+    sta temp1                   // Highest active ball index
+    cmp temp
+    beq ball_lost_extra_highest
+
+    // Copy sprite state from the highest active ball into the current slot
+    lda temp1
+    sta SpriteIndex
+    jsr get_xl                  // X-position
+    sta tempXp
+    jsr get_yl
+    sta tempYp                  // Y-position
+
+    jsr get_xa                  // X-accelleration
+    sta tempXa
+    jsr get_ya
+    sta tempYa                  // Y-accelleration
+
+    jsr get_xv                  // X-velocity
+    sta tempXv
+    jsr get_yv
+    sta tempYv                  // Y-velocity
+
+    lda temp
+    sta SpriteIndex
+    lda tempXp
+    jsr store_xl
+    lda tempYp
+    jsr store_yl
+    lda tempXa
+    jsr store_xa
+    lda tempYa
+    jsr store_ya
+    lda tempXv
+    jsr store_xv
+    lda tempYv
+    jsr store_yv
+
+    // Move the MSB state from the highest ball into the new slot
+    lda temp1
+    tax
+    lda MSIGX
+    and SetTable,x
+    beq ball_lost_extra_clear_dest_msb
+
+    lda temp
+    tax
+    lda MSIGX
+    ora SetTable,x
+    sta MSIGX
+    jmp ball_lost_extra_msb_done
+
+ball_lost_extra_clear_dest_msb:
+    lda temp
+    tax
+    lda MSIGX
+    and ClearTable,x
+    sta MSIGX
+
+ball_lost_extra_msb_done:
+    // Disable and clear the former highest ball slot
+    lda temp1
+    tax
+    lda SPENA
+    and ClearTable,x
+    sta SPENA
+
+    lda temp1
+    sta SpriteIndex
+    jsr clear_msb
+    jsr clear_sprite_slot
+
+    lda temp
+    sta SpriteIndex
+
+    dec BallCount
+rts
+
+clear_sprite_slot:
+    jsr getspritebase
+    tax
+    stx temp1
+
+    lda temp1
     clc
-    adc temp3
-    sta ZeroPage10
-    lda #>SpriteMem
-    adc #$00
-    sta ZeroPage11
+    adc #spritelen
+    sta temp2
 
-    ldy #$00
-clear_sprite_slot_loop:
     lda #$00
-    sta (ZeroPage10),y
-    iny
-    cpy #spritelen
+
+clear_sprite_slot_loop:
+    sta SpriteMem,x
+    inx
+    cpx temp2
     bne clear_sprite_slot_loop
 rts
 
@@ -758,8 +777,8 @@ rts
  BRICK COLLISION HANDLING
 *******************************************************************************/
 check_brick_collision:
-    lda #$00
-    sta brickCollisionAxis  // Reset the collision indicator
+//    lda #$00
+//    sta brickCollisionAxis      // Reset the collision indicator
 
 /*
     See docs/ball.png
@@ -771,8 +790,8 @@ check_brick_collision:
 */
 
     lda SpriteIndex
-    cmp #$00                // Do not bother for the paddle, it will never
-                            // hit one of the bricks.
+    cmp #$00                    // Do not bother for the paddle, it will never
+                                // hit one of the bricks.
     bne continue_check
     rts
 
@@ -780,11 +799,11 @@ check_brick_collision:
         lda #BrickCollisionAxisVertical
         sta brickCollisionAxis
         // Test Pt – TOP
-        LIBSPRITE_COLLISION(12, 6)
+        LIBSPRITE_COLLISION(12, 5)
         lda #BrickCollisionAxisVertical
         sta brickCollisionAxis
         // Test Pb – BOTTOM
-        LIBSPRITE_COLLISION(12, 14)
+        LIBSPRITE_COLLISION(12, 15)
         lda #BrickCollisionAxisHorizontal
         sta brickCollisionAxis
         // Test Pl - LEFT
@@ -802,8 +821,8 @@ check_brick_collision:
     */
     character_hit:
 
-        cmp #$f0            // simply bounce if a wall/hard brick
-        bcs bounce_on_brick // If A ≥ 240 → bounce
+        cmp #$f0                // simply bounce if a wall/hard brick
+        bcs bounce_on_brick     // If A ≥ 240 → bounce
 
         // Brick that adds speed to the left
         cmp #$e0
@@ -828,20 +847,20 @@ check_brick_collision:
         cmp #$83
         beq extra_ball_brick
 
-        lda #$20            // Clear using space
-        sta ($f7),y         // Store in both left..
-        iny                 // ..and right half of block
+        lda #$22                // Clear using space
+        sta ($f7),y             // Store in both left..
+        iny                     // ..and right half of block
         sta ($f7),y
         jsr brick_updates
         jmp bounce_on_brick
 
     extra_ball_brick:
-        lda #$20            // Clear using space
+        lda #$22                // Clear using space
         sta ($f7),y
         iny
         sta ($f7),y
-        jsr brick_updates
         jsr spawn_extra_ball
+        jsr brick_updates
         jmp bounce_on_brick
 
     bounce_on_brick:
@@ -970,12 +989,12 @@ check_paddle_collision:
     and #%11111110
     jsr store_flags
 
-    jsr get_xl              // x-position LSB of ball
+    jsr get_xl                  // x-position LSB of ball
     sta balllo
 
     sec
     lda balllo
-    sbc SpriteMem           // x-position LSB of paddle
+    sbc SpriteMem               // x-position LSB of paddle
     sta reslo
 
     sec
@@ -983,7 +1002,7 @@ check_paddle_collision:
     sbc #PaddleReach
     sta reslo
 
-    bpl right_of_paddle     // The ball is on the right side of the padde
+    bpl right_of_paddle         // The ball is on the right side of the padde
 
     clc
     lda balllo
@@ -992,10 +1011,10 @@ check_paddle_collision:
 
     sec
     lda balllo
-    sbc SpriteMem           // x-position LSB of paddle
+    sbc SpriteMem               // x-position LSB of paddle
     sta reslo
 
-    bmi left_of_paddle      // The ball is on the left side of the paddle
+    bmi left_of_paddle          // The ball is on the left side of the paddle
 
     jsr bounce_off_paddle
     jsr end_check_paddle_collision
@@ -1037,9 +1056,9 @@ cbc_outer_loop:
 
 cbc_outer_prepare:
 
-    asl                     // index * 2
-    asl                     // index * 4
-    asl                     // index * 8
+    asl                         // index * 2
+    asl                         // index * 4
+    asl                         // index * 8
     sta ballCollisionOffset
     tax
     lda SpriteMem,x
@@ -1159,7 +1178,7 @@ demo_input_should_fire:
     beq demo_input_should_fire_end
 
     clc
-    jsr get_flags           // Se if the resting on paddle bit is set
+    jsr get_flags               // Se if the resting on paddle bit is set
     and #%00000010
     beq demo_input_should_fire_end
     lda #$01
@@ -1182,7 +1201,7 @@ rts
 
     // Is the fire button pressed?
 bounce_off_paddle_check_fire:
-    lda #TopOfPaddle       // Clamp captured balls to the paddle top before handling input
+    lda #TopOfPaddle            // Clamp captured balls to the paddle top before handling input
     jsr store_yl
 
     lda bFireButtonPressed
@@ -1198,8 +1217,8 @@ bounce_off_paddle_check_fire:
         on top of the paddle so that it can be be launched.
     */
     jsr get_yv
-    cmp #Gravity            // Compare with gravity, which is always present
-    bpl bounce              // We still have movement
+    cmp #Gravity                // Compare with gravity, which is always present
+    bpl bounce                  // We still have movement
 
     lda #$00
     jsr store_yv
@@ -1207,7 +1226,7 @@ bounce_off_paddle_check_fire:
     jsr store_ya
     jsr store_xa
     
-    jsr get_flags           // Set the resting on paddle flag
+    jsr get_flags               // Set the resting on paddle flag
     sta temp
     and #%00000010
     bne bounce_flag_already_set
@@ -1216,14 +1235,14 @@ bounce_flag_already_set:
     lda temp
     ora #%00000010
     jsr store_flags
-    FRAME_COLOR(3)          // Use the pretty color to indicate the state
-    jmp bounce_end          // No bounce for you
+    FRAME_COLOR(3)              // Use the pretty color to indicate the state
+    jmp bounce_end              // No bounce for you
 
     bounce:
-        FRAME_COLOR(0)      // Normal bounce
-        jsr get_yv          // Change the direction of the velocity
+        FRAME_COLOR(0)          // Normal bounce
+        jsr get_yv              // Change the direction of the velocity
         clc
-        eor #$ff            // Flip the sign
+        eor #$ff                // Flip the sign
         clc
         adc #VelocityLoss
         jsr store_yv
@@ -1275,17 +1294,17 @@ rts
 
 launch_ball:
     clc
-    jsr get_flags           // Se if the resting on paddle bit is set
+    jsr get_flags               // Se if the resting on paddle bit is set
     and #%00000010
     beq end_launch_ball
 
     lda #$0
     jsr store_flags
     
-    lda #LAUNCH_VELOCITY    // Give the ball a decent downwward velovity, note
-    jsr store_yv            // that this will immediately switch to upward
-                            // movement in the code labeled "bounce". Which is
-                            // why this value is positive instead of negative.
+    lda #LAUNCH_VELOCITY        // Give the ball a decent downwward velovity, note
+    jsr store_yv                // that this will immediately switch to upward
+                                // movement in the code labeled "bounce". Which is
+                                // why this value is positive instead of negative.
 
     jsr sfx_play_launch
 
@@ -1386,23 +1405,23 @@ rts
     sta ZeroPage11
     jsr get_brick_at_xy
     cmp #$80
-    bcs character_hit       // If A ≥ 128 (first brick character)
+    bcs character_hit           // If A ≥ 128 (first brick character)
 }
 
 get_brick_at_xy:
     lda ZeroPage10
-    lsr                     // MSB -> C, divide by 2
-    lsr                     // Divide by 2 again
-    lsr                     // Divide by 2 again
-    lsr                     // Deal with having double witdh blocks
+    lsr                         // MSB -> C, divide by 2
+    lsr                         // Divide by 2 again
+    lsr                         // Divide by 2 again
+    lsr                         // Deal with having double witdh blocks
     asl
     sta column
 
     lda ZeroPage11
-    lsr                     // Divide by 2
-    lsr                     // Divide by 2 again
-    lsr                     // And divide by 2 a last time
-    sta row                 // Store it for later
+    lsr                         // Divide by 2
+    lsr                         // Divide by 2 again
+    lsr                         // And divide by 2 a last time
+    sta row                     // Store it for later
 
     ldx row
     lda ScreenMemLowByte,x
