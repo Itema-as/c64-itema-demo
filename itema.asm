@@ -57,6 +57,9 @@ BallFramePtr:
 
  // When launching the ball from the paddle
 .const LAUNCH_VELOCITY = $60
+
+// The number of frames to show timed text. The IRQ updates at 50Hz
+.const TEXT_TIMER = 250
  
 // Offset from the left edge of the sprite to the left edge of the ball
 .const BallOffset = 6
@@ -86,6 +89,14 @@ game_over_text:
     .text "game over!"
     .byte $ff
 
+well_done_text:
+    .text "well done!"
+    .byte $ff
+
+.const LEVEL_PENDING_NONE          = $00
+.const LEVEL_PENDING_SHOW_MESSAGE  = $01
+.const LEVEL_PENDING_ADVANCE       = $02
+
 /*******************************************************************************
  IMPORTS
 *******************************************************************************/
@@ -107,6 +118,9 @@ BallCount:
     .byte 3
 
 BrickCount:                 // The number of bricks left at this level
+    .byte 0
+    
+LevelCompletePending:       // Indicates a level completion delay is active
     .byte 0
     
 CurrentLevel:
@@ -248,6 +262,8 @@ initialize_game_variables:
     lda #%11000011              // Disable the balls we are not using
     sta SPENA
     jsr reset_sprite_data
+    lda #LEVEL_PENDING_NONE
+    sta LevelCompletePending
 rts
 
 start_game:
@@ -454,12 +470,31 @@ irq_audio_done:
 
     jsr decide_on_input         // Decide whether or not to do the paddle or demo input
 
+    lda LevelCompletePending
+    cmp #LEVEL_PENDING_SHOW_MESSAGE
+    bne check_text_timer
+    lda textTimer
+    bne check_text_timer
+    LIBSCREEN_TIMED_TEXT(well_done_text)
+    lda #LEVEL_PENDING_ADVANCE
+    sta LevelCompletePending
+
+check_text_timer:
     lda textTimer
     beq start_loop              // Jump if there is not a timer running (textTimer == 0)
     dec textTimer               // Count down the display text timer
     bne start_loop              // If not yet "0" run the timed text loop
     jsr clear_timed_text        // Replace the text with the original background
 
+    lda LevelCompletePending
+    cmp #LEVEL_PENDING_ADVANCE
+    bne check_mode_end
+    lda #LEVEL_PENDING_NONE
+    sta LevelCompletePending
+    jsr advance_level
+    jmp start_loop
+
+check_mode_end:
     // The end game mode will show a timed text, allow the paddle to be moved
     // but will not animate the balls
     lda mode

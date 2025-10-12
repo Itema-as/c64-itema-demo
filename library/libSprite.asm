@@ -1141,7 +1141,10 @@ brick_updates:
     lda BrickCount
     // Advance level if we have hit all the bricks
     bne end_brick_updates
-    jsr advance_level
+    lda LevelCompletePending
+    bne end_brick_updates
+    lda #LEVEL_PENDING_SHOW_MESSAGE
+    sta LevelCompletePending
     end_brick_updates:
 rts
 

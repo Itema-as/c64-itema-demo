@@ -314,8 +314,7 @@ getReadyBackupColors:       // The original colours under the temp text
     .fill 25, $00
 
 .macro LIBSCREEN_TIMED_TEXT(text){
-    // Show the get ready text for about 3 seconds, the IRQ updates at 50Hz
-    lda #150
+    lda #TEXT_TIMER
     sta textTimer
     ldx #$17
     jsr save_loop
