@@ -847,7 +847,7 @@ check_brick_collision:
         cmp #$83
         beq extra_ball_brick
 
-        lda #$22                // Clear using space
+        lda #$20                // Clear using space
         sta ($f7),y             // Store in both left..
         iny                     // ..and right half of block
         sta ($f7),y
@@ -855,7 +855,7 @@ check_brick_collision:
         jmp bounce_on_brick
 
     extra_ball_brick:
-        lda #$22                // Clear using space
+        lda #$20                // Clear using space
         sta ($f7),y
         iny
         sta ($f7),y
