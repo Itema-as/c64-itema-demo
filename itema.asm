@@ -76,7 +76,7 @@ BallFramePtr:
 // The number of lives to start with (BCD)
 .const NumberOfLives = 6
 // See at the bottom of the file for the actual levels loaded
-.const NumberOfLevels = 5       // Intro counts a level 0
+.const NumberOfLevels = 1       // Intro counts a level 0
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
@@ -535,6 +535,9 @@ check_mode_end:
 
     // Allow the paddle to move while showing the text, but do not do normal ball movement
     animation_loop:
+        lda #$00
+        sta spriteRemoved
+
         lda textTimer
         beq normal_motion       // Jump if there is not a timer running (textTimer == 0)
         lda SpriteIndex         // Load the current sprite
@@ -545,6 +548,13 @@ check_mode_end:
     normal_motion:
         jsr follow_paddle       // in case the ball has been captured
         jsr move_vertically
+        lda spriteRemoved
+        beq normal_motion_continue
+        lda BallCount
+        sta SpriteIndex
+        jmp next_sprite
+
+    normal_motion_continue:
         jsr move_horizontally
         jsr draw_sprite
         jsr check_brick_collision
@@ -584,7 +594,7 @@ check_mode_end:
 level0_chars:  .fill l0.getSize(), l0.get(i)
 
 .segment Levels "Level Data - Level 1"
-.var l1 = LoadBinary("petscii/level_0.bin")
+.var l1 = LoadBinary("petscii/level_1.bin")
 level1_chars:  .fill l1.getSize(), l1.get(i)
 
 .segment Levels "Level Data - Level 2"

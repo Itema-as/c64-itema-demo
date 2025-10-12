@@ -40,6 +40,12 @@ ClearTable:
     .byte %10111111
     .byte %01111111
 
+BallSpriteMask:
+    .byte %00000001
+    .byte %00000010
+    .byte %00000100
+    .byte %00001000
+
 /*
     Screen memory lookup tables. Each corresponds to the address of the first
     colum in each row.
@@ -55,17 +61,17 @@ ScreenMemHighByte:
     .byte $06,$06,$06,$06,$07,$07,$07,$07
     .byte $07
 
-/*
-    Sprite box
-    
-    Paddle is placed
-*/
 .const ScreenTopEdge    = 47
 .const ScreenBottomEdge = 243
 .const ScreenRightEdge  = 213
 .const ScreenLeftEdge   = 20
 .const Gravity          = 2
 .const VelocityLoss     = 2
+.const MaxBallCount     = 3
+.const ExtraBallStartX  = ScreenLeftEdge + BallOffset
+.const ExtraBallStartY  = ScreenTopEdge + BallOffset
+.const ExtraBallStartXV = $20
+.const ExtraBallStartYV = $00
 /*
     Adjust these values for the sensitivity when detecting whether or not the
     balls have collided. Smaller value means balls will practically overlap.
@@ -94,6 +100,8 @@ temp:
 temp1:
     .byte %00000000
 temp2:
+    .byte %00000000
+temp3:
     .byte %00000000
 
 column:
@@ -138,6 +146,13 @@ ballCollisionOffset:
 ballCollisionOtherOffset:
     .byte $00
 ballCollisionSavedIndex:
+    .byte $00
+
+/*
+    Indicates that the current sprite was removed during processing so the
+    rest of the per-frame pipeline can be skipped.
+*/
+spriteRemoved:
     .byte $00
 /*
     Keep track of these two variables while debugging
@@ -219,7 +234,8 @@ draw_sprite:
 
     continue_animation:
     and #$0b                // Wrap frame to [0,11]
-    sta temp                // Store updated frame    jsr store_frame
+    sta temp                // Store updated frame
+    jsr store_frame
     asl                     // Multiply by two to index word table
     tay
     lda SpriteIndex
@@ -495,6 +511,16 @@ rts
 */
 ball_lost:
     jsr sfx_play_ball_lost
+
+    lda #$00
+    sta spriteRemoved
+
+    lda SpriteIndex
+    cmp #$02
+    bcc ball_lost_primary
+    jmp ball_lost_extra
+
+ball_lost_primary:
     jsr gameDecreaseLives
     jsr gameUpdateLives
     
@@ -527,6 +553,112 @@ ball_lost:
     sta SpriteMem+8
     lda StartingYPosition
     sta SpriteMem+9
+rts
+
+ball_lost_extra:
+    lda SpriteIndex
+    sta temp                // Keep the index that triggered the loss
+
+    lda BallCount
+    sta temp2               // Highest active ball index
+    cmp temp
+    beq ball_lost_extra_highest
+
+    // Move the highest ball into the vacant slot to keep indexes dense
+    lda temp
+    asl
+    asl
+    asl
+    sta temp1               // Destination offset
+
+    lda temp2
+    asl
+    asl
+    asl
+    sta temp3               // Source offset
+
+    lda #<SpriteMem
+    clc
+    adc temp1
+    sta ZeroPage10
+    lda #>SpriteMem
+    adc #$00
+    sta ZeroPage11
+
+    lda #<SpriteMem
+    clc
+    adc temp3
+    sta ZeroPage12
+    lda #>SpriteMem
+    adc #$00
+    sta ZeroPage13
+
+    ldy #$00
+ball_lost_extra_copy:
+    lda (ZeroPage12),y
+    sta (ZeroPage10),y
+    iny
+    cpy #spritelen
+    bne ball_lost_extra_copy
+
+    lda temp2
+    tax
+    lda SPENA
+    and ClearTable,x
+    sta SPENA
+
+    lda temp2
+    sta SpriteIndex
+    jsr clear_msb
+    jsr clear_sprite_slot
+
+    lda temp
+    sta SpriteIndex
+
+    dec BallCount
+rts
+
+ball_lost_extra_highest:
+    lda temp
+    tax
+    lda SPENA
+    and ClearTable,x
+    sta SPENA
+
+    lda temp
+    sta SpriteIndex
+    jsr clear_msb
+    jsr clear_sprite_slot
+
+    dec BallCount
+    lda BallCount
+    sta SpriteIndex
+    lda #$01
+    sta spriteRemoved
+rts
+
+clear_sprite_slot:
+    lda SpriteIndex
+    asl
+    asl
+    asl
+    sta temp3
+
+    lda #<SpriteMem
+    clc
+    adc temp3
+    sta ZeroPage10
+    lda #>SpriteMem
+    adc #$00
+    sta ZeroPage11
+
+    ldy #$00
+clear_sprite_slot_loop:
+    lda #$00
+    sta (ZeroPage10),y
+    iny
+    cpy #spritelen
+    bne clear_sprite_slot_loop
 rts
 
 /*
@@ -622,9 +754,9 @@ shift_right:
     clc
 rts
 
-/*
-    Determine whether or not the ball has hit a game block
-*/
+/*******************************************************************************
+ BRICK COLLISION HANDLING
+*******************************************************************************/
 check_brick_collision:
     lda #$00
     sta brickCollisionAxis  // Reset the collision indicator
@@ -689,11 +821,28 @@ check_brick_collision:
         cmp #$e3
         beq speed_up
 
+        // Brick that spawns an extra ball
+        cmp #$82
+        beq extra_ball_brick
+
+        cmp #$83
+        beq extra_ball_brick
+
         lda #$20            // Clear using space
         sta ($f7),y         // Store in both left..
         iny                 // ..and right half of block
         sta ($f7),y
         jsr brick_updates
+        jmp bounce_on_brick
+
+    extra_ball_brick:
+        lda #$20            // Clear using space
+        sta ($f7),y
+        iny
+        sta ($f7),y
+        jsr brick_updates
+        jsr spawn_extra_ball
+        jmp bounce_on_brick
 
     bounce_on_brick:
         lda brickCollisionAxis
@@ -756,6 +905,57 @@ check_brick_collision:
     end_char:
         lda #$00
         sta brickCollisionAxis
+    // We're done with checking bricks, now do all the post check updates
+rts
+
+spawn_extra_ball:
+    txa
+    pha
+    tya
+    pha
+
+    lda BallCount
+    cmp #MaxBallCount
+    bcs spawn_extra_ball_restore
+
+    inc BallCount
+    lda BallCount
+    tax
+
+    lda SPENA
+    ora BallSpriteMask,x
+    sta SPENA
+
+    lda SpriteIndex
+    pha
+    lda BallCount
+    sta SpriteIndex
+
+    lda #ExtraBallStartX
+    jsr store_xl
+    lda #ExtraBallStartY
+    jsr store_yl
+    lda #$00
+    jsr store_xa
+    lda #$00
+    jsr store_ya
+    lda #ExtraBallStartXV
+    jsr store_xv
+    lda #ExtraBallStartYV
+    jsr store_yv
+    lda #$00
+    jsr store_flags
+    lda #$00
+    jsr store_frame
+
+    pla
+    sta SpriteIndex
+
+spawn_extra_ball_restore:
+    pla
+    tay
+    pla
+    tax
 rts
 
 check_paddle_collision:
@@ -1114,6 +1314,11 @@ load_level:
     jsr gameUpdateScore
     jsr gameUpdateHighScore
     jsr gameUpdateLives
+    // Reset to a single ball when starting the next level
+    lda #$01
+    sta BallCount
+    lda #%11000011
+    sta SPENA
     // Put the sprites in the correct position
     jsr reset_sprite_data
     // But override the ball #1 position as this has been set by the level
@@ -1126,11 +1331,20 @@ load_level:
     jsr sfx_play_level_start
 rts
 
+/*
+    All the stuff that happens after a brick is removed:
+    - Update score with one point
+    - Potentially update high score
+    - Add an extra life if another 50 points has been reached
+    - Load next level if done with all the bricks
+*/
 brick_updates:
     // Only keep score when in game mode
     lda mode
     cmp MODE_GAME
     bne end_brick_updates
+    // Decrease the number of bricks
+    dec BrickCount
     // We have scored one more point
     jsr gameIncreaseScore
     jsr gameUpdateScore
@@ -1146,8 +1360,6 @@ no_extra_life_award:
     jsr sfx_play_brick_score
 
 brick_score_sound_done:
-    // Decrease the number of bricks
-    dec BrickCount
     lda BrickCount
     // Advance level if we have hit all the bricks
     bne end_brick_updates
