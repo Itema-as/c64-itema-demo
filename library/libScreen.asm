@@ -38,6 +38,7 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
     .word COLORRAM+600, COLORRAM+640, COLORRAM+680, COLORRAM+720, COLORRAM+760
     .word COLORRAM+800, COLORRAM+840, COLORRAM+880, COLORRAM+920, COLORRAM+960
 
+.const HUDScoreColumn0              = 35
 .const HUDScoreColumn1              = 36
 .const HUDScoreColumn2              = 37
 .const HUDScoreColumn3              = 38
@@ -206,13 +207,23 @@ calculate_brick_count_check_end:
 rts
 
 gameUpdateScore:
-    // -------- 1st digit --------
+    // -------- 1st digit (thousands) --------
+    lda wHudScore+1
+    and #%11110000
+    lsr
+    lsr
+    lsr
+    lsr
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn0, HUDRow, ZeroPage9)
+    // -------- 2nd digit (hundreds) --------
     lda wHudScore+1
     and #%00001111
     ora #$30 
     sta ZeroPage9
     LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn1, HUDRow, ZeroPage9)
-    // -------- 2nd digit --------
+    // -------- 3rd digit (tens) --------
     lda wHudScore
     and #%11110000
     lsr
@@ -222,7 +233,7 @@ gameUpdateScore:
     ora #$30 
     sta ZeroPage9
     LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn2, HUDRow, ZeroPage9)
-    // -------- 3rd digit --------
+    // -------- 4th digit (units) --------
     lda wHudScore
     and #%00001111
     ora #$30 
@@ -231,13 +242,23 @@ gameUpdateScore:
     rts
 
 gameUpdateHighScore:
-    // -------- 1st digit --------
+    // -------- 1st digit (thousands) --------
+    lda wHudHiScore+1
+    and #%11110000
+    lsr
+    lsr
+    lsr
+    lsr
+    ora #$30 
+    sta ZeroPage9
+    LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn0, HUDRow+2, ZeroPage9)
+    // -------- 2nd digit (hundreds) --------
     lda wHudHiScore+1
     and #%00001111
     ora #$30 
     sta ZeroPage9
     LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn1, HUDRow+2, ZeroPage9)
-    // -------- 2nd digit --------
+    // -------- 3rd digit (tens) --------
     lda wHudHiScore
     and #%11110000
     lsr
@@ -247,7 +268,7 @@ gameUpdateHighScore:
     ora #$30 
     sta ZeroPage9
     LIBSCREEN_SETCHARACTER_S_VVA(HUDScoreColumn2, HUDRow+2, ZeroPage9)
-    // -------- 3rd digit --------
+    // -------- 4th digit (units) --------
     lda wHudHiScore
     and #%00001111
     ora #$30 

@@ -7,7 +7,8 @@ wHudHiScore:    .word 0
 wHudLives:      .word 0
 wHudBricks:     .word 0
 wHudDebug:     .word 0
-wHudNextExtraLife: .word 0
+// Award an extra life for each 50 points
+wHudNextExtraLife: .word 50
 
 .const HUDScoreIncrease = 1
 .const HUDExtraLifeStep = $0050
@@ -35,13 +36,19 @@ gHCNotHi:
 rts
 
 gameResetExtraLifeThreshold:
-    lda #<HUDExtraLifeStep
+    sed
+    lda wHudScore
+    clc
+    adc #<HUDExtraLifeStep
     sta wHudNextExtraLife
-    lda #>HUDExtraLifeStep
+    lda wHudScore+1
+    adc #>HUDExtraLifeStep
     sta wHudNextExtraLife+1
+    cld
 rts
 
 gameCheckExtraLife:
+    cld
     lda wHudScore+1
     cmp wHudNextExtraLife+1
     bcc gceNoLife
