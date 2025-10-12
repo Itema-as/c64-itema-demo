@@ -6,7 +6,7 @@ function convert() {
   sed "s/intro/$1/g" convert-screens.asm > convert-screens.mod 
   java -jar $KICK_ASSEMBLER_PATH convert-screens.mod
   # See "convert-screens.sym" for the address (loop) where to quit
-  x64sc -silent --exitscreenshot $1.png -moncommands commands.txt -initbreak 0x08b4 -VICIIborders 3 -autostart convert-screens.prg 
+  x64sc -silent --exitscreenshot $1.png -moncommands commands.txt -initbreak 0x08be -VICIIborders 3 -autostart convert-screens.prg 
   dd bs=2 skip=1 if=screen.bin of=screen_trimmed.bin
   dd bs=2 skip=1 if=color.bin of=color_trimmed.bin
 
@@ -102,3 +102,4 @@ convert "level_1"
 convert "level_2"
 convert "level_3"
 convert "level_4"
+convert "level_5"

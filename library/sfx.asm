@@ -12,7 +12,8 @@
 .const SFX_ID_PADDLE_POWER     = 3
 .const SFX_ID_BALL_LOST        = 4
 .const SFX_ID_LEVEL_START      = 5
-.const SFX_ID_COUNT            = 6
+.const SFX_ID_EXTRA_LIFE       = 6
+.const SFX_ID_COUNT            = 7
 
 // Voice 3 register aliases
 .label SFX_FREQ_LO             = SIDBASE + $0E
@@ -98,6 +99,10 @@ sfx_play_ball_lost:
 
 sfx_play_level_start:
     lda #SFX_ID_LEVEL_START
+    bne sfx_trigger
+
+sfx_play_extra_life:
+    lda #SFX_ID_EXTRA_LIFE
     bne sfx_trigger
 
 sfx_trigger:
@@ -218,6 +223,7 @@ sfxDescriptorTableLo:
     .byte <sfxPaddlePowerDescriptor
     .byte <sfxBallLostDescriptor
     .byte <sfxLevelStartDescriptor
+    .byte <sfxExtraLifeDescriptor
 
 sfxDescriptorTableHi:
     .byte >sfxLaunchDescriptor
@@ -226,6 +232,7 @@ sfxDescriptorTableHi:
     .byte >sfxPaddlePowerDescriptor
     .byte >sfxBallLostDescriptor
     .byte >sfxLevelStartDescriptor
+    .byte >sfxExtraLifeDescriptor
 
 sfxLaunchDescriptor:
     .byte $26               // Attack/decay: A=$2, D=$6 for moderate bite
@@ -268,6 +275,13 @@ sfxLevelStartDescriptor:
     .byte $00               // Pulse width lo (triangle waveform)
     .byte $00               // Pulse width hi unused
     .word sfxLevelStartSteps
+
+sfxExtraLifeDescriptor:
+    .byte $24               // Snappy attack with gentle decay for celebratory flair
+    .byte $58               // Sustain and release give the fanfare room to breathe
+    .byte $00               // Pulse width lo (triangle-based melody)
+    .byte $00               // Pulse width hi placeholder
+    .word sfxExtraLifeSteps
 
 // Sound effect step tables ----------------------------------------------------
 
@@ -320,4 +334,18 @@ sfxLevelStartSteps:
     SFX_STEP(5, $1A13, $11)
     SFX_STEP(7, $22CE, $11)
     SFX_STEP(4, $22CE, $10)
+    .byte 0
+
+// Extra life fanfare (ascending flourish)
+sfxExtraLifeSteps:
+    SFX_STEP(4, $1000, $11)
+    SFX_STEP(1, $1000, $10)
+    SFX_STEP(4, $1400, $11)
+    SFX_STEP(1, $1400, $10)
+    SFX_STEP(4, $1800, $11)
+    SFX_STEP(1, $1800, $10)
+    SFX_STEP(6, $1E00, $11)
+    SFX_STEP(2, $1E00, $10)
+    SFX_STEP(8, $2400, $11)
+    SFX_STEP(4, $2400, $10)
     .byte 0

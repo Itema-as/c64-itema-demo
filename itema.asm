@@ -57,6 +57,9 @@ BallFramePtr:
 
  // When launching the ball from the paddle
 .const LAUNCH_VELOCITY = $60
+
+// The number of frames to show timed text. The IRQ updates at 50Hz
+.const TEXT_TIMER = 150
  
 // Offset from the left edge of the sprite to the left edge of the ball
 .const BallOffset = 6
@@ -72,6 +75,8 @@ BallFramePtr:
 .const PaddleAngleDemo  = 8
 // The number of lives to start with (BCD)
 .const NumberOfLives = 6
+// See at the bottom of the file for the actual levels loaded
+.const NumberOfLevels = 6
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
@@ -79,12 +84,20 @@ BallFramePtr:
  
 
 get_ready_text:
-    .text "get ready!"
+    .text "get ready"
     .byte $ff
 
 game_over_text:
-    .text "game over!"
+    .text "game over"
     .byte $ff
+
+well_done_text:
+    .text "well done"
+    .byte $ff
+
+.const LEVEL_PENDING_NONE          = $00
+.const LEVEL_PENDING_SHOW_MESSAGE  = $01
+.const LEVEL_PENDING_ADVANCE       = $02
 
 /*******************************************************************************
  IMPORTS
@@ -108,7 +121,10 @@ BallCount:
 
 BrickCount:                 // The number of bricks left at this level
     .byte 0
-    
+
+LevelCompletePending:       // Indicates a level completion delay is active
+    .byte 0
+
 CurrentLevel:
     .byte 0
 
@@ -248,6 +264,9 @@ initialize_game_variables:
     lda #%11000011              // Disable the balls we are not using
     sta SPENA
     jsr reset_sprite_data
+    lda #LEVEL_PENDING_NONE
+    sta LevelCompletePending
+    jsr gameResetExtraLifeThreshold
 rts
 
 start_game:
@@ -454,12 +473,36 @@ irq_audio_done:
 
     jsr decide_on_input         // Decide whether or not to do the paddle or demo input
 
+    lda LevelCompletePending
+    cmp #LEVEL_PENDING_SHOW_MESSAGE
+    bne check_text_timer
+    lda textTimer
+    bne check_text_timer
+    LIBSCREEN_TIMED_TEXT(well_done_text)
+    lda #LEVEL_PENDING_ADVANCE
+    sta LevelCompletePending
+
+check_text_timer:
     lda textTimer
     beq start_loop              // Jump if there is not a timer running (textTimer == 0)
     dec textTimer               // Count down the display text timer
-    bne start_loop              // If not yet "0" run the timed text loop
+    lda textTimer
+    beq timed_text_expired
+    jsr timed_text_update_colors
+    jmp start_loop
+
+timed_text_expired:
     jsr clear_timed_text        // Replace the text with the original background
 
+    lda LevelCompletePending
+    cmp #LEVEL_PENDING_ADVANCE
+    bne check_mode_end
+    lda #LEVEL_PENDING_NONE
+    sta LevelCompletePending
+    jsr advance_level
+    jmp start_loop
+
+check_mode_end:
     // The end game mode will show a timed text, allow the paddle to be moved
     // but will not animate the balls
     lda mode
@@ -492,6 +535,9 @@ irq_audio_done:
 
     // Allow the paddle to move while showing the text, but do not do normal ball movement
     animation_loop:
+        lda #$00
+        sta spriteRemoved
+
         lda textTimer
         beq normal_motion       // Jump if there is not a timer running (textTimer == 0)
         lda SpriteIndex         // Load the current sprite
@@ -502,6 +548,13 @@ irq_audio_done:
     normal_motion:
         jsr follow_paddle       // in case the ball has been captured
         jsr move_vertically
+        lda spriteRemoved
+        beq normal_motion_continue
+        lda BallCount
+        sta SpriteIndex
+        jmp next_sprite
+
+    normal_motion_continue:
         jsr move_horizontally
         jsr draw_sprite
         jsr check_brick_collision
@@ -540,29 +593,33 @@ irq_audio_done:
 .var l0 = LoadBinary("petscii/intro.bin")
 level0_chars:  .fill l0.getSize(), l0.get(i)
 
-.segment Levels "Level Data - Level 0"
+.segment Levels "Level Data - Level 1"
 .var l1 = LoadBinary("petscii/level_0.bin")
 level1_chars:  .fill l1.getSize(), l1.get(i)
 
-.segment Levels "Level Data - Level 1"
+.segment Levels "Level Data - Level 2"
 .var l2 = LoadBinary("petscii/level_1.bin")
 level2_chars:  .fill l2.getSize(), l2.get(i)
 
-.segment Levels "Level Data - Level 2"
+.segment Levels "Level Data - Level 3"
 .var l3 = LoadBinary("petscii/level_2.bin")
 level3_chars:  .fill l3.getSize(), l3.get(i)
 
-.segment Levels "Level Data - Level 3"
+.segment Levels "Level Data - Level 4"
 .var l4 = LoadBinary("petscii/level_3.bin")
 level4_chars:  .fill l4.getSize(), l4.get(i)
 
-.segment Levels "Level Data - Level 4"
+.segment Levels "Level Data - Level 5"
 .var l5 = LoadBinary("petscii/level_4.bin")
 level5_chars:  .fill l5.getSize(), l5.get(i)
 
+.segment Levels "Level Data - Level 6"
+.var l6 = LoadBinary("petscii/level_5.bin")
+level6_chars:  .fill l6.getSize(), l6.get(i)
+
 // Use <> (low byte) and > (high byte) to extract addresses
-level_chars_lo:  .byte <level0_chars, <level1_chars, <level2_chars, <level3_chars, <level4_chars, <level5_chars
-level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_chars, >level4_chars, >level5_chars
+level_chars_lo:  .byte <level0_chars, <level1_chars, <level2_chars, <level3_chars, <level4_chars, <level5_chars, <level6_chars
+level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_chars, >level4_chars, >level5_chars, >level6_chars
 
 .macro LOAD_SCREEN(index) {
     ldx #index
