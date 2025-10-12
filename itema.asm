@@ -264,6 +264,7 @@ initialize_game_variables:
     jsr reset_sprite_data
     lda #LEVEL_PENDING_NONE
     sta LevelCompletePending
+    jsr gameResetExtraLifeThreshold
 rts
 
 start_game:

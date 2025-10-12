@@ -1135,7 +1135,17 @@ brick_updates:
     jsr gameIncreaseScore
     jsr gameUpdateScore
     jsr gameUpdateHighScore
+    jsr gameCheckExtraLife
+    bcc no_extra_life_award
+    jsr gameIncreaseLives
+    jsr gameUpdateLives
+    jsr sfx_play_level_start
+    jmp brick_score_sound_done
+
+no_extra_life_award:
     jsr sfx_play_brick_score
+
+brick_score_sound_done:
     // Decrease the number of bricks
     dec BrickCount
     lda BrickCount
