@@ -75,6 +75,8 @@ BallFramePtr:
 .const PaddleAngleDemo  = 8
 // The number of lives to start with (BCD)
 .const NumberOfLives = 6
+// See at the bottom of the file for the actual levels loaded
+.const NumberOfLevels = 5       // Intro counts a level 0
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
@@ -581,23 +583,23 @@ check_mode_end:
 .var l0 = LoadBinary("petscii/intro.bin")
 level0_chars:  .fill l0.getSize(), l0.get(i)
 
-.segment Levels "Level Data - Level 0"
+.segment Levels "Level Data - Level 1"
 .var l1 = LoadBinary("petscii/level_0.bin")
 level1_chars:  .fill l1.getSize(), l1.get(i)
 
-.segment Levels "Level Data - Level 1"
+.segment Levels "Level Data - Level 2"
 .var l2 = LoadBinary("petscii/level_1.bin")
 level2_chars:  .fill l2.getSize(), l2.get(i)
 
-.segment Levels "Level Data - Level 2"
+.segment Levels "Level Data - Level 3"
 .var l3 = LoadBinary("petscii/level_2.bin")
 level3_chars:  .fill l3.getSize(), l3.get(i)
 
-.segment Levels "Level Data - Level 3"
+.segment Levels "Level Data - Level 4"
 .var l4 = LoadBinary("petscii/level_3.bin")
 level4_chars:  .fill l4.getSize(), l4.get(i)
 
-.segment Levels "Level Data - Level 4"
+.segment Levels "Level Data - Level 5"
 .var l5 = LoadBinary("petscii/level_4.bin")
 level5_chars:  .fill l5.getSize(), l5.get(i)
 

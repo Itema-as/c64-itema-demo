@@ -1096,7 +1096,7 @@ advance_level:
     /* Move forward to next level */
     inc CurrentLevel
     lda CurrentLevel
-    cmp #$05
+    cmp #NumberOfLevels+1
     bne load_level
         // Start with Level #1 again
         lda #$01

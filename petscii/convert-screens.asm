@@ -166,6 +166,12 @@ clear_screen_and_color:
     sta $d00f
 
     LOADSEQ($4000,screen.getSize()-2)
+    
+    // Fix for missing last bytes
+    lda #$62
+    sta $07e7
+    lda #$07
+    sta $dbe7
 
     lda #$1e
     sta $d018

@@ -38,12 +38,10 @@ wColorRAMRowStart: // COLORRAM + 40*0, 40*1, 40*2, 40*3, 40*4 ... 40*24
     .word COLORRAM+600, COLORRAM+640, COLORRAM+680, COLORRAM+720, COLORRAM+760
     .word COLORRAM+800, COLORRAM+840, COLORRAM+880, COLORRAM+920, COLORRAM+960
 
-.const HUDScoreColumn1              = 36
-.const HUDScoreColumn2              = 37
-.const HUDScoreColumn3              = 38
+.const HUDScoreColumn1              = 35
+.const HUDScoreColumn2              = 36
+.const HUDScoreColumn3              = 37
 .const HUDRow                       = 5
-.const HUDStartColumn               = 10
-.const HUDStartRow                  = 24
 .const TIMED_TEXT_START             = SCREENRAM + (40*12) + 8
 .const TIMED_TEXT_COLOR_START       = COLORRAM + (40*12) + 8
 .const TIMED_TEXT_WIDTH             = 9
