@@ -463,3 +463,10 @@ timedTextColorPatterns:
     .byte $0b,$0f,$01,$0d,$0b,$0f,$0b,$0d,$01
     // phase 15
     .byte $0f,$01,$0d,$0b,$0f,$0b,$0d,$01,$03
+
+.macro FRAME_COLOR(color)
+{
+    lda #color
+    sta $d020
+}
+

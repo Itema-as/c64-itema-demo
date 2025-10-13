@@ -459,6 +459,7 @@ init_irq:
 *******************************************************************************/
 irq_1:
 
+    inc $d020
     // only play music when we are not in the game
     lda mode
     cmp MODE_GAME
@@ -582,6 +583,7 @@ check_mode_end:
         // Check whether or not any balls are colliding _after_ all the 
         // calculations and movements have been done for this frame. 
         jsr check_ball_collisions
+        dec $d020
         asl VICIRQ              // Clear interrupt flag
         jmp IRQROMEXIT          // set flag and end
 

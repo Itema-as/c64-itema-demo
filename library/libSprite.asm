@@ -14,12 +14,6 @@
 #import "libMath.asm"
 #import "libGame.asm"
 
-.macro FRAME_COLOR(color)
-{
-    lda #color
-    sta $d020
-}
-
 SetTable:
     .byte %00000001
     .byte %00000010
@@ -244,8 +238,22 @@ draw_sprite:
         sbc temp2
 
     continue_animation:
-    and #$0b                    // Wrap frame to [0,11]
-    sta temp                    // Store updated frame
+    bmi wrap_negative           // Handle values < 0 by adding 12 until positive
+wrap_positive:
+    cmp #$0c
+    bcc frame_wrapped
+    sec
+    sbc #$0c
+    jmp wrap_positive
+
+wrap_negative:
+    clc
+    adc #$0c
+    bmi wrap_negative
+    jmp wrap_positive
+
+frame_wrapped:
+    sta temp                    // Store updated frame within [0,11]
     jsr store_frame
     asl                         // Multiply by two to index word table
     tay
