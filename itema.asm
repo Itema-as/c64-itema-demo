@@ -486,7 +486,6 @@ check_text_timer:
     lda textTimer
     beq start_loop              // Jump if there is not a timer running (textTimer == 0)
     dec textTimer               // Count down the display text timer
-    lda textTimer
     beq timed_text_expired
     jsr timed_text_update_colors
     jmp start_loop
@@ -562,11 +561,11 @@ check_mode_end:
 
         // Indicate that the fire button is pressed. We do this by giving the
         // paddle a nice color.
+        lda SpriteIndex
+        bne next_sprite
 	    lda #$01                // Set sprite #0 - the paddle individual color
 	    sta SP0COL
-        clc
         lda bFireButtonPressed
-        cmp #%00000000
         beq next_sprite
         lda #$03                // Cyan is a pretty color
         sta SP0COL              // Set sprite #0 - the paddle individual color
