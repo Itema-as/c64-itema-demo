@@ -15,23 +15,53 @@
 .const SFX_ID_EXTRA_LIFE       = 6
 .const SFX_ID_COUNT            = 7
 
-// Voice 3 register aliases
-.label SFX_FREQ_LO             = SIDBASE + $0E
-.label SFX_FREQ_HI             = SIDBASE + $0F
-.label SFX_PULSE_LO            = SIDBASE + $10
-.label SFX_PULSE_HI            = SIDBASE + $11
-.label SFX_CONTROL             = SIDBASE + $12
-.label SFX_ATTACK_DECAY        = SIDBASE + $13
-.label SFX_SUSTAIN_RELEASE     = SIDBASE + $14
+.const SFX_VOICE_COUNT         = 3
+
+// SID voice register aliases
+.label SFX0_FREQ_LO            = SIDBASE + $00
+.label SFX0_FREQ_HI            = SIDBASE + $01
+.label SFX0_PULSE_LO           = SIDBASE + $02
+.label SFX0_PULSE_HI           = SIDBASE + $03
+.label SFX0_CONTROL            = SIDBASE + $04
+.label SFX0_ATTACK_DECAY       = SIDBASE + $05
+.label SFX0_SUSTAIN_RELEASE    = SIDBASE + $06
+
+.label SFX1_FREQ_LO            = SIDBASE + $07
+.label SFX1_FREQ_HI            = SIDBASE + $08
+.label SFX1_PULSE_LO           = SIDBASE + $09
+.label SFX1_PULSE_HI           = SIDBASE + $0A
+.label SFX1_CONTROL            = SIDBASE + $0B
+.label SFX1_ATTACK_DECAY       = SIDBASE + $0C
+.label SFX1_SUSTAIN_RELEASE    = SIDBASE + $0D
+
+.label SFX2_FREQ_LO            = SIDBASE + $0E
+.label SFX2_FREQ_HI            = SIDBASE + $0F
+.label SFX2_PULSE_LO           = SIDBASE + $10
+.label SFX2_PULSE_HI           = SIDBASE + $11
+.label SFX2_CONTROL            = SIDBASE + $12
+.label SFX2_ATTACK_DECAY       = SIDBASE + $13
+.label SFX2_SUSTAIN_RELEASE    = SIDBASE + $14
+
 .label SFX_VOL_FILT            = SIDBASE + $18
 
 
 .segment Variables
-sfxActive:      .byte 0
-sfxStepCounter: .byte 0
-sfxStepPtrLo:   .byte 0
-sfxStepPtrHi:   .byte 0
-sfxEnabled:     .byte 0
+sfxActive0:         .byte 0
+sfxActive1:         .byte 0
+sfxActive2:         .byte 0
+sfxStepCounter0:    .byte 0
+sfxStepCounter1:    .byte 0
+sfxStepCounter2:    .byte 0
+sfxStepPtr0Lo:      .byte 0
+sfxStepPtr0Hi:      .byte 0
+sfxStepPtr1Lo:      .byte 0
+sfxStepPtr1Hi:      .byte 0
+sfxStepPtr2Lo:      .byte 0
+sfxStepPtr2Hi:      .byte 0
+sfxEnabled:         .byte 0
+sfxVoiceNext:       .byte 0
+sfxRequestedId:     .byte 0
+sfxSelectedVoice:   .byte 0
 
 .segment Code
 
@@ -42,7 +72,7 @@ sfxEnabled:     .byte 0
     - freq hi  : upper byte of the SID frequency register.
     - control  : value written to SID control (waveform/gate, eg. $11 pulse/gate).
 
-    SID control register bit layout (voice 3):
+    SID control register bit layout (per voice):
       bit7 Noise | bit6 Pulse | bit5 Saw | bit4 Triangle | bit3 Test
       bit2 Ring  | bit1 Sync  | bit0 Gate
     The SFX tables use combinations such as:
@@ -56,25 +86,322 @@ sfxEnabled:     .byte 0
     .byte duration, <freq, >freq, control
 }
 
+sfx_stop_voice0:
+    lda #$00
+    sta SFX0_CONTROL
+    sta SFX0_FREQ_LO
+    sta SFX0_FREQ_HI
+    sta SFX0_PULSE_LO
+    sta SFX0_PULSE_HI
+    sta sfxActive0
+    sta sfxStepCounter0
+    sta sfxStepPtr0Lo
+    sta sfxStepPtr0Hi
+rts
+
+sfx_stop_voice1:
+    lda #$00
+    sta SFX1_CONTROL
+    sta SFX1_FREQ_LO
+    sta SFX1_FREQ_HI
+    sta SFX1_PULSE_LO
+    sta SFX1_PULSE_HI
+    sta sfxActive1
+    sta sfxStepCounter1
+    sta sfxStepPtr1Lo
+    sta sfxStepPtr1Hi
+rts
+
+sfx_stop_voice2:
+    lda #$00
+    sta SFX2_CONTROL
+    sta SFX2_FREQ_LO
+    sta SFX2_FREQ_HI
+    sta SFX2_PULSE_LO
+    sta SFX2_PULSE_HI
+    sta sfxActive2
+    sta sfxStepCounter2
+    sta sfxStepPtr2Lo
+    sta sfxStepPtr2Hi
+rts
+
+sfx_update_voice0:
+    lda sfxActive0
+    bne sfx_voice0_active
+rts
+
+sfx_voice0_active:
+    lda sfxStepCounter0
+    bne sfx_voice0_tick
+
+    lda sfxStepPtr0Lo
+    sta ZP_PTR_LO
+    lda sfxStepPtr0Hi
+    sta ZP_PTR_HI
+    ldy #$00
+    lda (ZP_PTR_LO),y
+    beq sfx_voice0_finish
+    sta sfxStepCounter0
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX0_FREQ_LO
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX0_FREQ_HI
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX0_CONTROL
+    clc
+    lda sfxStepPtr0Lo
+    adc #4
+    sta sfxStepPtr0Lo
+    lda sfxStepPtr0Hi
+    adc #0
+    sta sfxStepPtr0Hi
+    lda sfxStepCounter0
+    beq sfx_update_voice0
+
+sfx_voice0_tick:
+    dec sfxStepCounter0
+rts
+
+sfx_voice0_finish:
+    jsr sfx_stop_voice0
+rts
+
+sfx_update_voice1:
+    lda sfxActive1
+    bne sfx_voice1_active
+rts
+
+sfx_voice1_active:
+    lda sfxStepCounter1
+    bne sfx_voice1_tick
+
+    lda sfxStepPtr1Lo
+    sta ZP_PTR_LO
+    lda sfxStepPtr1Hi
+    sta ZP_PTR_HI
+    ldy #$00
+    lda (ZP_PTR_LO),y
+    beq sfx_voice1_finish
+    sta sfxStepCounter1
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX1_FREQ_LO
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX1_FREQ_HI
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX1_CONTROL
+    clc
+    lda sfxStepPtr1Lo
+    adc #4
+    sta sfxStepPtr1Lo
+    lda sfxStepPtr1Hi
+    adc #0
+    sta sfxStepPtr1Hi
+    lda sfxStepCounter1
+    beq sfx_update_voice1
+
+sfx_voice1_tick:
+    dec sfxStepCounter1
+rts
+
+sfx_voice1_finish:
+    jsr sfx_stop_voice1
+rts
+
+sfx_update_voice2:
+    lda sfxActive2
+    bne sfx_voice2_active
+rts
+
+sfx_voice2_active:
+    lda sfxStepCounter2
+    bne sfx_voice2_tick
+
+    lda sfxStepPtr2Lo
+    sta ZP_PTR_LO
+    lda sfxStepPtr2Hi
+    sta ZP_PTR_HI
+    ldy #$00
+    lda (ZP_PTR_LO),y
+    beq sfx_voice2_finish
+    sta sfxStepCounter2
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX2_FREQ_LO
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX2_FREQ_HI
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX2_CONTROL
+    clc
+    lda sfxStepPtr2Lo
+    adc #4
+    sta sfxStepPtr2Lo
+    lda sfxStepPtr2Hi
+    adc #0
+    sta sfxStepPtr2Hi
+    lda sfxStepCounter2
+    beq sfx_update_voice2
+
+sfx_voice2_tick:
+    dec sfxStepCounter2
+rts
+
+sfx_voice2_finish:
+    jsr sfx_stop_voice2
+rts
+
+sfx_start_voice0:
+    jsr sfx_stop_voice0
+    ldy #$00
+    lda (ZP_PTR_LO),y
+    sta SFX0_ATTACK_DECAY
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX0_SUSTAIN_RELEASE
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX0_PULSE_LO
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX0_PULSE_HI
+    iny
+    lda (ZP_PTR_LO),y
+    sta sfxStepPtr0Lo
+    iny
+    lda (ZP_PTR_LO),y
+    sta sfxStepPtr0Hi
+    lda #$01
+    sta sfxActive0
+    lda #$00
+    sta sfxStepCounter0
+    jsr sfx_update_voice0
+rts
+
+sfx_start_voice1:
+    jsr sfx_stop_voice1
+    ldy #$00
+    lda (ZP_PTR_LO),y
+    sta SFX1_ATTACK_DECAY
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX1_SUSTAIN_RELEASE
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX1_PULSE_LO
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX1_PULSE_HI
+    iny
+    lda (ZP_PTR_LO),y
+    sta sfxStepPtr1Lo
+    iny
+    lda (ZP_PTR_LO),y
+    sta sfxStepPtr1Hi
+    lda #$01
+    sta sfxActive1
+    lda #$00
+    sta sfxStepCounter1
+    jsr sfx_update_voice1
+rts
+
+sfx_start_voice2:
+    jsr sfx_stop_voice2
+    ldy #$00
+    lda (ZP_PTR_LO),y
+    sta SFX2_ATTACK_DECAY
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX2_SUSTAIN_RELEASE
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX2_PULSE_LO
+    iny
+    lda (ZP_PTR_LO),y
+    sta SFX2_PULSE_HI
+    iny
+    lda (ZP_PTR_LO),y
+    sta sfxStepPtr2Lo
+    iny
+    lda (ZP_PTR_LO),y
+    sta sfxStepPtr2Hi
+    lda #$01
+    sta sfxActive2
+    lda #$00
+    sta sfxStepCounter2
+    jsr sfx_update_voice2
+rts
+
 sfx_init:
     lda #$00
-    sta sfxActive
-    sta sfxStepCounter
-    sta sfxStepPtrLo
-    sta sfxStepPtrHi
+    sta sfxActive0
+    sta sfxActive1
+    sta sfxActive2
+    sta sfxStepCounter0
+    sta sfxStepCounter1
+    sta sfxStepCounter2
+    sta sfxStepPtr0Lo
+    sta sfxStepPtr0Hi
+    sta sfxStepPtr1Lo
+    sta sfxStepPtr1Hi
+    sta sfxStepPtr2Lo
+    sta sfxStepPtr2Hi
     sta sfxEnabled
+    sta sfxVoiceNext
+    sta sfxRequestedId
+    sta sfxSelectedVoice
 
-    sta SFX_CONTROL
-    sta SFX_FREQ_LO
-    sta SFX_FREQ_HI
-    sta SFX_PULSE_LO
-    sta SFX_PULSE_HI
-    lda #$F0                // Default ADSR: quick attack, long sustain
-    sta SFX_ATTACK_DECAY
-    lda #$00
-    sta SFX_SUSTAIN_RELEASE
+    jsr sfx_stop_voice0
+    jsr sfx_stop_voice1
+    jsr sfx_stop_voice2
+
     lda #$0f                // Ensure master volume is non-zero for effects
     sta SFX_VOL_FILT
+rts
+
+sfx_allocate_voice:
+    lda sfxActive0
+    beq sfx_allocate_voice_use0
+    lda sfxActive1
+    beq sfx_allocate_voice_use1
+    lda sfxActive2
+    beq sfx_allocate_voice_use2
+
+    lda sfxVoiceNext
+    tax                     // Selected voice when all are busy
+    tay
+    iny
+    cpy #SFX_VOICE_COUNT
+    bcc sfx_allocate_store_next
+    ldy #$00
+sfx_allocate_store_next:
+    sty sfxVoiceNext
+    txa                     // Restore selected voice index to A
+    tax                     // and return it in X
+rts
+
+sfx_allocate_voice_use0:
+    ldx #$00
+    lda #$01
+    sta sfxVoiceNext
+rts
+
+sfx_allocate_voice_use1:
+    ldx #$01
+    lda #$02
+    sta sfxVoiceNext
+rts
+
+sfx_allocate_voice_use2:
+    ldx #$02
+    lda #$00
+    sta sfxVoiceNext
 rts
 
 sfx_play_launch:
@@ -106,49 +433,36 @@ sfx_play_extra_life:
     bne sfx_trigger
 
 sfx_trigger:
-    pha
-    lda sfxEnabled
-    beq sfx_trigger_disabled
-    pla
     tax
+    lda sfxEnabled
+    beq sfx_trigger_done
     cpx #SFX_ID_COUNT
-    bcc sfx_trigger_valid
-rts
+    bcs sfx_trigger_done
 
-sfx_trigger_disabled:
-    pla
-rts
+    stx sfxRequestedId
+    jsr sfx_allocate_voice
+    stx sfxSelectedVoice
 
-sfx_trigger_valid:
+    ldx sfxRequestedId
     lda sfxDescriptorTableLo,x
     sta ZP_PTR_LO
     lda sfxDescriptorTableHi,x
     sta ZP_PTR_HI
 
-    ldy #$00                // Descriptor header: ADSR, pulse, table pointer
-    lda (ZP_PTR_LO),y
-    sta SFX_ATTACK_DECAY
-    iny
-    lda (ZP_PTR_LO),y
-    sta SFX_SUSTAIN_RELEASE
-    iny
-    lda (ZP_PTR_LO),y
-    sta SFX_PULSE_LO
-    iny
-    lda (ZP_PTR_LO),y
-    sta SFX_PULSE_HI
-    iny
-    lda (ZP_PTR_LO),y
-    sta sfxStepPtrLo
-    iny
-    lda (ZP_PTR_LO),y
-    sta sfxStepPtrHi
+    lda sfxSelectedVoice
+    beq sfx_trigger_voice0
+    cmp #$01
+    beq sfx_trigger_voice1
+    jmp sfx_start_voice2
 
-    lda #$01
-    sta sfxActive
-    lda #$00
-    sta sfxStepCounter
-    jsr sfx_update
+sfx_trigger_voice0:
+    jmp sfx_start_voice0
+
+sfx_trigger_voice1:
+    jmp sfx_start_voice1
+
+sfx_trigger_done:
+
 rts
 
 sfx_update:                 // Advance current effect when enabled from IRQ
@@ -157,53 +471,15 @@ sfx_update:                 // Advance current effect when enabled from IRQ
 rts
 
 sfx_update_enabled:
-    lda sfxActive
-    bne sfx_active
-rts
-
-sfx_active:
-    lda sfxStepCounter
-    bne sfx_tick
-
-    lda sfxStepPtrLo
-    sta ZP_PTR_LO
-    lda sfxStepPtrHi
-    sta ZP_PTR_HI
-    ldy #$00
-    lda (ZP_PTR_LO),y
-    beq sfx_finish
-    sta sfxStepCounter
-    iny
-    lda (ZP_PTR_LO),y
-    sta SFX_FREQ_LO
-    iny
-    lda (ZP_PTR_LO),y
-    sta SFX_FREQ_HI
-    iny
-    lda (ZP_PTR_LO),y
-    sta SFX_CONTROL
-    clc
-    lda sfxStepPtrLo
-    adc #4
-    sta sfxStepPtrLo
-    lda sfxStepPtrHi
-    adc #0
-    sta sfxStepPtrHi
-    lda sfxStepCounter
-    beq sfx_active          // Handle 0-length entries gracefully
-sfx_tick:
-    dec sfxStepCounter
-rts
-
-sfx_finish:
-    lda #$00
-    sta SFX_CONTROL
-    sta sfxActive
-    sta sfxStepCounter
+    jsr sfx_update_voice0
+    jsr sfx_update_voice1
+    jsr sfx_update_voice2
 rts
 
 sfx_disable:               // Force channel idle and prevent new triggers
-    jsr sfx_finish
+    jsr sfx_stop_voice0
+    jsr sfx_stop_voice1
+    jsr sfx_stop_voice2
     lda #$00
     sta sfxEnabled
 rts

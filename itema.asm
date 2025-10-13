@@ -18,10 +18,10 @@
 .segmentdef AnimationTable [startAfter="Basic"]
 .segmentdef Music [start=music.location];
 .segmentdef Sprites [start=$2000, align=$40];
-.segmentdef Code [startAfter="Sprites"];
-.segmentdef Variables [startAfter="Code"];
+.segmentdef Variables [startAfter="Sprites"];
 .segmentdef Charset [startAfter="Variables", align=$800];
 .segmentdef Levels [startAfter="Charset"];
+.segmentdef Code [startAfter="Levels"];
 
 // TODO: Pack music and write memcpy to move it to music.location
 .segment Music "Music"
@@ -459,7 +459,6 @@ init_irq:
 *******************************************************************************/
 irq_1:
 
-    inc $d020
     // only play music when we are not in the game
     lda mode
     cmp MODE_GAME
@@ -583,7 +582,6 @@ check_mode_end:
         // Check whether or not any balls are colliding _after_ all the 
         // calculations and movements have been done for this frame. 
         jsr check_ball_collisions
-        dec $d020
         asl VICIRQ              // Clear interrupt flag
         jmp IRQROMEXIT          // set flag and end
 
