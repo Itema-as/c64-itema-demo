@@ -458,7 +458,6 @@ init_irq:
  HANDLE INPUT AND SPRITE MOVEMENT DURING INTERRUPT
 *******************************************************************************/
 irq_1:
-
     // only play music when we are not in the game
     lda mode
     cmp MODE_GAME
@@ -529,6 +528,15 @@ check_mode_end:
 
     start_loop:
 
+    lda bFireButtonPressed
+    beq paddle_default_color
+    lda #$03                // Cyan is a pretty color
+    bne paddle_color_apply
+paddle_default_color:
+    lda #$01                // Paddle default color
+paddle_color_apply:
+    sta SP0COL
+
     lda #$00
     sta SpriteIndex
 
@@ -558,17 +566,6 @@ check_mode_end:
         jsr draw_sprite
         jsr check_brick_collision
         jsr check_paddle_collision
-
-        // Indicate that the fire button is pressed. We do this by giving the
-        // paddle a nice color.
-        lda SpriteIndex
-        bne next_sprite
-	    lda #$01                // Set sprite #0 - the paddle individual color
-	    sta SP0COL
-        lda bFireButtonPressed
-        beq next_sprite
-        lda #$03                // Cyan is a pretty color
-        sta SP0COL              // Set sprite #0 - the paddle individual color
 
     next_sprite:
         lda SpriteIndex
