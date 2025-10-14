@@ -495,10 +495,18 @@ timed_text_expired:
     lda LevelCompletePending
     cmp #LEVEL_PENDING_ADVANCE
     bne check_mode_end
+    lda mode
+    cmp MODE_GAME
+    bne skip_level_advance
     lda #LEVEL_PENDING_NONE
     sta LevelCompletePending
     jsr advance_level
     jmp start_loop
+
+skip_level_advance:
+    lda #LEVEL_PENDING_NONE
+    sta LevelCompletePending
+    jmp check_mode_end
 
 check_mode_end:
     // The end game mode will show a timed text, allow the paddle to be moved
