@@ -16,8 +16,8 @@
 .label ZeroPage13 = $0E
 .label ZeroPage14 = $0F
 .label ZeroPage15 = $10
-.label ZP_PTR_LO  = $FE
-.label ZP_PTR_HI  = $FF
+.label ZeroPage_PtrLo  = $FE
+.label ZeroPage_PtrHi  = $FF
 
 // Character memory slots
 .label CharacterSlot0000 = $00 // $0000 hex,     0 decimal

@@ -76,7 +76,7 @@ BallFramePtr:
 // The number of lives to start with (BCD)
 .const NumberOfLives = 6
 // See at the bottom of the file for the actual levels loaded
-.const NumberOfLevels = 7
+.const NumberOfLevels = 1
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
@@ -458,10 +458,13 @@ init_irq:
  HANDLE INPUT AND SPRITE MOVEMENT DURING INTERRUPT
 *******************************************************************************/
 irq_1:
-    // only play music when we are not in the game
+    // Clear the raster interrupt flag in order to make sure that a new 
+    // interrupt is not allowed to start while processing the current.
+    asl VICIRQ
+
     lda mode
     cmp MODE_GAME
-    bne irq_play_music
+    bne irq_play_music          // Only play music when we are not in the game
     jsr sfx_update
     jmp irq_audio_done
 
@@ -525,7 +528,7 @@ check_mode_end:
     lda MODE_INTRO
     sta mode
     jsr sfx_disable
-    lda #$03
+    lda #$03                    // The number of balls in demo mode
     sta BallCount
     jsr reset_sprite_data
     lda #%11001111              // Enable all the three balls
@@ -634,8 +637,8 @@ level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_char
 .macro LOAD_SCREEN(index) {
     ldx #index
     lda level_chars_lo,x
-    sta ZP_PTR_LO
+    sta ZeroPage_PtrLo
     lda level_chars_hi,x
-    sta ZP_PTR_HI
+    sta ZeroPage_PtrHi
     jsr load_screen
 }

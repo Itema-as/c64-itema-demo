@@ -135,21 +135,21 @@ sfx_voice0_active:
     bne sfx_voice0_tick
 
     lda sfxStepPtr0Lo
-    sta ZP_PTR_LO
+    sta ZeroPage14
     lda sfxStepPtr0Hi
-    sta ZP_PTR_HI
+    sta ZeroPage15
     ldy #$00
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     beq sfx_voice0_finish
     sta sfxStepCounter0
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX0_FREQ_LO
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX0_FREQ_HI
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX0_CONTROL
     clc
     lda sfxStepPtr0Lo
@@ -179,21 +179,21 @@ sfx_voice1_active:
     bne sfx_voice1_tick
 
     lda sfxStepPtr1Lo
-    sta ZP_PTR_LO
+    sta ZeroPage14
     lda sfxStepPtr1Hi
-    sta ZP_PTR_HI
+    sta ZeroPage15
     ldy #$00
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     beq sfx_voice1_finish
     sta sfxStepCounter1
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX1_FREQ_LO
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX1_FREQ_HI
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX1_CONTROL
     clc
     lda sfxStepPtr1Lo
@@ -223,21 +223,21 @@ sfx_voice2_active:
     bne sfx_voice2_tick
 
     lda sfxStepPtr2Lo
-    sta ZP_PTR_LO
+    sta ZeroPage14
     lda sfxStepPtr2Hi
-    sta ZP_PTR_HI
+    sta ZeroPage15
     ldy #$00
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     beq sfx_voice2_finish
     sta sfxStepCounter2
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX2_FREQ_LO
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX2_FREQ_HI
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX2_CONTROL
     clc
     lda sfxStepPtr2Lo
@@ -260,22 +260,22 @@ rts
 sfx_start_voice0:
     jsr sfx_stop_voice0
     ldy #$00
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX0_ATTACK_DECAY
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX0_SUSTAIN_RELEASE
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX0_PULSE_LO
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX0_PULSE_HI
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta sfxStepPtr0Lo
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta sfxStepPtr0Hi
     lda #$01
     sta sfxActive0
@@ -287,22 +287,22 @@ rts
 sfx_start_voice1:
     jsr sfx_stop_voice1
     ldy #$00
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX1_ATTACK_DECAY
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX1_SUSTAIN_RELEASE
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX1_PULSE_LO
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX1_PULSE_HI
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta sfxStepPtr1Lo
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta sfxStepPtr1Hi
     lda #$01
     sta sfxActive1
@@ -314,22 +314,22 @@ rts
 sfx_start_voice2:
     jsr sfx_stop_voice2
     ldy #$00
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX2_ATTACK_DECAY
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX2_SUSTAIN_RELEASE
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX2_PULSE_LO
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta SFX2_PULSE_HI
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta sfxStepPtr2Lo
     iny
-    lda (ZP_PTR_LO),y
+    lda (ZeroPage14),y
     sta sfxStepPtr2Hi
     lda #$01
     sta sfxActive2
@@ -445,9 +445,9 @@ sfx_trigger:
 
     ldx sfxRequestedId
     lda sfxDescriptorTableLo,x
-    sta ZP_PTR_LO
+    sta ZeroPage14
     lda sfxDescriptorTableHi,x
-    sta ZP_PTR_HI
+    sta ZeroPage15
 
     lda sfxSelectedVoice
     beq sfx_trigger_voice0

@@ -861,17 +861,17 @@ check_brick_collision:
         beq extra_ball_brick
 
         lda #$20                // Clear using space
-        sta ($f7),y             // Store in both left..
+        sta (ZeroPage_PtrLo),y             // Store in both left..
         iny                     // ..and right half of block
-        sta ($f7),y
+        sta (ZeroPage_PtrLo),y
         jsr brick_updates
         jmp bounce_on_brick
 
     extra_ball_brick:
         lda #$20                // Clear using space
-        sta ($f7),y
+        sta (ZeroPage_PtrLo),y
         iny
-        sta ($f7),y
+        sta (ZeroPage_PtrLo),y
         jsr brick_updates
         jsr spawn_extra_ball
         jmp bounce_on_brick
@@ -1426,25 +1426,37 @@ rts
 
 get_brick_at_xy:
     lda ZeroPage10
+    cmp #$d0                    // Discard values outside the playfield (>= 208)
+    bcs no_brick
     lsr                         // MSB -> C, divide by 2
     lsr                         // Divide by 2 again
     lsr                         // Divide by 2 again
     lsr                         // Deal with having double witdh blocks
     asl
+    cmp #23                      // Bail out if the column would be outside the playfield
+    bcs no_brick
     sta column
 
     lda ZeroPage11
+    cmp #$d1                    // Ignore rows outside the playable area (>= 209)
+    bcs no_brick
     lsr                         // Divide by 2
     lsr                         // Divide by 2 again
     lsr                         // And divide by 2 a last time
+    cmp #24                     // Bail out if the row would exceed 24
+    bcs no_brick
     sta row                     // Store it for later
 
     ldx row
     lda ScreenMemLowByte,x
-    sta $f7
+    sta ZeroPage_PtrLo
     lda ScreenMemHighByte,x
-    sta $f8
+    sta ZeroPage_PtrHi
 
     ldy column
-    lda ($f7),y
+    lda (ZeroPage_PtrLo),y
+    rts
+
+no_brick:
+    lda #$00
     rts
