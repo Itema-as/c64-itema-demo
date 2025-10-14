@@ -533,6 +533,8 @@ check_mode_end:
 
     // Update the high score as it will have been overwritten
     jsr gameUpdateHighScore
+    // We also want the last score to show
+    jsr gameUpdateScore
 
     start_loop:
 
