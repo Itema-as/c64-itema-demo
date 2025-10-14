@@ -65,22 +65,27 @@ BallFramePtr:
 .const BallOffset = 6
 // The width of the ball
 .const BallWidth = 12
+.const BallCenterOffset = BallOffset + ( BallWidth / 2 )
 // The width of the Paddle
-.const PaddleWidth = 32
-// The centre of the paddle
-.const PaddleCenter = 16
-// Center of the paddle + 1/2 the width of the ball
-.const PaddleReach= PaddleCenter + ( BallWidth / 2 )
+.const PaddleWidthNormal       = 32
+.const PaddleWidthWide         = PaddleWidthNormal + 16
+.const PaddleCenterNormal      = PaddleWidthNormal / 2
+.const PaddleCenterWide        = PaddleWidthWide / 2
+.const PaddleReachLeftNormal   = PaddleCenterNormal + ( BallWidth / 2 )
+.const PaddleReachRightNormal  = PaddleCenterNormal + ( BallWidth / 2 )
+.const PaddleReachLeftWide     = PaddleCenterWide + ( BallWidth / 2 )
+.const PaddleReachRightWide    = PaddleCenterWide + ( BallWidth / 2 )
 // The angle to use when alternating in intro
 .const PaddleAngleDemo  = 8
 // The number of lives to start with (BCD)
 .const NumberOfLives = 6
 // See at the bottom of the file for the actual levels loaded
-.const NumberOfLevels = 1
+.const NumberOfLevels = 7
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
-.const PaddleRightBounds = 230 - PaddleWidth
+.const PaddleRightBoundsNormal = 230 - PaddleWidthNormal
+.const PaddleRightBoundsWide   = 230 - PaddleWidthWide
  
 
 get_ready_text:
@@ -181,8 +186,7 @@ initialize:
     lda #$06                    // Set sprite #3 -ball individual color
     sta SP0COL+3
 
-    lda #paddleSpriteData/64
-    sta SPRITE0PTR              // Sprite #0 – the paddle
+    jsr paddle_disable_wide_silent // Ensure the paddle uses the default geometry
     
     lda #$03
     asl
@@ -259,6 +263,8 @@ jmp loop
     Initialie the variables so that they are correct for starting a new game
 */
 initialize_game_variables:
+    jsr paddle_disable_wide_silent
+    //jsr paddle_enable_wide
     lda #$01
     sta BallCount               // We start with only one ball
     lda #%11000011              // Disable the balls we are not using
@@ -420,9 +426,9 @@ paddle_input:
     piNotLess:
     clc
     // Now check if the number is greater than the maximum value
-    cmp #PaddleRightBounds      // Compare with the maximum value
+    cmp paddleRightBoundCurrent // Compare with the maximum value
     bcc piNotGreater            // If carry is clear (number < maxValue), branch to piNotGreater
-    lda #PaddleRightBounds      // If carry is set (number >= maxValue), load the maximum value into the accumulator
+    lda paddleRightBoundCurrent // If carry is set (number >= maxValue), load the maximum value into the accumulator
     piNotGreater:
     sta SpriteMem               // Store the paddle x-position
 rts
@@ -524,6 +530,8 @@ check_mode_end:
     jsr music.init
 
     // Load intro screen and enable demo mode
+    
+    jsr paddle_disable_wide_silent // Make the paddle the normal size
     LOAD_SCREEN(0)
     lda MODE_INTRO
     sta mode
