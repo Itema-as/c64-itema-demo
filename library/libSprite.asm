@@ -558,7 +558,7 @@ ball_lost_primary:
 
     // update the high score (if requred)
     jsr gameUpdateHighScore
-    reset_game_not_finished:
+reset_game_not_finished:
     jsr reset_sprite_data
     // But override the ball #1 position as this has been set by the level
     // designer.
@@ -566,6 +566,11 @@ ball_lost_primary:
     sta SpriteMem+8
     lda StartingYPosition
     sta SpriteMem+9
+    // Cue the player before the next launch, unless the game just ended
+    lda wHudLives
+    beq @skip_ready_text
+    LIBSCREEN_TIMED_TEXT(get_ready_text)
+@skip_ready_text:
 rts
 
 ball_lost_extra_highest:
