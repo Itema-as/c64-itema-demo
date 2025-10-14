@@ -73,6 +73,94 @@ ScreenMemHighByte:
 .const BallCollisionThresholdX = $0c  // Max horizontal distance for collision
 .const BallCollisionThresholdY = $0c  // Max vertical distance for collision
 
+.const PaddleStateWide         = %00000001
+
+paddleStateFlags:
+    .byte %00000000
+paddleWidthCurrent:
+    .byte PaddleWidthNormal
+paddleRightBoundCurrent:
+    .byte PaddleRightBoundsNormal
+paddleReachLeftCurrent:
+    .byte PaddleReachLeftNormal
+paddleReachRightCurrent:
+    .byte PaddleReachRightNormal
+paddleCenterCurrent:
+    .byte PaddleCenterNormal
+
+paddle_update_geometry:
+    lda paddleStateFlags
+    and #PaddleStateWide
+    bne paddle_apply_wide
+
+paddle_apply_normal:
+    lda #PaddleWidthNormal
+    sta paddleWidthCurrent
+    lda #PaddleRightBoundsNormal
+    sta paddleRightBoundCurrent
+    lda #PaddleReachLeftNormal
+    sta paddleReachLeftCurrent
+    lda #PaddleReachRightNormal
+    sta paddleReachRightCurrent
+    lda #PaddleCenterNormal
+    sta paddleCenterCurrent
+    lda #paddleSpriteData/64
+    sta SPRITE0PTR
+    rts
+
+paddle_apply_wide:
+    lda #PaddleWidthWide
+    sta paddleWidthCurrent
+    lda #PaddleRightBoundsWide
+    sta paddleRightBoundCurrent
+    lda #PaddleReachLeftWide
+    sta paddleReachLeftCurrent
+    lda #PaddleReachRightWide
+    sta paddleReachRightCurrent
+    lda #PaddleCenterWide
+    sta paddleCenterCurrent
+    lda #widePaddleSpriteData/64
+    sta SPRITE0PTR
+    rts
+
+paddle_enable_wide:
+    lda paddleStateFlags
+    and #PaddleStateWide
+    bne paddle_enable_wide_no_change
+    jsr paddle_enable_wide_silent
+    jsr sfx_play_paddle_grow
+    rts
+
+paddle_enable_wide_no_change:
+    jsr paddle_update_geometry
+    rts
+
+paddle_enable_wide_silent:
+    lda paddleStateFlags
+    ora #PaddleStateWide
+    sta paddleStateFlags
+    jsr paddle_update_geometry
+    rts
+
+paddle_disable_wide:
+    lda paddleStateFlags
+    and #PaddleStateWide
+    beq paddle_disable_wide_no_change
+    jsr paddle_disable_wide_silent
+    jsr sfx_play_paddle_shrink
+    rts
+
+paddle_disable_wide_no_change:
+    jsr paddle_update_geometry
+    rts
+
+paddle_disable_wide_silent:
+    lda paddleStateFlags
+    and #%11111110
+    sta paddleStateFlags
+    jsr paddle_update_geometry
+    rts
+
 /*
     Sprite geometry offsets used when determining paddle collisions. The values
     specify the first and last rows of visible pixels within each sprite so
@@ -705,10 +793,12 @@ follow_paddle:
     and #%00000010
     beq follow_paddle_end       // If not we don't follow the paddle
 
-    // Center the ball on the paddle
-    clc
+    // Center the ball based on the current paddle width
     lda SpriteMem               // Paddle X position
-    adc #BallOffset-2
+    clc
+    adc paddleCenterCurrent
+    sec
+    sbc #BallCenterOffset
     jsr store_xl
 
     follow_paddle_end:
@@ -827,6 +917,24 @@ check_brick_collision:
         LIBSPRITE_COLLISION(18, 10)
     rts
 
+    clear_brick:
+        lda #$20                // Clear using space
+        sta (ZeroPage_PtrLo),y
+        iny
+        sta (ZeroPage_PtrLo),y
+        jsr brick_updates
+    rts
+    
+    extra_ball_brick:
+        jsr clear_brick
+        jsr spawn_extra_ball
+        jmp bounce_on_brick
+
+    expand_paddle_brick:
+        jsr clear_brick
+        jsr paddle_enable_wide
+        jmp bounce_on_brick
+    
     /*
         The character under the sprite has the PETSCII code 128 or higher which
         means it is a game piece. So we detect exactly which and act
@@ -860,20 +968,13 @@ check_brick_collision:
         cmp #$83
         beq extra_ball_brick
 
-        lda #$20                // Clear using space
-        sta (ZeroPage_PtrLo),y             // Store in both left..
-        iny                     // ..and right half of block
-        sta (ZeroPage_PtrLo),y
-        jsr brick_updates
-        jmp bounce_on_brick
+        cmp #$86
+        beq expand_paddle_brick
 
-    extra_ball_brick:
-        lda #$20                // Clear using space
-        sta (ZeroPage_PtrLo),y
-        iny
-        sta (ZeroPage_PtrLo),y
-        jsr brick_updates
-        jsr spawn_extra_ball
+        cmp #$87
+        beq expand_paddle_brick
+
+        jsr clear_brick
         jmp bounce_on_brick
 
     bounce_on_brick:
@@ -1005,29 +1106,31 @@ check_paddle_collision:
     jsr get_xl                  // x-position LSB of ball
     sta balllo
 
-    sec
     lda balllo
-    sbc SpriteMem               // x-position LSB of paddle
-    sta reslo
-
-    sec
-    lda reslo
-    sbc #PaddleReach
-    sta reslo
-
-    bpl right_of_paddle         // The ball is on the right side of the padde
-
     clc
-    lda balllo
-    adc #PaddleReach
-    sta balllo
+    adc #BallOffset
+    sta temp1                   // Ball left edge (visible pixels)
 
-    sec
-    lda balllo
-    sbc SpriteMem               // x-position LSB of paddle
-    sta reslo
+    lda temp1
+    clc
+    adc #BallWidth
+    sta temp2                   // Ball right edge (visible pixels)
 
-    bmi left_of_paddle          // The ball is on the left side of the paddle
+    lda SpriteMem
+    sta temp                    // Paddle left edge
+
+    lda temp
+    clc
+    adc paddleWidthCurrent
+    sta reslo                   // Paddle right edge
+
+    lda temp2
+    cmp temp
+    bcc left_of_paddle          // Ball entirely left of the paddle
+
+    lda temp1
+    cmp reslo
+    bcs right_of_paddle         // Ball entirely right of the paddle
 
     jsr bounce_off_paddle
     jsr end_check_paddle_collision
@@ -1272,7 +1375,7 @@ bounce_flag_already_set:
         sta temp1
         lda SpriteMem
         clc
-        adc #PaddleCenter
+        adc paddleCenterCurrent
         sta temp2
         lda temp1
         sec
@@ -1325,7 +1428,9 @@ launch_ball:
 rts
 
 advance_level:
-    /* Move forward to next level */
+    // Always start with a normal paddle
+    jsr paddle_disable_wide_silent
+    // Move forward to next level
     inc CurrentLevel
     lda CurrentLevel
     cmp #NumberOfLevels+1
@@ -1371,14 +1476,8 @@ rts
     - Load next level if done with all the bricks
 */
 brick_updates:
-    // TODO: Fix score/brick count bug
-    //
-    // The brick count is sometimes off, the same with the game score value.
-    // So instead of relying on this to determine whether or not the level is
-    // completed, we count the actual remaining bricks which does look less
-    // stupid, the result is that the score is sometimes off.
-    //dec BrickCount
-    jsr calculate_brick_count
+    dec BrickCount
+    //jsr calculate_brick_count
     // We have scored one more point
     jsr gameIncreaseScore
     jsr gameUpdateScore

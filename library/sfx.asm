@@ -13,7 +13,9 @@
 .const SFX_ID_BALL_LOST        = 4
 .const SFX_ID_LEVEL_START      = 5
 .const SFX_ID_EXTRA_LIFE       = 6
-.const SFX_ID_COUNT            = 7
+.const SFX_ID_PADDLE_GROW      = 7
+.const SFX_ID_PADDLE_SHRINK    = 8
+.const SFX_ID_COUNT            = 9
 
 .const SFX_VOICE_COUNT         = 3
 
@@ -432,6 +434,14 @@ sfx_play_extra_life:
     lda #SFX_ID_EXTRA_LIFE
     bne sfx_trigger
 
+sfx_play_paddle_grow:
+    lda #SFX_ID_PADDLE_GROW
+    bne sfx_trigger
+
+sfx_play_paddle_shrink:
+    lda #SFX_ID_PADDLE_SHRINK
+    bne sfx_trigger
+
 sfx_trigger:
     tax
     lda sfxEnabled
@@ -500,6 +510,8 @@ sfxDescriptorTableLo:
     .byte <sfxBallLostDescriptor
     .byte <sfxLevelStartDescriptor
     .byte <sfxExtraLifeDescriptor
+    .byte <sfxPaddleGrowDescriptor
+    .byte <sfxPaddleShrinkDescriptor
 
 sfxDescriptorTableHi:
     .byte >sfxLaunchDescriptor
@@ -509,6 +521,8 @@ sfxDescriptorTableHi:
     .byte >sfxBallLostDescriptor
     .byte >sfxLevelStartDescriptor
     .byte >sfxExtraLifeDescriptor
+    .byte >sfxPaddleGrowDescriptor
+    .byte >sfxPaddleShrinkDescriptor
 
 sfxLaunchDescriptor:
     .byte $26               // Attack/decay: A=$2, D=$6 for moderate bite
@@ -558,6 +572,20 @@ sfxExtraLifeDescriptor:
     .byte $00               // Pulse width lo (triangle-based melody)
     .byte $00               // Pulse width hi placeholder
     .word sfxExtraLifeSteps
+
+sfxPaddleGrowDescriptor:
+    .byte $14               // Crisp attack, moderate decay for power-up pickup
+    .byte $36               // Sustain/release keep the swell audible
+    .byte $00               // Pulse width lo for the pulse waveform
+    .byte $04               // Pulse width hi ~25% duty
+    .word sfxPaddleGrowSteps
+
+sfxPaddleShrinkDescriptor:
+    .byte $14               // Match grow effect envelope for familiarity
+    .byte $36               // Same sustain/release to mirror behaviour
+    .byte $00               // Pulse width lo for pulse waveform
+    .byte $0C               // Pulse width hi ~75% duty for darker tone
+    .word sfxPaddleShrinkSteps
 
 // Sound effect step tables ----------------------------------------------------
 
@@ -624,4 +652,22 @@ sfxExtraLifeSteps:
     SFX_STEP(2, $1E00, $10)
     SFX_STEP(8, $2400, $11)
     SFX_STEP(4, $2400, $10)
+    .byte 0
+
+// Paddle grows wider (rising shimmer)
+sfxPaddleGrowSteps:
+    SFX_STEP(3, $1200, $41)
+    SFX_STEP(3, $1600, $41)
+    SFX_STEP(3, $1C00, $41)
+    SFX_STEP(5, $2200, $41)
+    SFX_STEP(4, $2200, $40)
+    .byte 0
+
+// Paddle returns to normal (falling tone)
+sfxPaddleShrinkSteps:
+    SFX_STEP(3, $2200, $41)
+    SFX_STEP(3, $1C00, $41)
+    SFX_STEP(3, $1600, $41)
+    SFX_STEP(5, $1200, $41)
+    SFX_STEP(4, $0E00, $40)
     .byte 0
