@@ -76,7 +76,7 @@ BallFramePtr:
 // The number of lives to start with (BCD)
 .const NumberOfLives = 6
 // See at the bottom of the file for the actual levels loaded
-.const NumberOfLevels = 6
+.const NumberOfLevels = 7
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
@@ -623,9 +623,13 @@ level5_chars:  .fill l5.getSize(), l5.get(i)
 .var l6 = LoadBinary("petscii/level_5.bin")
 level6_chars:  .fill l6.getSize(), l6.get(i)
 
+.segment Levels "Level Data - Level 7"
+.var l7 = LoadBinary("petscii/level_6.bin")
+level7_chars:  .fill l7.getSize(), l7.get(i)
+
 // Use <> (low byte) and > (high byte) to extract addresses
-level_chars_lo:  .byte <level0_chars, <level1_chars, <level2_chars, <level3_chars, <level4_chars, <level5_chars, <level6_chars
-level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_chars, >level4_chars, >level5_chars, >level6_chars
+level_chars_lo:  .byte <level0_chars, <level1_chars, <level2_chars, <level3_chars, <level4_chars, <level5_chars, <level6_chars, <level7_chars
+level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_chars, >level4_chars, >level5_chars, >level6_chars, >level7_chars
 
 .macro LOAD_SCREEN(index) {
     ldx #index
