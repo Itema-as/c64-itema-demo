@@ -67,6 +67,8 @@ ScreenMemHighByte:
 .const ExtraBallStartY  = ScreenTopEdge + BallOffset
 .const ExtraBallStartXV = $20
 .const ExtraBallStartYV = $00
+.const MagnetHorizontalVelocity = $20
+.const MagnetHorizontalMin      = $10
 .const BallFlagPaddleMagnet     = %00000100
 /*
     Adjust these values for the sensitivity when detecting whether or not the
@@ -815,6 +817,85 @@ apply_paddle_magnetism_active:
     sec
     sbc #BallCenterOffset
     sta temp1                  // target X position
+    lda temp1
+    cmp #ScreenLeftEdge
+    bcs magnet_target_check_right
+    lda #ScreenLeftEdge
+    sta temp1
+
+magnet_target_check_right:
+    lda temp1
+    cmp #ScreenRightEdge
+    bcc magnet_target_ready
+    lda #ScreenRightEdge
+    sta temp1
+
+magnet_target_ready:
+    jsr get_xl
+    sta temp2                  // current X position
+    lda temp2
+    cmp #ScreenLeftEdge
+    bcs magnet_current_check_right
+    jsr left_edge
+    lda #ScreenLeftEdge
+    sta temp2
+
+magnet_current_check_right:
+    lda temp2
+    cmp #ScreenRightEdge
+    bcc magnet_current_ready
+    jsr right_edge
+    lda #ScreenRightEdge
+    sta temp2
+
+magnet_current_ready:
+    lda temp1
+    sec
+    sbc temp2
+    sta temp                   // signed difference (target - current)
+    beq magnet_snap_to_center
+
+    bmi magnet_pull_left
+
+magnet_pull_right:
+    lda temp                   // positive difference
+    cmp #$02
+    bcc magnet_snap_to_center
+    sta temp2
+    lda temp2
+    asl
+    asl
+    ora #MagnetHorizontalMin
+    cmp #MagnetHorizontalVelocity
+    bcc magnet_pull_right_speed_ready
+    lda #MagnetHorizontalVelocity
+magnet_pull_right_speed_ready:
+    jsr store_xv
+    jmp magnet_horizontal_done
+
+magnet_pull_left:
+    lda temp
+    eor #$ff
+    clc
+    adc #$01                  // absolute difference
+    cmp #$02
+    bcc magnet_snap_to_center
+    sta temp2
+    lda temp2
+    asl
+    asl
+    ora #MagnetHorizontalMin
+    cmp #MagnetHorizontalVelocity
+    bcc magnet_pull_left_speed_ready
+    lda #MagnetHorizontalVelocity
+magnet_pull_left_speed_ready:
+    eor #$ff
+    clc
+    adc #$01
+    jsr store_xv
+    jmp magnet_horizontal_done
+
+magnet_snap_to_center:
     lda temp1
     jsr store_xl
     lda #$00
