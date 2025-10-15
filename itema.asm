@@ -78,9 +78,9 @@ BallFramePtr:
 // The angle to use when alternating in intro
 .const PaddleAngleDemo  = 8
 // The number of lives to start with (BCD)
-.const NumberOfLives = 6
+.const NumberOfLives = 2    // XXX: Revert back to 6
 // See at the bottom of the file for the actual levels loaded
-.const NumberOfLevels = 7
+.const NumberOfLevels = 1   // XXX: Revert back to 7
  
 // Minumum and maximum x-values for the paddle to stay within the game arena
 .const PaddleLeftBounds = 26
@@ -574,6 +574,7 @@ paddle_color_apply:
         jmp next_sprite         // Move other sprites (balls)
 
     normal_motion:
+        jsr apply_paddle_magnetism
         jsr follow_paddle       // in case the ball has been captured
         jsr move_vertically
         lda spriteRemoved
