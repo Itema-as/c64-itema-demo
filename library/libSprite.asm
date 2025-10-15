@@ -60,16 +60,14 @@ ScreenMemHighByte:
 .const ScreenRightEdge  = 213
 .const ScreenLeftEdge   = 20
 .const Gravity          = 2
-.const VelocityLoss     = 2
-.const MaxBallCount     = 3
+.const VelocityLoss     = 4     // The loss of velocity when htting a brick or paddle
+.const MaxBallCount     = 3     // The maximum number of balls in the playing area
+.const VelocityGainFromHit = 16 // Extra velocity gained from hitting the ball
 .const ExtraBallStartX  = ScreenLeftEdge + BallOffset
 .const ExtraBallStartY  = ScreenTopEdge + BallOffset
 .const ExtraBallStartXV = $20
 .const ExtraBallStartYV = $00
-.const MagnetHorizontalVelocity = $20
 .const BallFlagPaddleMagnet     = %00000100
-.const GuardHitLeft             = %00000001
-.const GuardHitRight            = %00000010
 /*
     Adjust these values for the sensitivity when detecting whether or not the
     balls have collided. Smaller value means balls will practically overlap.
@@ -809,8 +807,6 @@ magnetism_done:
 apply_paddle_magnetism_active:
     lda #$00
     jsr store_xa
-    lda #$00
-    sta tempYa                  // Track guard usage for this frame
 
     // Determine the desired horizontal position (centered on the paddle)
     lda SpriteMem
@@ -820,97 +816,7 @@ apply_paddle_magnetism_active:
     sbc #BallCenterOffset
     sta temp1                  // target X position
     lda temp1
-    cmp #ScreenLeftEdge
-    bcs magnet_target_check_right
-    lda #ScreenLeftEdge
-    sta temp1
-
-magnet_target_check_right:
-    lda temp1
-    cmp #ScreenRightEdge
-    bcc magnet_target_bounded
-    lda #ScreenRightEdge
-    sta temp1
-
-magnet_target_bounded:
-
-    jsr get_xl
-    sta temp2                  // current X position
-    lda temp2
-    cmp #ScreenLeftEdge
-    bcs magnet_current_check_right
-    jsr left_edge
-    lda #ScreenLeftEdge
-    sta temp2
     jsr store_xl
-    lda tempYa
-    ora #GuardHitLeft
-    sta tempYa
-
-magnet_current_check_right:
-    lda temp2
-    cmp #ScreenRightEdge
-    bcc magnet_current_bounded
-    jsr right_edge
-    lda #ScreenRightEdge
-    sta temp2
-    jsr store_xl
-    lda tempYa
-    ora #GuardHitRight
-    sta tempYa
-
-magnet_current_bounded:
-    lda temp1
-    sec
-    sbc temp2
-    sta temp                   // difference between target and current
-
-    lda temp
-    beq magnet_horizontal_aligned
-    bmi magnet_horizontal_move_left
-
-    cmp #$02
-    bcc magnet_horizontal_aligned
-    lda #MagnetHorizontalVelocity
-    jsr store_xv
-    jmp magnet_horizontal_done
-
-magnet_horizontal_move_left:
-    eor #$ff
-    clc
-    adc #$01
-    cmp #$02
-    bcc magnet_horizontal_aligned
-    lda #MagnetHorizontalVelocity
-    eor #$ff
-    clc
-    adc #$01
-    jsr store_xv
-    jmp magnet_horizontal_done
-
-magnet_horizontal_aligned:
-    lda temp1
-    jsr store_xl
-    lda tempYa
-    beq magnet_horizontal_zero_velocity
-    sta temp                  // reuse temp as scratch for guard bits
-    lda temp1
-    cmp #ScreenLeftEdge
-    bne magnet_aligned_check_right
-    lda temp
-    and #GuardHitLeft
-    bne magnet_horizontal_zero_velocity
-
-magnet_aligned_check_right:
-    lda temp1
-    cmp #ScreenRightEdge
-    bne magnet_horizontal_done
-    lda temp
-    and #GuardHitRight
-    bne magnet_horizontal_zero_velocity
-    jmp magnet_horizontal_done
-
-magnet_horizontal_zero_velocity:
     lda #$00
     jsr store_xv
 
@@ -1584,7 +1490,8 @@ bounce_flag_already_set:
 
         // Add some extra velocity to the ball
         jsr get_yv          // Change the direction of the velocity
-        sbc #VelocityLoss+8
+        sec
+        sbc #VelocityGainFromHit
         jsr store_yv
         jsr sfx_play_paddle_power
         jmp bounce_end
