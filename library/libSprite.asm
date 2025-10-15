@@ -70,6 +70,7 @@ ScreenMemHighByte:
 .const MagnetHorizontalVelocity = $20
 .const MagnetHorizontalMin      = $10
 .const BallFlagPaddleMagnet     = %00000100
+.const BallFlagMagnetSlowdown   = %00001000
 /*
     Adjust these values for the sensitivity when detecting whether or not the
     balls have collided. Smaller value means balls will practically overlap.
@@ -807,8 +808,32 @@ magnetism_done:
     rts
 
 apply_paddle_magnetism_active:
+    lda tempXa                    // Flags captured earlier
+    and #BallFlagMagnetSlowdown
+    bne magnet_slowdown_done
+
+    lda #$00
+    jsr store_xv                  // Halt horizontal motion immediately
+    lda #$00
+    jsr store_yv                  // Halt vertical motion immediately
     lda #$00
     jsr store_xa
+    lda #$00
+    jsr store_ya
+    lda tempXa
+    ora #BallFlagMagnetSlowdown
+    sta tempXa
+    lda tempXa
+    jsr store_flags
+    jmp magnet_prepare_alignment
+
+magnet_slowdown_done:
+    lda #$00
+    jsr store_xa
+    lda #$00
+    jsr store_ya
+
+magnet_prepare_alignment:
 
     // Determine the desired horizontal position (centered on the paddle)
     lda SpriteMem
@@ -916,7 +941,7 @@ magnet_horizontal_done:
     jsr store_yv
     jsr get_flags
     ora #%00000010
-    and #%11111011
+    and #%11110011
     jsr store_flags
     FRAME_COLOR(3)
 
@@ -1045,9 +1070,13 @@ activate_paddle_magnet:
     lda #$00
     jsr store_xa
     lda #$00
+    jsr store_ya
+    lda #$00
     jsr store_xv
+    lda #$00
+    jsr store_yv
     jsr get_flags
-    and #%11111101              // Clear resting bit if it was set
+    and #%11110101              // Clear resting & slowdown bits if they were set
     ora #BallFlagPaddleMagnet   // Enable the magnet state
     jsr store_flags
 rts
