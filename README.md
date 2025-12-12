@@ -26,3 +26,9 @@ Yes, there are more levels :) …
 * [Kick Assembler User Guide](http://www.theweb.dk/KickAssembler/webhelp/content/cpt_Introduction.html) – Commodore Commander has a built in compiler. This is the one.
 * [Commodore 64 fonts](https://github.com/patrickmollohan/c64-fonts?tab=readme-ov-file) – A bunch of nice fonts for the Commodore 64.
 * [PETSCII Editor](https://petscii.krissz.hu/) – An awesome web based tool used to design the character set and all the levels for this game.
+* [Convertrol 3000](https://github.com/fieserWolF/convertron3000) is a graphics converter for Commodore 64 computers. It runs on 64 bit versions of Linux, MacOS, Windows and other systems supported by Python.
+* [Commdore 64 Title Screens](https://c64screenshots.com/titles/) A nice collection of title screens for inspiration
+
+---
+* https://www.sca.ch/c64/software/graphics/Koalapainter/
+* 

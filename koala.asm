@@ -1,4 +1,4 @@
-.var picture = LoadBinary("NINJA3.KOA", BF_KOALA)
+.var picture = LoadBinary("title.koa", BF_KOALA)
 
 #import "library/libDefines.asm"
 

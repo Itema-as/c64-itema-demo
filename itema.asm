@@ -9,10 +9,10 @@
 */
 
 // Include .prg file assembly segments (ordered by runtime address)
-.file [name="itema.prg", segments="Basic,AnimationTable,Music,Sprites,Code,Variables,Charset,Levels,IntroScreen,IntroBitmap,IntroColors"]
+.file [name="itema.prg", segments="Basic,AnimationTable,Music,Sprites,Code,Variables,Charset,Levels,TitleScreen,TitleBitmap,TitleColors"]
 
 .var music = LoadSid("./music/Calypso_Bar.sid")
-.var introKoala = LoadBinary("intro.koa", BF_KOALA)
+.var titleScreenBinary = LoadBinary("title.koa", BF_KOALA)
 
 
 .segmentdef Basic [start=$0801];
@@ -23,9 +23,9 @@
 .segmentdef Charset [startAfter="Variables", align=$800];
 .segmentdef Levels [startAfter="Charset"];
 .segmentdef Code [startAfter="Levels"];
-.segmentdef IntroColors [start=$1c00];
-.segmentdef IntroScreen [start=$8c00];
-.segmentdef IntroBitmap [start=$a000];
+.segmentdef TitleColors [start=$1c00];
+.segmentdef TitleScreen [start=$8c00];
+.segmentdef TitleBitmap [start=$a000];
 
 // TODO: Pack music and write memcpy to move it to music.location
 .segment Music "Music"
@@ -69,26 +69,26 @@ $DD00 bit 0–1:
 11 → Bank 0: $0000–$3FFF
 
 bank_base    = $8000
-screen_index = (INTRO_KOALA_SCREEN_ADDR - bank_base) / $0400
-char_index   = (INTRO_KOALA_BITMAP_ADDR - bank_base) / $0800
+screen_index = (TITLE_SCREEN_ADDR - bank_base) / $0400
+char_index   = (TITLE_BITMAP_ADDR - bank_base) / $0800
 
 	$d018 = (screen_index << 4) | (char_index << 1)
 	      = (3 << 4) | (4 << 1)
 	      = $30 | $08
 	      = $38
 	*/
-.const INTRO_KOALA_BITMAP_ADDR   = $a000
-.const INTRO_KOALA_SCREEN_ADDR   = $8c00
-.const INTRO_KOALA_DURATION      = 250   // 5 seconds at 50Hz IRQ
-.const INTRO_KOALA_BANK_VALUE    = $01   // CI2PRA bank bits for VIC bank 2 ($8000-$bfff)
-.const INTRO_KOALA_VMCSB_VALUE   = $38   // Screen at $8c00 (screen index 3), bitmap at $a000 (bitmap index 4) in bank 2
-.const INTRO_KOALA_SCROLY_VALUE  = $3b   // Bitmap mode, 25 rows, no v-scroll
-.const INTRO_KOALA_SCROLX_VALUE  = $18   // Multicolor bitmap, 40 cols, no h-scroll
-.const INTRO_KOALA_BITMAP_SIZE   = introKoala.getBitmapSize()
-.const INTRO_KOALA_SCREEN_SIZE   = introKoala.getScreenRamSize()
-.const INTRO_KOALA_COLOR_SIZE    = introKoala.getColorRamSize()
-.const INTRO_KOALA_COLOR_PAGES   = 4                     // Koala color RAM is 1000 bytes
-.const INTRO_KOALA_COLOR_REMAINDER = INTRO_KOALA_COLOR_SIZE - (INTRO_KOALA_COLOR_PAGES-1)*$100
+.const TITLE_BITMAP_ADDR   = $a000
+.const TITLE_SCREEN_ADDR   = $8c00
+.const TITLE_DURATION      = 250 // 5 seconds at 50Hz IRQ
+.const TITLE_BANK_VALUE    = $01 // CI2PRA bank bits for VIC bank 2 ($8000-$bfff)
+.const TITLE_VMCSB_VALUE   = $38 // Screen at $8c00 (screen index 3), bitmap at $a000 (bitmap index 4) in bank 2
+.const TITLE_SCROLY_VALUE  = $3b // Bitmap mode, 25 rows, no v-scroll
+.const TITLE_SCROLX_VALUE  = $18 // Multicolor bitmap, 40 cols, no h-scroll
+.const TITLE_BITMAP_SIZE   = titleScreenBinary.getBitmapSize()
+.const TITLE_SCREEN_SIZE   = titleScreenBinary.getScreenRamSize()
+.const TITLE_COLOR_SIZE    = titleScreenBinary.getColorRamSize()
+.const TITLE_COLOR_PAGES   = 4                     // Koala color RAM is 1000 bytes
+.const TITLE_COLOR_REMAINDER = TITLE_COLOR_SIZE - (TITLE_COLOR_PAGES-1)*$100
 
  // When launching the ball from the paddle
 .const LAUNCH_VELOCITY = $60
@@ -177,15 +177,15 @@ StartingYPosition:
 introImageTimer:
     .byte 0
 
-introKoalaVicBankBackup:
+titleScreenBinaryVicBankBackup:
     .byte 0
-introKoalaVmcsbBackup:
+titleScreenBinaryVmcsbBackup:
     .byte 0
-introKoalaScrolxBackup:
+titleScreenBinaryScrolxBackup:
     .byte 0
-introKoalaScrolyBackup:
+titleScreenBinaryScrolyBackup:
     .byte 0
-introKoalaCi2ddraBackup:
+titleScreenBinaryCi2ddraBackup:
     .byte 0
 /*******************************************************************************
  INITIALIZE THE THINGS
@@ -313,44 +313,44 @@ jmp loop
 *******************************************************************************/
 start_intro_sequence:
     sei                         // Avoid KERNAL IRQs while setting up the picture
-    lda #INTRO_KOALA_DURATION
+    lda #TITLE_DURATION
     sta introImageTimer
 
     jsr sfx_disable
 
     lda CI2PRA
-    sta introKoalaVicBankBackup
+    sta titleScreenBinaryVicBankBackup
     lda VMCSB
-    sta introKoalaVmcsbBackup
+    sta titleScreenBinaryVmcsbBackup
     lda SCROLX
-    sta introKoalaScrolxBackup
+    sta titleScreenBinaryScrolxBackup
     lda SCROLY
-    sta introKoalaScrolyBackup
+    sta titleScreenBinaryScrolyBackup
     lda CI2DDRA
-    sta introKoalaCi2ddraBackup
+    sta titleScreenBinaryCi2ddraBackup
 
     lda #$00
     sta SPENA                   // Hide sprites while showing the picture
 
-    lda introKoalaCi2ddraBackup
+    lda titleScreenBinaryCi2ddraBackup
     ora #%00000011              // Ensure CIA2 port A low bits are outputs for VIC bank select
     sta CI2DDRA
 
-    lda introKoalaVicBankBackup
+    lda titleScreenBinaryVicBankBackup
     and #%11111100
-    ora #INTRO_KOALA_BANK_VALUE
+    ora #TITLE_BANK_VALUE
     sta CI2PRA
 
-    lda #INTRO_KOALA_SCROLY_VALUE
+    lda #TITLE_SCROLY_VALUE
     sta SCROLY
 
-    lda #INTRO_KOALA_SCROLX_VALUE
+    lda #TITLE_SCROLX_VALUE
     sta SCROLX
 
-    lda #INTRO_KOALA_VMCSB_VALUE
+    lda #TITLE_VMCSB_VALUE
     sta VMCSB
 
-    lda introKoalaBackgroundColor
+    lda titleScreenBinaryBackgroundColor
     sta EXTCOL
     sta BGCOL0
     lda #$01                    // Default
@@ -380,15 +380,15 @@ finish_intro_sequence:
 
     LOAD_SCREEN(0)
 
-    lda introKoalaVicBankBackup
+    lda titleScreenBinaryVicBankBackup
     sta CI2PRA
-    lda introKoalaVmcsbBackup
+    lda titleScreenBinaryVmcsbBackup
     sta VMCSB
-    lda introKoalaCi2ddraBackup
+    lda titleScreenBinaryCi2ddraBackup
     sta CI2DDRA
-    lda introKoalaScrolxBackup
+    lda titleScreenBinaryScrolxBackup
     sta SCROLX
-    lda introKoalaScrolyBackup
+    lda titleScreenBinaryScrolyBackup
     sta SCROLY
 
     lda #$00
@@ -419,8 +419,8 @@ rts
 intro_copy_koala_colors:
     ldx #$00
 intro_copy_koala_colors_loop:
-    .for (var i=0; i<INTRO_KOALA_COLOR_PAGES; i++) {
-        lda introKoalaColors + i*$100, x
+    .for (var i=0; i<TITLE_COLOR_PAGES; i++) {
+        lda titleScreenBinaryColors + i*$100, x
         sta COLORRAM + i*$100, x
     }
     inx
@@ -811,16 +811,16 @@ level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_char
  INTRO KOALA DATA
 *******************************************************************************/
 
-.segment IntroBitmap "Intro Koala bitmap"
-introKoalaBitmap:
-    .fill INTRO_KOALA_BITMAP_SIZE, introKoala.getBitmap(i)
+.segment TitleBitmap "Title Koala bitmap"
+titleScreenBinaryBitmap:
+    .fill TITLE_BITMAP_SIZE, titleScreenBinary.getBitmap(i)
 
-.segment IntroScreen "Intro Koala screen"
-introKoalaScreen:
-    .fill INTRO_KOALA_SCREEN_SIZE, introKoala.getScreenRam(i)
+.segment TitleScreen "Title Koala screen"
+titleScreenBinaryScreen:
+    .fill TITLE_SCREEN_SIZE, titleScreenBinary.getScreenRam(i)
 
-.segment IntroColors "Intro Koala colours"
-introKoalaColors:
-    .fill INTRO_KOALA_COLOR_SIZE, introKoala.getColorRam(i)
-introKoalaBackgroundColor:
-    .byte introKoala.getBackgroundColor()
+.segment TitleColors "Title Koala colours"
+titleScreenBinaryColors:
+    .fill TITLE_COLOR_SIZE, titleScreenBinary.getColorRam(i)
+titleScreenBinaryBackgroundColor:
+    .byte titleScreenBinary.getBackgroundColor()
