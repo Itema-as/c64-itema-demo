@@ -71,6 +71,7 @@ ScreenMemHighByte:
 .const MagnetHorizontalMin      = $10
 .const BallFlagPaddleMagnet     = %00000100
 .const BallFlagMagnetSlowdown   = %00001000
+/* Suppress magnet pull for 1 frame. */
 .const BallFlagMagnetBounce     = %00010000
 /*
     Adjust these values for the sensitivity when detecting whether or not the
@@ -803,7 +804,7 @@ apply_paddle_magnetism:
 
     // Already resting, clear the magnet flag
     lda tempXa
-    and #%11101011
+    and #%11101011              // Clear magnet + bounce flags
     jsr store_flags
 magnetism_done:
     rts
@@ -813,7 +814,7 @@ apply_paddle_magnetism_active:
     and #BallFlagMagnetBounce
     beq magnet_check_slowdown
     lda tempXa
-    and #%11101111
+    and #%11101111              // Clear magnet bounce flag
     jsr store_flags
     rts
 
@@ -951,7 +952,7 @@ magnet_horizontal_done:
     jsr store_yv
     jsr get_flags
     ora #%00000010
-    and #%11100011
+    and #%11100011              // Clear magnet/slowdown/bounce flags
     jsr store_flags
     FRAME_COLOR(3)
 
@@ -1092,7 +1093,7 @@ activate_paddle_magnet:
     lda #$00
     jsr store_yv
     jsr get_flags
-    and #%11100101              // Clear resting & slowdown bits if they were set
+    and #%11100101              // Clear resting, slowdown, bounce flags
     ora #BallFlagPaddleMagnet   // Enable the magnet state
     jsr store_flags
 rts
