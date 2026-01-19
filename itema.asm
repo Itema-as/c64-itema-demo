@@ -317,6 +317,10 @@ start_intro_sequence:
     sta introImageTimer
 
     jsr sfx_disable
+    lda #$00
+    ldx #<music.init
+    ldy #>music.init
+    jsr music.init
 
     lda CI2PRA
     sta titleScreenBinaryVicBankBackup
@@ -394,11 +398,6 @@ finish_intro_sequence:
     lda #$00
     sta BGCOL0
     sta EXTCOL
-
-    lda #$00
-    ldx #<music.init
-    ldy #>music.init
-    jsr music.init
 
     lda MODE_INTRO
     sta mode
@@ -649,6 +648,7 @@ irq_play_music:
     jmp irq_audio_done
 
 irq_intro_image:
+    jsr music.play
     jsr intro_image_tick
     jmp IRQROMEXIT
 

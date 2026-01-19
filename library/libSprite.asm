@@ -71,6 +71,7 @@ ScreenMemHighByte:
 .const MagnetHorizontalMin      = $10
 .const BallFlagPaddleMagnet     = %00000100
 .const BallFlagMagnetSlowdown   = %00001000
+.const BallFlagMagnetBounce     = %00010000
 /*
     Adjust these values for the sensitivity when detecting whether or not the
     balls have collided. Smaller value means balls will practically overlap.
@@ -802,12 +803,21 @@ apply_paddle_magnetism:
 
     // Already resting, clear the magnet flag
     lda tempXa
-    and #%11111011
+    and #%11101011
     jsr store_flags
 magnetism_done:
     rts
 
 apply_paddle_magnetism_active:
+    lda tempXa
+    and #BallFlagMagnetBounce
+    beq magnet_check_slowdown
+    lda tempXa
+    and #%11101111
+    jsr store_flags
+    rts
+
+magnet_check_slowdown:
     lda tempXa                    // Flags captured earlier
     and #BallFlagMagnetSlowdown
     bne magnet_slowdown_done
@@ -941,7 +951,7 @@ magnet_horizontal_done:
     jsr store_yv
     jsr get_flags
     ora #%00000010
-    and #%11110011
+    and #%11100011
     jsr store_flags
     FRAME_COLOR(3)
 
@@ -1014,10 +1024,13 @@ rts
     screen.
 */
 right_edge:
-    jsr get_xl
-    clc
-    cmp #ScreenRightEdge
-    bcs change_to_move_left
+	jsr get_xl
+	cmp #ScreenRightEdge
+	bcc right_edge_done
+	lda #ScreenRightEdge
+	jsr store_xl
+	jsr change_to_move_left
+right_edge_done:
 rts
 
 /*
@@ -1025,10 +1038,13 @@ rts
     screen
 */
 left_edge:
-    jsr get_xl
-    clc
-    cmp #ScreenLeftEdge
-    bcc change_to_move_right
+	jsr get_xl
+	cmp #ScreenLeftEdge
+	bcs left_edge_done
+	lda #ScreenLeftEdge
+	jsr store_xl
+	jsr change_to_move_right
+left_edge_done:
 rts
 
 shift_right:
@@ -1076,7 +1092,7 @@ activate_paddle_magnet:
     lda #$00
     jsr store_yv
     jsr get_flags
-    and #%11110101              // Clear resting & slowdown bits if they were set
+    and #%11100101              // Clear resting & slowdown bits if they were set
     ora #BallFlagPaddleMagnet   // Enable the magnet state
     jsr store_flags
 rts
@@ -1146,7 +1162,9 @@ rts
 
         // Power-up that adds speed downwards
         cmp #$e2
-        beq speed_down
+        bne speed_down_skip
+        jmp speed_down
+    speed_down_skip:
 
         // Power-up that adds speed upwards
         cmp #$e3
@@ -1206,6 +1224,13 @@ rts
 
     bounce_on_brick_apply_horizontal:
         jsr reverse_horizontal_velocity
+        jsr get_flags
+        sta temp
+        and #BallFlagPaddleMagnet
+        beq bounce_on_brick_end
+        lda temp
+        ora #BallFlagMagnetBounce
+        jsr store_flags
 
     bounce_on_brick_end:
         jmp end_char
