@@ -60,12 +60,17 @@ ScreenMemHighByte:
 .const ScreenRightEdge  = 213
 .const ScreenLeftEdge   = 20
 .const Gravity          = 2
-.const VelocityLoss     = 2
-.const MaxBallCount     = 3
+.const VelocityLoss     = 4     // The loss of velocity when htting a brick or paddle
+.const MaxBallCount     = 3     // The maximum number of balls in the playing area
+.const VelocityGainFromHit = 16 // Extra velocity gained from hitting the ball
 .const ExtraBallStartX  = ScreenLeftEdge + BallOffset
 .const ExtraBallStartY  = ScreenTopEdge + BallOffset
 .const ExtraBallStartXV = $20
 .const ExtraBallStartYV = $00
+.const MagnetHorizontalVelocity = $20
+.const MagnetHorizontalMin      = $10
+.const BallFlagPaddleMagnet     = %00000100
+.const BallFlagMagnetSlowdown   = %00001000
 /*
     Adjust these values for the sensitivity when detecting whether or not the
     balls have collided. Smaller value means balls will practically overlap.
@@ -781,6 +786,168 @@ clear_sprite_slot_loop:
     bne clear_sprite_slot_loop
 rts
 
+apply_paddle_magnetism:
+    lda SpriteIndex
+    beq magnetism_done          // Skip the paddle itself
+
+    jsr get_flags
+    sta tempXa
+    lda tempXa
+    and #BallFlagPaddleMagnet
+    beq magnetism_done          // Magnet power-up not active
+
+    lda tempXa
+    and #%00000010
+    beq apply_paddle_magnetism_active
+
+    // Already resting, clear the magnet flag
+    lda tempXa
+    and #%11111011
+    jsr store_flags
+magnetism_done:
+    rts
+
+apply_paddle_magnetism_active:
+    lda tempXa                    // Flags captured earlier
+    and #BallFlagMagnetSlowdown
+    bne magnet_slowdown_done
+
+    lda #$00
+    jsr store_xv                  // Halt horizontal motion immediately
+    lda #$00
+    jsr store_yv                  // Halt vertical motion immediately
+    lda #$00
+    jsr store_xa
+    lda #$00
+    jsr store_ya
+    lda tempXa
+    ora #BallFlagMagnetSlowdown
+    sta tempXa
+    lda tempXa
+    jsr store_flags
+    jmp magnet_prepare_alignment
+
+magnet_slowdown_done:
+    lda #$00
+    jsr store_xa
+    lda #$00
+    jsr store_ya
+
+magnet_prepare_alignment:
+
+    // Determine the desired horizontal position (centered on the paddle)
+    lda SpriteMem
+    clc
+    adc paddleCenterCurrent
+    sec
+    sbc #BallCenterOffset
+    sta temp1                  // target X position
+    lda temp1
+    cmp #ScreenLeftEdge
+    bcs magnet_target_check_right
+    lda #ScreenLeftEdge
+    sta temp1
+
+magnet_target_check_right:
+    lda temp1
+    cmp #ScreenRightEdge
+    bcc magnet_target_ready
+    lda #ScreenRightEdge
+    sta temp1
+
+magnet_target_ready:
+    jsr get_xl
+    sta temp2                  // current X position
+    lda temp2
+    cmp #ScreenLeftEdge
+    bcs magnet_current_check_right
+    jsr left_edge
+    lda #ScreenLeftEdge
+    sta temp2
+
+magnet_current_check_right:
+    lda temp2
+    cmp #ScreenRightEdge
+    bcc magnet_current_ready
+    jsr right_edge
+    lda #ScreenRightEdge
+    sta temp2
+
+magnet_current_ready:
+    lda temp1
+    sec
+    sbc temp2
+    sta temp                   // signed difference (target - current)
+    beq magnet_snap_to_center
+
+    bmi magnet_pull_left
+
+magnet_pull_right:
+    lda temp                   // positive difference
+    cmp #$02
+    bcc magnet_snap_to_center
+    sta temp2
+    lda temp2
+    asl
+    asl
+    ora #MagnetHorizontalMin
+    cmp #MagnetHorizontalVelocity
+    bcc magnet_pull_right_speed_ready
+    lda #MagnetHorizontalVelocity
+magnet_pull_right_speed_ready:
+    jsr store_xv
+    jmp magnet_horizontal_done
+
+magnet_pull_left:
+    lda temp
+    eor #$ff
+    clc
+    adc #$01                  // absolute difference
+    cmp #$02
+    bcc magnet_snap_to_center
+    sta temp2
+    lda temp2
+    asl
+    asl
+    ora #MagnetHorizontalMin
+    cmp #MagnetHorizontalVelocity
+    bcc magnet_pull_left_speed_ready
+    lda #MagnetHorizontalVelocity
+magnet_pull_left_speed_ready:
+    eor #$ff
+    clc
+    adc #$01
+    jsr store_xv
+    jmp magnet_horizontal_done
+
+magnet_snap_to_center:
+    lda temp1
+    jsr store_xl
+    lda #$00
+    jsr store_xv
+
+magnet_horizontal_done:
+    jsr get_yl
+    cmp #TopOfPaddle
+    bcc apply_paddle_magnetism_done   // Still above the paddle
+
+    lda temp1
+    jsr store_xl
+    lda #TopOfPaddle
+    jsr store_yl
+    lda #$00
+    jsr store_xv
+    lda #$00
+    jsr store_yv
+    jsr get_flags
+    ora #%00000010
+    and #%11110011
+    jsr store_flags
+    FRAME_COLOR(3)
+
+apply_paddle_magnetism_done:
+    rts
+
 /*
     When the current ball is motionless, place it on top of the paddle and
     align the horizontal position with the paddle.
@@ -898,6 +1065,30 @@ check_brick_collision:
     bne continue_check
     rts
 
+activate_paddle_magnet:
+    jsr sfx_play_paddle_power
+    lda #$00
+    jsr store_xa
+    lda #$00
+    jsr store_ya
+    lda #$00
+    jsr store_xv
+    lda #$00
+    jsr store_yv
+    jsr get_flags
+    and #%11110101              // Clear resting & slowdown bits if they were set
+    ora #BallFlagPaddleMagnet   // Enable the magnet state
+    jsr store_flags
+rts
+
+    clear_brick:
+        lda #$20                // Clear using space
+        sta (ZeroPage_PtrLo),y
+        iny
+        sta (ZeroPage_PtrLo),y
+        jsr brick_updates
+    rts
+    
     continue_check:
         lda #BrickCollisionAxisVertical
         sta brickCollisionAxis
@@ -916,25 +1107,25 @@ check_brick_collision:
         // Test Pr - RIGHT
         LIBSPRITE_COLLISION(18, 10)
     rts
-
-    clear_brick:
-        lda #$20                // Clear using space
-        sta (ZeroPage_PtrLo),y
-        iny
-        sta (ZeroPage_PtrLo),y
-        jsr brick_updates
-    rts
     
+    // Power-up: Add an extra ball
     extra_ball_brick:
         jsr clear_brick
         jsr spawn_extra_ball
         jmp bounce_on_brick
 
+    // Power-up: Expand the paddle
     expand_paddle_brick:
         jsr clear_brick
         jsr paddle_enable_wide
         jmp bounce_on_brick
-    
+
+    // Power-up: Magnetize the ball to the paddle
+    paddle_magnet_brick:
+        jsr clear_brick
+        jsr activate_paddle_magnet
+        jmp bounce_on_brick
+
     /*
         The character under the sprite has the PETSCII code 128 or higher which
         means it is a game piece. So we detect exactly which and act
@@ -945,35 +1136,47 @@ check_brick_collision:
         cmp #$f0                // simply bounce if a wall/hard brick
         bcs bounce_on_brick     // If A ≥ 240 → bounce
 
-        // Brick that adds speed to the left
+        // Power-up that adds speed to the left
         cmp #$e0
         beq speed_left
 
-        // Brick that adds speed to the right
+        // Power-up that adds speed to the right
         cmp #$e1
         beq speed_right
 
-        // Brick that adds speed downwards
+        // Power-up that adds speed downwards
         cmp #$e2
         beq speed_down
 
-        // Brick that adds speed upwards
+        // Power-up that adds speed upwards
         cmp #$e3
         beq speed_up
 
-        // Brick that spawns an extra ball
+        // Power-up that spawns an extra ball
         cmp #$82
         beq extra_ball_brick
 
+        // Power-up that spawns an extra ball
         cmp #$83
         beq extra_ball_brick
 
+        // Power-up that expands the paddle size
         cmp #$86
         beq expand_paddle_brick
 
+        // Power-up that expands the paddle size
         cmp #$87
         beq expand_paddle_brick
 
+        // Power-up that magnetizes the ball to the paddle
+        cmp #$8a
+        beq paddle_magnet_brick
+
+        // Power-up that magnetizes the ball to the paddle
+        cmp #$8b
+        beq paddle_magnet_brick
+
+        // Basic brick that just clears
         jsr clear_brick
         jmp bounce_on_brick
 
@@ -1397,7 +1600,8 @@ bounce_flag_already_set:
 
         // Add some extra velocity to the ball
         jsr get_yv          // Change the direction of the velocity
-        sbc #VelocityLoss+8
+        sec
+        sbc #VelocityGainFromHit
         jsr store_yv
         jsr sfx_play_paddle_power
         jmp bounce_end
