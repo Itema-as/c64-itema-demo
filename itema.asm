@@ -9,9 +9,10 @@
 */
 
 // Include .prg file assembly segments (ordered by runtime address)
-.file [name="itema.prg", segments="Basic,AnimationTable,Music,Sprites,Code,Variables,Charset,Levels"]
+.file [name="itema.prg", segments="Basic,AnimationTable,Music,Sprites,Code,Variables,Charset,Levels,TitleScreen,TitleBitmap,TitleColors"]
 
 .var music = LoadSid("./music/Calypso_Bar.sid")
+.var titleScreenBinary = LoadBinary("title.koa", BF_KOALA)
 
 
 .segmentdef Basic [start=$0801];
@@ -22,6 +23,9 @@
 .segmentdef Charset [startAfter="Variables", align=$800];
 .segmentdef Levels [startAfter="Charset"];
 .segmentdef Code [startAfter="Levels"];
+.segmentdef TitleColors [start=$1c00];
+.segmentdef TitleScreen [start=$8c00];
+.segmentdef TitleBitmap [start=$a000];
 
 // TODO: Pack music and write memcpy to move it to music.location
 .segment Music "Music"
@@ -54,6 +58,37 @@ BallFramePtr:
 .const MODE_GAME  = $00     // Actually play the game
 .const MODE_INTRO = $01     // Show intro screen and demo mode
 .const MODE_END   = $02     // Game has just ended
+.const MODE_INTRO_IMAGE = $03 // Show Koala image before the intro screen
+
+/*
+$DD00 bit 0–1:
+
+00 → Bank 3: $C000–$FFFF
+01 → Bank 2: $8000–$BFFF
+10 → Bank 1: $4000–$7FFF
+11 → Bank 0: $0000–$3FFF
+
+bank_base    = $8000
+screen_index = (TITLE_SCREEN_ADDR - bank_base) / $0400
+char_index   = (TITLE_BITMAP_ADDR - bank_base) / $0800
+
+	$d018 = (screen_index << 4) | (char_index << 1)
+	      = (3 << 4) | (4 << 1)
+	      = $30 | $08
+	      = $38
+	*/
+.const TITLE_BITMAP_ADDR   = $a000
+.const TITLE_SCREEN_ADDR   = $8c00
+.const TITLE_DURATION      = 250 // 5 seconds at 50Hz IRQ
+.const TITLE_BANK_VALUE    = $01 // CI2PRA bank bits for VIC bank 2 ($8000-$bfff)
+.const TITLE_VMCSB_VALUE   = $38 // Screen at $8c00 (screen index 3), bitmap at $a000 (bitmap index 4) in bank 2
+.const TITLE_SCROLY_VALUE  = $3b // Bitmap mode, 25 rows, no v-scroll
+.const TITLE_SCROLX_VALUE  = $18 // Multicolor bitmap, 40 cols, no h-scroll
+.const TITLE_BITMAP_SIZE   = titleScreenBinary.getBitmapSize()
+.const TITLE_SCREEN_SIZE   = titleScreenBinary.getScreenRamSize()
+.const TITLE_COLOR_SIZE    = titleScreenBinary.getColorRamSize()
+.const TITLE_COLOR_PAGES   = 4                     // Koala color RAM is 1000 bytes
+.const TITLE_COLOR_REMAINDER = TITLE_COLOR_SIZE - (TITLE_COLOR_PAGES-1)*$100
 
  // When launching the ball from the paddle
 .const LAUNCH_VELOCITY = $60
@@ -138,12 +173,26 @@ StartingXPosition:
 
 StartingYPosition:
     .byte 0
+
+introImageTimer:
+    .byte 0
+
+titleScreenBinaryVicBankBackup:
+    .byte 0
+titleScreenBinaryVmcsbBackup:
+    .byte 0
+titleScreenBinaryScrolxBackup:
+    .byte 0
+titleScreenBinaryScrolyBackup:
+    .byte 0
+titleScreenBinaryCi2ddraBackup:
+    .byte 0
 /*******************************************************************************
  INITIALIZE THE THINGS
 *******************************************************************************/
 initialize:
 
-    lda MODE_INTRO              // Start in the intro mode
+    lda MODE_INTRO_IMAGE        // Start by showing the Koala intro image
     sta mode
 
     jsr KERNAL_CLRSCR           // Clear screen
@@ -248,7 +297,7 @@ initialize:
     and #%11101111              // by clearing bit #4 of $D016
     sta SCROLX
 
-    LOAD_SCREEN(0)              // Load the introduction screen
+    jsr start_intro_sequence    // Show Koala screen before intro
 
     jsr init_irq                // Initialize the IRQ
     jmp loop                    // Go go the endless main loop
@@ -258,6 +307,124 @@ initialize:
 *******************************************************************************/
 loop:
 jmp loop
+
+/*******************************************************************************
+ INTRO SEQUENCE
+*******************************************************************************/
+start_intro_sequence:
+    sei                         // Avoid KERNAL IRQs while setting up the picture
+    lda #TITLE_DURATION
+    sta introImageTimer
+
+    jsr sfx_disable
+    lda #$00
+    ldx #<music.init
+    ldy #>music.init
+    jsr music.init
+
+    lda CI2PRA
+    sta titleScreenBinaryVicBankBackup
+    lda VMCSB
+    sta titleScreenBinaryVmcsbBackup
+    lda SCROLX
+    sta titleScreenBinaryScrolxBackup
+    lda SCROLY
+    sta titleScreenBinaryScrolyBackup
+    lda CI2DDRA
+    sta titleScreenBinaryCi2ddraBackup
+
+    lda #$00
+    sta SPENA                   // Hide sprites while showing the picture
+
+    lda titleScreenBinaryCi2ddraBackup
+    ora #%00000011              // Ensure CIA2 port A low bits are outputs for VIC bank select
+    sta CI2DDRA
+
+    lda titleScreenBinaryVicBankBackup
+    and #%11111100
+    ora #TITLE_BANK_VALUE
+    sta CI2PRA
+
+    lda #TITLE_SCROLY_VALUE
+    sta SCROLY
+
+    lda #TITLE_SCROLX_VALUE
+    sta SCROLX
+
+    lda #TITLE_VMCSB_VALUE
+    sta VMCSB
+
+    lda titleScreenBinaryBackgroundColor
+    sta EXTCOL
+    sta BGCOL0
+    lda #$01                    // Default
+    sta BGCOL1
+    lda #$02                    // Default
+    sta BGCOL2
+
+    jsr intro_copy_koala_colors
+
+    lda MODE_INTRO_IMAGE
+    sta mode
+rts
+
+intro_image_tick:
+    lda introImageTimer
+    beq intro_image_done
+    dec introImageTimer
+    bne intro_image_return
+
+intro_image_done:
+    jsr finish_intro_sequence
+intro_image_return:
+rts
+
+finish_intro_sequence:
+    jsr paddle_disable_wide_silent
+
+    LOAD_SCREEN(0)
+
+    lda titleScreenBinaryVicBankBackup
+    sta CI2PRA
+    lda titleScreenBinaryVmcsbBackup
+    sta VMCSB
+    lda titleScreenBinaryCi2ddraBackup
+    sta CI2DDRA
+    lda titleScreenBinaryScrolxBackup
+    sta SCROLX
+    lda titleScreenBinaryScrolyBackup
+    sta SCROLY
+
+    lda #$00
+    sta BGCOL0
+    sta EXTCOL
+
+    lda MODE_INTRO
+    sta mode
+    jsr sfx_disable
+    lda #$03                    // The number of balls in demo mode
+    sta BallCount
+    jsr reset_sprite_data
+    lda #%11001111              // Enable all the three balls
+    sta SPENA
+
+    jsr gameUpdateHighScore
+    jsr gameUpdateScore
+
+    lda #$00
+    sta introImageTimer
+rts
+
+intro_copy_koala_colors:
+    ldx #$00
+intro_copy_koala_colors_loop:
+    .for (var i=0; i<TITLE_COLOR_PAGES; i++) {
+        lda titleScreenBinaryColors + i*$100, x
+        sta COLORRAM + i*$100, x
+    }
+    inx
+    bne intro_copy_koala_colors_loop
+rts
 
 /*
     Initialie the variables so that they are correct for starting a new game
@@ -469,6 +636,8 @@ irq_1:
     asl VICIRQ
 
     lda mode
+    cmp MODE_INTRO_IMAGE
+    beq irq_intro_image
     cmp MODE_GAME
     bne irq_play_music          // Only play music when we are not in the game
     jsr sfx_update
@@ -476,6 +645,12 @@ irq_1:
 
 irq_play_music:
     jsr music.play
+    jmp irq_audio_done
+
+irq_intro_image:
+    jsr music.play
+    jsr intro_image_tick
+    jmp IRQROMEXIT
 
 irq_audio_done:
 
@@ -524,28 +699,8 @@ check_mode_end:
     cmp MODE_END
     bne start_loop
 
-    lda #$00
-    ldx #<music.init
-    ldy #>music.init
-    jsr music.init
-
-    // Load intro screen and enable demo mode
-    
-    jsr paddle_disable_wide_silent // Make the paddle the normal size
-    LOAD_SCREEN(0)
-    lda MODE_INTRO
-    sta mode
-    jsr sfx_disable
-    lda #$03                    // The number of balls in demo mode
-    sta BallCount
-    jsr reset_sprite_data
-    lda #%11001111              // Enable all the three balls
-    sta SPENA
-
-    // Update the high score as it will have been overwritten
-    jsr gameUpdateHighScore
-    // We also want the last score to show
-    jsr gameUpdateScore
+    jsr start_intro_sequence
+    jmp IRQROMEXIT
 
     start_loop:
 
@@ -651,3 +806,21 @@ level_chars_hi:  .byte >level0_chars, >level1_chars, >level2_chars, >level3_char
     sta ZeroPage_PtrHi
     jsr load_screen
 }
+
+/*******************************************************************************
+ INTRO KOALA DATA
+*******************************************************************************/
+
+.segment TitleBitmap "Title Koala bitmap"
+titleScreenBinaryBitmap:
+    .fill TITLE_BITMAP_SIZE, titleScreenBinary.getBitmap(i)
+
+.segment TitleScreen "Title Koala screen"
+titleScreenBinaryScreen:
+    .fill TITLE_SCREEN_SIZE, titleScreenBinary.getScreenRam(i)
+
+.segment TitleColors "Title Koala colours"
+titleScreenBinaryColors:
+    .fill TITLE_COLOR_SIZE, titleScreenBinary.getColorRam(i)
+titleScreenBinaryBackgroundColor:
+    .byte titleScreenBinary.getBackgroundColor()

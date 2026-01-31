@@ -81,6 +81,7 @@
 // CIA #2 Registers (Generates NMI's)
 .label CI2PRA       = $DD00
 .label CI2PRB       = $DD01
+.label CI2DDRA      = $DD02
 .label CI2ICR       = $DD0D
 
 // Timer Registers
